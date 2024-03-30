@@ -1,11 +1,14 @@
 {
     "geode": "2.0.0",
-    "gd": "2.204",
+    "gd": {
+        "win": "2.204",
+        "android": "2.205"
+    },
     "version": "v1.0.0",
     "id": "ninkaz.editor_utils",
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
-    "description": "A collection of extra editor features to make creating a little easier",
+    "description": "A collection of extra editor features to make my life a little easier",
     "repository": "https://github.com/flurrybun/NinKaz's%20Editor%20Utils",
     "tags": ["Editor", "Interface", "Utility"],
     "dependencies": [
