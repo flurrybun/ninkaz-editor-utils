@@ -9,7 +9,7 @@
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
     "description": "A collection of extra editor features to make my life a little easier",
-    "repository": "https://github.com/flurrybun/NinKaz's%20Editor%20Utils",
+    "repository": "https://github.com/flurrybun/ninkaz-editor-utils",
     "tags": ["Editor", "Interface", "Utility"],
     "dependencies": [
         {
