@@ -1,5 +1,7 @@
 #include "AddRandomGroups.hpp"
 #include <Geode/ui/TextInput.hpp>
+#include <Geode/ui/Scrollbar.hpp>
+#include <Geode/ui/ScrollLayer.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -21,7 +23,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto infoText = "<cg>Randomly distributes groups</c> between the <cy>selected objects</c>.\n"
         "Define a <cl>range of groups</c> with a hypen. (e.g. 1-10)\n"
         "By default, linked objects are treated as a single object. Use <cp>ignore linked</c> to prevent this.\n"
-        "<cr>% coverage</c> changes the percentage of blocks that are assigned a group.";
+        "<cr>% coverage</c> controls the percentage of blocks that are assigned a group.";
     
     auto infoBtn = InfoAlertButton::create("Info", infoText, 0.7f);
     infoBtn->setPosition({158, 108});
@@ -83,7 +85,15 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     addBtn->setPosition(ccp(120, 70));
     m_buttonMenu->addChild(addBtn);
 
-    // GROUPS PANEL
+    // GROUPS SCROLLING PANEL
+
+    auto scrollLayer = ScrollLayer::create({300, 80});
+    scrollLayer->setAnchorPoint({0, 0});
+    scrollLayer->setPosition(winSize / 2 - scrollLayer->getContentSize() / 2);
+
+    auto scrollbar = Scrollbar::create(scrollLayer);
+    scrollbar->setPosition(winSize / 2 + ccp(158, 0));
+    // scrollbar->setVisible(false);
 
     auto groupBG = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     groupBG->setColor({ 0, 0, 0 });
@@ -100,12 +110,18 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
             ->setAxisAlignment(AxisAlignment::Start)
     );
     groupLayout->setContentSize({ 280.f, 0.f });
-    groupLayout->setPosition({winSize.width / 2 + 5, winSize.height / 2 + 25});
-    groupLayout->updateLayout(); // 289.5, 160
-    groupLayout->setAnchorPoint({0.5f, 1.f});
-    m_mainLayer->addChild(groupLayout);
+    groupLayout->setPosition({13, 65});
+    groupLayout->setAnchorPoint({0, 1});
+
+    scrollLayer->m_contentLayer->addChild(groupLayout);
+    m_mainLayer->addChild(scrollbar);
+    m_mainLayer->addChild(scrollLayer);
 
     m_layout = groupLayout;
+    m_scrollLayer = scrollLayer;
+    m_scrollbar = scrollbar;
+
+    handleTouchPriority(this);
 
     // "% COVERAGE" INPUT
 
@@ -209,8 +225,6 @@ void AddRandomGroupsPopup::onNextFree(CCObject* sender) {
 }
 
 void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
-    if (m_groups.size() >= 10) return;
-    
     auto inputStr = m_groupInput->getString();
     if (std::regex_match(inputStr, std::regex("^\\d+-\\d+$"))) {
         auto rangeStart = stoi(inputStr.substr(0, inputStr.find("-")));
@@ -222,11 +236,8 @@ void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
         if (rangeEnd < rangeStart) std::swap(rangeStart, rangeEnd);
 
         for (int i = rangeStart; i <= rangeEnd; i++) {
-            if (m_groups.size() >= 10) break;
-            
             if (std::find(m_groups.begin(), m_groups.end(), i) == m_groups.end()) {
-                m_groups.push_back(i);
-                m_layout->addChild(createGroupButton(i));
+                addGroupButton(i);
             }
         }
     } else {
@@ -234,15 +245,14 @@ void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
         if (inputValue < 1 || inputValue > 9999) return;
         if (std::find(m_groups.begin(), m_groups.end(), inputValue) != m_groups.end()) return;
 
-        m_groups.push_back(inputValue);
-        m_layout->addChild(createGroupButton(inputValue));
+        addGroupButton(inputValue);
     }
 
     sort(m_groups.begin(), m_groups.end());
-    m_layout->updateLayout();
+    onChangeGroups();
 }
 
-CCMenuItemSpriteExtra* AddRandomGroupsPopup::createGroupButton(short group) {
+void AddRandomGroupsPopup::addGroupButton(short group) {
     auto label = std::to_string(group);
     auto spr = ButtonSprite::create(label.c_str(), 30, true, "goldFont.fnt", "GJ_button_04.png", 20.f, 0.5f);
     
@@ -251,7 +261,16 @@ CCMenuItemSpriteExtra* AddRandomGroupsPopup::createGroupButton(short group) {
     );
     btn->setTag(group);
 
-    return btn;
+    m_groups.push_back(group);
+
+    auto upper = std::upper_bound(m_groups.begin(), m_groups.end(), group);
+    
+    if (upper != m_groups.end()) {
+        auto after = static_cast<CCNode*>(m_layout->getChildren()->objectAtIndex(upper - m_groups.begin()));
+        m_layout->insertBefore(btn, after);
+    } else {
+        m_layout->addChild(btn);
+    }
 }
 
 void AddRandomGroupsPopup::onRemoveGroup(CCObject* sender) {
@@ -261,6 +280,26 @@ void AddRandomGroupsPopup::onRemoveGroup(CCObject* sender) {
     auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
     m_layout->removeChild(btn, true);
     m_layout->updateLayout();
+
+    onChangeGroups();
+}
+
+void AddRandomGroupsPopup::onChangeGroups() {
+    auto numRows = static_cast<int>(ceil(m_groups.size() / 5));
+    if (numRows <= 2) numRows = 2;
+
+    // m_scrollbar->setVisible(m_groups.size() > 10);
+
+    short BTN_HEIGHT = 20;
+    short PAD_HEIGHT = 10;
+    
+    auto contentHeight = numRows * BTN_HEIGHT + (numRows - 1) * PAD_HEIGHT;
+
+    m_scrollLayer->m_contentLayer->setContentSize({300, static_cast<float>(contentHeight) + 30});
+    m_layout->setPosition({13, static_cast<float>(contentHeight) + 15});
+
+    m_layout->updateLayout();
+    m_scrollLayer->moveToTop();
 }
 
 void AddRandomGroupsPopup::assignGroups() {
