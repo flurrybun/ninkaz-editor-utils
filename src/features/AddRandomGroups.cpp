@@ -285,7 +285,7 @@ void AddRandomGroupsPopup::onRemoveGroup(CCObject* sender) {
 }
 
 void AddRandomGroupsPopup::onChangeGroups() {
-    auto numRows = static_cast<int>(ceil(m_groups.size() / 5));
+    auto numRows = static_cast<int>(ceil(m_groups.size() / 5.f));
     if (numRows <= 2) numRows = 2;
 
     // m_scrollbar->setVisible(m_groups.size() > 10);
