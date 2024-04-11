@@ -371,7 +371,7 @@ void AddRandomGroupsPopup::onApply(CCObject* sender) {
     }
     
     assignGroups();
-    removeFromParent();
+    onClose(sender);
 }
 
 AddRandomGroupsPopup* AddRandomGroupsPopup::create(CCArray* selectedObjects) {
