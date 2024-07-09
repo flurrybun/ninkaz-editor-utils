@@ -1,21 +1,27 @@
 {
-    "geode": "2.0.0-beta.26",
+    "geode": "3.2.0",
     "gd": {
-        "win": "2.204",
-        "android": "2.205"
+        "win": "2.206",
+        "android": "2.206",
+        "mac": "2.206"
     },
-    "version": "v1.0.0",
+    "version": "v1.1.0",
     "id": "ninkaz.editor_utils",
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
     "description": "A collection of extra editor features to make my life a little easier",
     "repository": "https://github.com/flurrybun/ninkaz-editor-utils",
-    "tags": ["Editor", "Interface", "Utility"],
+    "tags": ["editor", "interface", "utility"],
     "dependencies": [
         {
             "id": "geode.node-ids",
             "version": "v1.7.1",
             "importance": "required"
         }
-    ]
+    ],
+    "resources": {
+        "spritesheets": {
+            "OperatorSheet": ["resources/operators/*.png"]
+        }
+    }
 }
