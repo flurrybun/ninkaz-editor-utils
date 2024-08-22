@@ -846,7 +846,10 @@ bool SettingsPopup::setup(MixedInputSettings settings, std::function<void(MixedI
             ->setNextGap(10.f)
         );
 
-        m_roundingBtns.push_back(btn);
+        if (m_settings.rounding == roundingType) {
+            btn->toggle(true);
+            m_roundingBtn = btn;
+        }
 
         roundingLayout->addChild(btn);
         roundingLayout->addChild(label);
@@ -854,10 +857,6 @@ bool SettingsPopup::setup(MixedInputSettings settings, std::function<void(MixedI
 
     roundingLayout->updateLayout();
     m_mainLayer->addChildAtPosition(roundingLayout, Anchor::Center, {0, 8});
-
-    for (auto& btn : m_roundingBtns) {
-        btn->toggle(m_settings.rounding == static_cast<RoundingType>(btn->getTag()));
-    }
 
     // OK BUTTON
 
@@ -873,13 +872,12 @@ bool SettingsPopup::setup(MixedInputSettings settings, std::function<void(MixedI
 }
 
 void SettingsPopup::onRoundingButton(CCObject* sender) {
+    if (m_roundingBtn) m_roundingBtn->toggle(false);
+
     auto btn = static_cast<CCMenuItemToggler*>(sender);
+    m_roundingBtn = btn;
+    
     m_settings.rounding = static_cast<RoundingType>(btn->getTag());
-
-    for (auto& btn : m_roundingBtns) {
-        if (btn != sender) btn->toggle(false);
-    }
-
     m_callback(m_settings);
 }
 

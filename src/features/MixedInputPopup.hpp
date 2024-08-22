@@ -73,7 +73,7 @@ class SettingsPopup : public Popup<MixedInputSettings, std::function<void(MixedI
 protected:
     MixedInputSettings m_settings;
     std::function<void(MixedInputSettings)> m_callback;
-    CCArrayExt<CCMenuItemToggler*> m_roundingBtns;
+    CCMenuItemToggler* m_roundingBtn;
 
     bool setup(MixedInputSettings, std::function<void(MixedInputSettings)>) override;
     void onRoundingButton(CCObject*);
