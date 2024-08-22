@@ -22,7 +22,8 @@ struct Trigger {
             { 901, Trigger(false, true, false, true, true, true, false) }, //move
             { 1006, Trigger(true, false, false, true, false, false, false) }, //pulse
             { 1007, Trigger(false, true, true, true, false, false, false) }, //alpha
-            { 1268, Trigger(false, true, false, true, false, false, false) }, //spawn
+            { 1268, Trigger(false, false, false, true, false, false, false) }, //spawn
+                // spawn trigger delay doesn't use m_duration
             { 1346, Trigger(false, true, false, true, true, true, false) }, //rotate
             { 2067, Trigger(false, true, false, true, true, true, false) }, //scale
             { 1347, Trigger(false, true, false, true, true, false, false) }, //follow
@@ -45,6 +46,14 @@ struct Trigger {
             case EasingType::BackInOut: return "Back In Out"; case EasingType::BackIn: return "Back In"; case EasingType::BackOut: return "Back Out";
         }
         return "";
+    }
+
+    static bool isPropTypeFloat(PropType type) {
+        return type == Duration || type == Opacity;
+    }
+
+    static bool canPropTypeBeNegative(PropType type) {
+        return false;
     }
     
     EffectGameObject* object;
@@ -91,7 +100,7 @@ struct Trigger {
         return false;
     };
 
-    std::variant<std::monostate, int, float, EasingType> getProperty(PropType type) const {
+    std::variant<std::monostate, int, float, EasingType> getProperty(PropType type) const {  
         switch (type) {
             case Color: return object->m_targetColor;
             case Duration: return object->m_duration;
@@ -112,6 +121,12 @@ struct Trigger {
         if (std::holds_alternative<EasingType>(prop)) return Trigger::getEasingString(std::get<EasingType>(prop));
     }
 
+    float getPropertyFloat(PropType type) const {
+        if (std::holds_alternative<float>(getProperty(type))) return std::get<float>(getProperty(type));
+        else if (std::holds_alternative<int>(getProperty(type))) return std::get<int>(getProperty(type));
+        return 0;
+    }
+
     void setProperty(PropType type, std::variant<int, float, EasingType> value) {
         switch (type) {
             case Color: object->m_targetColor = std::get<int>(value); break;
@@ -122,10 +137,5 @@ struct Trigger {
             case Easing: object->m_easingType = std::get<EasingType>(value); break;
             case Item: object->m_itemID = std::get<int>(value); break;
         }
-    };
-
-    template<typename T>
-    T getProperty(PropType type) const {
-        return std::get<T>(getProperty(type));
     };
 };
