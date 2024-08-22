@@ -134,10 +134,10 @@ void MixedInputPopup::createFirstPageRow() {
         unselectedBaseSpr->setContentSize({35, 35});
         unselectedBaseSpr->setScale(0.8f);
 
-        auto name = operatorType == Operator::Add ? "plus-operator.png"_spr :
-            operatorType == Operator::Subtract ? "minus-operator.png"_spr :
-            operatorType == Operator::Multiply ? "multiply-operator.png"_spr :
-            operatorType == Operator::Divide ? "divide-operator.png"_spr : "equal-operator.png"_spr;
+        auto name = operatorType == Operator::Add ? "plus-btn.png"_spr :
+            operatorType == Operator::Subtract ? "minus-btn.png"_spr :
+            operatorType == Operator::Multiply ? "multiply-btn.png"_spr :
+            operatorType == Operator::Divide ? "divide-btn.png"_spr : "equal-btn.png"_spr;
 
         auto topSpr = CCSprite::createWithSpriteFrameName(name);
         topSpr->setPosition(selectedBaseSpr->getContentSize() / 2);
@@ -220,7 +220,7 @@ void MixedInputPopup::createFirstPageRow() {
 
     // LABELS
 
-    auto operatorLabel = CCLabelBMFont::create("Operators", "goldFont.fnt");
+    auto operatorLabel = CCLabelBMFont::create("Operator", "goldFont.fnt");
     operatorLabel->setScale(0.6);
     operatorLabel->setPosition({winSize.width / 2 - 54, 93});
     menu->addChild(operatorLabel);
@@ -271,7 +271,7 @@ void MixedInputPopup::createSecondPageRow() {
         unselectedBaseSpr->setContentSize({35, 35});
         unselectedBaseSpr->setScale(0.8f);
 
-        auto topSpr = CCSprite::createWithSpriteFrameName(directionType != DirectionType::None ? "settings-direction.png"_spr : "settings-no-direction.png"_spr);
+        auto topSpr = CCSprite::createWithSpriteFrameName(directionType != DirectionType::None ? "direction-btn.png"_spr : "no-direction-btn.png"_spr);
         topSpr->setPosition(selectedBaseSpr->getContentSize() / 2);
         topSpr->setScale(0.8f);
         topSpr->setRotation(directionType == DirectionType::Up ? -90 :
@@ -524,15 +524,15 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         auto signOptions = AxisLayoutOptions::create()
             ->setMaxScale(0.6f);
 
-        auto signName = m_operator == Operator::Add ? "plus-operator.png"_spr :
-            m_operator == Operator::Subtract ? "minus-operator.png"_spr :
-            m_operator == Operator::Multiply ? "multiply-operator.png"_spr :
-            m_operator == Operator::Divide ? "divide-operator.png"_spr : "equal-operator.png"_spr;
+        auto signName = m_operator == Operator::Add ? "plus-bigFont.png"_spr :
+            m_operator == Operator::Subtract ? "minus-bigFont.png"_spr :
+            m_operator == Operator::Multiply ? "multiply-bigFont.png"_spr :
+            m_operator == Operator::Divide ? "divide-bigFont.png"_spr : "equal-bigFont.png"_spr;
 
         auto sign = CCSprite::createWithSpriteFrameName(signName);
 
         sign->setLayoutOptions(signOptions);
-        auto equalSign = CCSprite::createWithSpriteFrameName("equal-operator.png"_spr);
+        auto equalSign = CCSprite::createWithSpriteFrameName("equal-bigFont.png"_spr);
         equalSign->setLayoutOptions(signOptions);
 
         calcLayout->addChild(oldLabel);

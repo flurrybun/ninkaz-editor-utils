@@ -20,7 +20,7 @@
     ],
     "resources": {
         "spritesheets": {
-            "OperatorSheet": ["resources/operators/*.png"]
+            "MultiEditSheet": ["resources/multi-edit/*.png"]
         }
     }
 }
