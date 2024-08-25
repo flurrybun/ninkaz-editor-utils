@@ -1,6 +1,6 @@
 #include "MixedInputPopup.hpp"
+#include "Trigger.hpp"
 #include <Geode/ui/TextInput.hpp>
-#include <Geode/ui/BasedButtonSprite.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;

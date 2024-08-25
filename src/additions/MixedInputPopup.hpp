@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-#include "MultiEditTriggers.hpp"
 
 using namespace geode::prelude;
 

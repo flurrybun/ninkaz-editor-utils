@@ -1,6 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/EditorPauseLayer.hpp>
-#include "features/AddRandomGroups.hpp"
+#include "../additions/AddRandomGroups.hpp"
 
 using namespace geode::prelude;
 

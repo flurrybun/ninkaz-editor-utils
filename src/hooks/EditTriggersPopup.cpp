@@ -1,15 +1,10 @@
-#include "MultiEditTriggers.hpp"
-#include "MixedInputPopup.hpp"
+#include "../additions/Trigger.hpp"
+#include "../additions/MixedInputPopup.hpp"
 #include <Geode/modify/EditTriggersPopup.hpp>
 #include <Geode/ui/TextInput.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
-
-#include <map>
-#include <vector>
-#include <algorithm>
-#include <iterator>
 
 class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
     struct Fields {

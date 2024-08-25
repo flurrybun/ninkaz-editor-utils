@@ -6,9 +6,8 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(NinKazEditorUtils VERSION 1.0.0)
 
-file(GLOB PROJECT_SOURCES
-	src/*.cpp
-    src/features/*.cpp
+file(GLOB_RECURSE PROJECT_SOURCES
+    src/*.cpp
 )
 
 # Set up the mod binary
