@@ -13,7 +13,7 @@ struct MixedInputSettings {
     RoundingType rounding;
 };
 
-class MixedInputPopup : public Popup<const std::vector<Trigger>&, Trigger::PropType> {
+class MixedInputPopup : public Popup<const CCArrayExt<EffectGameObject*>&, const short> {
 protected:
     enum Operator {
         Add, Subtract, Multiply, Divide, Equal
@@ -23,8 +23,8 @@ protected:
         None, Up, Down, Left, Right
     };
     
-    std::vector<Trigger> m_triggers;
-    Trigger::PropType m_type;
+    CCArrayExt<EffectGameObject*> m_triggers;
+    short m_property;
     Operator m_operator;
     float m_modifierValue;
     float m_initialValue;
@@ -43,13 +43,13 @@ protected:
         std::string propertyString;
         std::string changeString;
         std::string newPropertyString;
-        std::vector<Trigger> triggers;
+        CCArrayExt<EffectGameObject*> triggers;
 
-        CalculationInfo(const std::string& propStr, const std::string& changeStr, const std::string& newPropStr, const std::vector<Trigger>& trig)
+        CalculationInfo(const std::string& propStr, const std::string& changeStr, const std::string& newPropStr, const CCArrayExt<EffectGameObject*>& trig)
             : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), triggers(trig) {}
     };
 
-    bool setup(const std::vector<Trigger>&, Trigger::PropType) override;
+    bool setup(const CCArrayExt<EffectGameObject*>&, const short) override;
 
     void createFirstPageRow();
     void createSecondPageRow();
@@ -64,9 +64,9 @@ protected:
     std::string toTruncatedString(float);
     std::string toRoundedString(float);
     float applyOperation(float, float, Operator);
-    std::vector<MixedInputPopup::CalculationInfo> createStringMap(const std::vector<Trigger>&);
+    std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
-    static MixedInputPopup* create(const std::vector<Trigger>&, Trigger::PropType);
+    static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short);
 };
 
 class SettingsPopup : public Popup<MixedInputSettings, std::function<void(MixedInputSettings)>> {

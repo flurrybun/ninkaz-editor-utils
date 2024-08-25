@@ -7,20 +7,18 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(const std::vector<Trigger>& triggers, Trigger::PropType type) {
-    auto filteredTriggers = triggers;
-    filteredTriggers.erase(
-        std::remove_if(filteredTriggers.begin(), filteredTriggers.end(), [type](const Trigger& trigger) {
-            return !trigger.hasProperty(type);
-        }),
-        filteredTriggers.end()
-    );
-    
-    m_triggers = filteredTriggers;
-    m_type = type;
+bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short property) {
+    CCArrayExt<EffectGameObject*> filteredTriggers;
+    for (auto trigger : triggers) {
+        if (Trigger::hasProperty(trigger, property)) {
+            m_triggers.push_back(trigger);
+        }
+    }
+
+    m_property = property;
     m_operator = Operator::Equal;
-    m_isFloat = Trigger::isPropTypeFloat(type);
-    m_canBeNegative = Trigger::canPropTypeBeNegative(type);
+    m_isFloat = Trigger::isPropertyFloat(property);
+    m_canBeNegative = Trigger::canPropertyBeNegative(property);
 
     m_modifierValue = 0;
     m_initialValue = 0;
@@ -434,7 +432,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         m_scroll->m_contentLayer->removeAllChildren();
     }
 
-    auto stringMap = createStringMap(m_triggers);
+    auto stringMap = createStringMap();
     
     size_t length = stringMap.size();
     size_t index = 0;
@@ -448,7 +446,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
         uniqueTriggerIDs.clear();
         for (const auto& trigger : triggers) {
-            uniqueTriggerIDs.insert(trigger.object->m_objectID);
+            uniqueTriggerIDs.insert(trigger->m_objectID);
         }
 
         int triggerCount = uniqueTriggerIDs.size();
@@ -477,8 +475,8 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
 
         std::map<int, std::pair<CCSpriteFrame*, int>> triggerCounts;
         for (const auto& trigger : triggers) {
-            auto count = triggerCounts[trigger.object->m_objectID].second;
-            triggerCounts[trigger.object->m_objectID] = {trigger.object->displayFrame(), count + 1};
+            auto count = triggerCounts[trigger->m_objectID].second;
+            triggerCounts[trigger->m_objectID] = {trigger->displayFrame(), count + 1};
         }
 
         for (const auto& [id, pair] : triggerCounts) {
@@ -609,14 +607,12 @@ void MixedInputPopup::onDirection(CCObject* sender) {
     if (incArrowBtn) incArrowBtn->setEnabled(m_direction != DirectionType::None);
     if (cover) cover->setVisible(m_direction == DirectionType::None);
 
-    std::sort(m_triggers.begin(), m_triggers.end(), [&](const Trigger& a, const Trigger& b) {
-        auto aObj = a.object;
-        auto bObj = b.object;
+    std::sort(m_triggers.begin(), m_triggers.end(), [&](const EffectGameObject* a, const EffectGameObject* b) {
 
-        if (m_direction == DirectionType::Left) return aObj->m_positionX > bObj->m_positionX;
-        else if (m_direction == DirectionType::Right) return aObj->m_positionX < bObj->m_positionX;
-        else if (m_direction == DirectionType::Up) return aObj->m_positionY < bObj->m_positionY;
-        else if (m_direction == DirectionType::Down) return aObj->m_positionY > bObj->m_positionY;
+        if (m_direction == DirectionType::Left) return a->m_positionX > b->m_positionX;
+        else if (m_direction == DirectionType::Right) return a->m_positionX < b->m_positionX;
+        else if (m_direction == DirectionType::Up) return a->m_positionY < b->m_positionY;
+        else if (m_direction == DirectionType::Down) return a->m_positionY > b->m_positionY;
 
         return false;
     });
@@ -665,11 +661,10 @@ void MixedInputPopup::onSettings(CCObject* sender) {
 void MixedInputPopup::onApply(CCObject* sender) {
     if (m_direction == DirectionType::None) {
         for (auto& trigger : m_triggers) {
-            auto property = trigger.getPropertyFloat(m_type);
+            auto property = Trigger::getProperty(trigger, m_property);
             auto newProperty = applyOperation(property, m_modifierValue, m_operator);
 
-            if (m_isFloat) trigger.setProperty(m_type, newProperty);
-            else trigger.setProperty(m_type, static_cast<int>(std::round(newProperty)));
+            Trigger::setProperty(trigger, m_property, newProperty);
         }
     } else {
         size_t count = 0;
@@ -680,8 +675,7 @@ void MixedInputPopup::onApply(CCObject* sender) {
             auto roundedProperty = m_rounding == RoundingType::Round ? std::round(newProperty) :
                 m_rounding == RoundingType::Floor ? std::floor(newProperty) : std::ceil(newProperty);
 
-            if (m_isFloat) trigger.setProperty(m_type, newProperty);
-            else trigger.setProperty(m_type, static_cast<int>(roundedProperty));
+            Trigger::setProperty(trigger, m_property, newProperty);
 
             count++;
         }
@@ -723,20 +717,20 @@ std::string MixedInputPopup::toRoundedString(float value) {
     return std::to_string(static_cast<int>(roundedValue));
 }
 
-std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap(const std::vector<Trigger>& triggers) {
+std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap() {
     std::vector<CalculationInfo> calcVector;
 
     size_t index = 0;
 
     auto hasNoDirection = m_direction == DirectionType::None;
 
-    for (const auto& trigger : triggers) {
+    for (const auto& trigger : m_triggers) {
         float property;
         float change;
         float newProperty;
 
         if (hasNoDirection) {
-            property = trigger.getPropertyFloat(m_type);
+            property = Trigger::getProperty(trigger, m_property);
             change = m_modifierValue;
             newProperty = applyOperation(property, m_modifierValue, m_operator);
         } else {
@@ -749,14 +743,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap(c
         auto changeString = m_operator != Operator::Equal ? toTruncatedString(change) : "0";
         auto newPropertyString = m_isFloat ? toTruncatedString(newProperty) : toRoundedString(newProperty);
 
-        // std::map<int, std::pair<CCSpriteFrame*, int>> triggerCounts;
-        
-        // for (const auto& trigger : triggers) {
-        //     auto count = triggerCounts[trigger.object->m_objectID].second;
-        //     triggerCounts[trigger.object->m_objectID] = {trigger.object->displayFrame(), count + 1};
-        // }
-
-        CalculationInfo calcInfo(propertyString, changeString, newPropertyString, {trigger});
+        CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 
         if (hasNoDirection) {
             // group triggers with the same property string
@@ -777,9 +764,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap(c
     return calcVector;
 }
 
-MixedInputPopup* MixedInputPopup::create(const std::vector<Trigger>& triggers, Trigger::PropType type){
+MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short property){
     auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, triggers, type)) {
+    if (ret && ret->initAnchored(380.f, 280.f, triggers, property)) {
         ret->autorelease();
         return ret;
     }

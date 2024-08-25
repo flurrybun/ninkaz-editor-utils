@@ -13,8 +13,16 @@ using namespace geode::prelude;
 
 class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
     struct Fields {
-        std::vector<Trigger> m_triggers;
+        CCArrayExt<EffectGameObject*> m_triggers;
         CCLabelBMFont* m_easingLabel;
+    };
+
+    enum GroupMenuType {
+        TargetGroup, CenterGroup, Item
+    };
+
+    enum SliderMenuType {
+        Duration, Opacity
     };
 
     std::string floatToRoundedString(float value) {
@@ -46,12 +54,16 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
             if (value > 9999) value = 9999;
 
             for (auto& trigger : m_fields->m_triggers) {
-                if (type == GroupMenuType::TargetGroup && trigger.hasTargetGroup) {
-                    trigger.object->m_targetGroupID = value;
-                } else if (type == GroupMenuType::CenterGroup && trigger.hasCenterGroup) {
-                    trigger.object->m_centerGroupID = value;
-                } else if (type == GroupMenuType::Item && trigger.hasItem) {
-                    trigger.object->m_itemID = value;
+                auto hasTargetGroup = Trigger::hasProperty(trigger, Trigger::TARGET_GROUP);
+                auto hasCenterGroup = Trigger::hasProperty(trigger, Trigger::CENTER_GROUP);
+                auto hasItem = Trigger::hasProperty(trigger, Trigger::ITEM);
+
+                if (type == GroupMenuType::TargetGroup && hasTargetGroup) {
+                    Trigger::setProperty(trigger, Trigger::TARGET_GROUP, value);
+                } else if (type == GroupMenuType::CenterGroup && hasCenterGroup) {
+                    Trigger::setProperty(trigger, Trigger::CENTER_GROUP, value);
+                } else if (type == GroupMenuType::Item && hasItem) {
+                    Trigger::setProperty(trigger, Trigger::ITEM, value);
                 }
             }
         });
@@ -129,10 +141,13 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
             if (type == SliderMenuType::Duration) slider->setValue(value / 10);
 
             for (auto& trigger : m_fields->m_triggers) {
-                if (type == SliderMenuType::Duration && trigger.hasDuration) {
-                    trigger.object->m_duration = value;
-                } else if (type == SliderMenuType::Opacity && trigger.hasOpacity) {
-                    trigger.object->m_opacity = value;
+            auto hasDuration = Trigger::hasProperty(trigger, Trigger::DURATION);
+            auto hasOpacity = Trigger::hasProperty(trigger, Trigger::OPACITY);
+
+                if (type == SliderMenuType::Duration && hasDuration) {
+                    Trigger::setProperty(trigger, Trigger::DURATION, value);
+                } else if (type == SliderMenuType::Opacity && hasOpacity) {
+                    Trigger::setProperty(trigger, Trigger::OPACITY, value);
                 }
             }
         });
@@ -179,11 +194,11 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         label->limitLabelWidth(125, 0.56, 0.1);
 
         for (auto& trigger : m_fields->m_triggers) {
-            trigger.object->m_easingType = static_cast<EasingType>(index);
+            Trigger::setProperty(trigger, Trigger::EASING, index);
         }
     }
     
-    CCMenu* createEasingMenu(std::optional<EasingType> initialValue) {
+    CCMenu* createEasingMenu(std::optional<int> initialValue) {
         auto menu = CCMenu::create();
         menu->setContentSize({ 180, 40 });
         auto center = ccp(90, 23);
@@ -193,7 +208,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         title->setPosition(center + ccp(0, 12));
         title->setScale(0.64);
 
-        auto labelText = initialValue.has_value() ? Trigger::getEasingString(*initialValue) : "Mixed";
+        auto labelText = initialValue.has_value() ? Trigger::getEasingString(static_cast<EasingType>(*initialValue)) : "Mixed";
         auto label = CCLabelBMFont::create(labelText.c_str(), "bigFont.fnt");
         label->setPosition(center + ccp(0, -12));
         label->limitLabelWidth(125, 0.56, 0.1);
@@ -226,7 +241,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         return menu;
     };
 
-    void setMenuToMixed(CCMenu* menu, Trigger::PropType type) {
+    void setMenuToMixed(CCMenu* menu, short property) {
         auto input = getChildOfType<TextInput>(menu, 0);
         if (input) {
             input->setEnabled(false);
@@ -245,7 +260,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
 
             auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MultiEditTriggersPopup::onMixedInput));
             btn->setPosition(input->getPosition());
-            btn->setTag(static_cast<int>(type));
+            btn->setTag(property);
 
             menu->addChild(btn);
         };
@@ -256,32 +271,28 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
 
     void onMixedInput(CCObject* sender) {
         auto& triggers = m_fields->m_triggers;
-        auto type = static_cast<Trigger::PropType>(sender->getTag());
+        auto property = static_cast<short>(sender->getTag());
 
-        auto alert = MixedInputPopup::create(triggers, type);
+        auto alert = MixedInputPopup::create(triggers, property);
 
         alert->m_noElasticity = true;
         alert->show();
     }
 
-    template<typename T>
-    std::optional<T> getInitialTriggerValue(const std::vector<Trigger>& triggers, Trigger::PropType type) {
-        std::variant<std::monostate, int, float, EasingType> firstResult = std::monostate{};
+    std::optional<float> getInitialTriggerValue(const CCArrayExt<EffectGameObject*>& triggers, const short property) {
+        std::optional<float> firstResult = std::nullopt;
 
         for (const auto& trigger : triggers) {
-            if (trigger.hasProperty(type)) {
-                if (std::holds_alternative<std::monostate>(firstResult)) {
-                    firstResult = trigger.getProperty(type);
-                } else if (firstResult != trigger.getProperty(type)) {
+            if (Trigger::hasProperty(trigger, property)) {
+                if (firstResult == std::nullopt) {
+                    firstResult = Trigger::getProperty(trigger, property);
+                } else if (firstResult != Trigger::getProperty(trigger, property)) {
                     return std::nullopt;
                 }
             }
         }
 
-        if (std::holds_alternative<std::monostate>(firstResult))
-            return std::nullopt;
-
-        return std::get<T>(firstResult);
+        return firstResult;
     }
 
     bool init(EffectGameObject* p0, CCArray* p1) {
@@ -291,83 +302,80 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
 
         // GET TRIGGERS
 
-        auto& triggers = m_fields->m_triggers;
-        auto triggerGameObjects = static_cast<CCArrayExt<EffectGameObject*>>(p1);
+        CCArrayExt<EffectGameObject*> triggers = p1;
+        for (auto* trigger : triggers) m_fields->m_triggers.push_back(trigger);
 
-        std::transform(triggerGameObjects.begin(), triggerGameObjects.end(), std::back_inserter(m_fields->m_triggers), [](EffectGameObject* trigger) {
-            return Trigger(trigger);
-        });
+        auto initialDuration = getInitialTriggerValue(triggers, Trigger::DURATION);
+        auto initialOpacity = getInitialTriggerValue(triggers, Trigger::OPACITY);
+        auto initialTargetGroup = getInitialTriggerValue(triggers, Trigger::TARGET_GROUP);
+        auto initialCenterGroup = getInitialTriggerValue(triggers, Trigger::CENTER_GROUP);
+        auto initialEasingType = getInitialTriggerValue(triggers, Trigger::EASING);
+        auto initialItem = getInitialTriggerValue(triggers, Trigger::ITEM);
 
-        auto initialDuration = getInitialTriggerValue<float>(triggers, Trigger::PropType::Duration);
-        auto initialOpacity = getInitialTriggerValue<float>(triggers, Trigger::PropType::Opacity);
-        auto initialTargetGroupID = getInitialTriggerValue<int>(triggers, Trigger::PropType::TargetGroup);
-        auto initialCenterGroupID = getInitialTriggerValue<int>(triggers, Trigger::PropType::CenterGroup);
-        auto initialEasingType = getInitialTriggerValue<EasingType>(triggers, Trigger::PropType::Easing);
-        auto initialItemID = getInitialTriggerValue<int>(triggers, Trigger::PropType::Item);
+        auto hasProperty = [&](short property) {
+            for (const auto& trigger : triggers)
+                if (Trigger::hasProperty(trigger, property)) return true;
 
-        auto hasProperty = [triggers](auto predicate) {
-            return std::any_of(triggers.begin(), triggers.end(), predicate);
+            return false;
         };
-
-        bool hasTargetGroup = hasProperty([](const Trigger& trigger){ return trigger.hasTargetGroup; });
-        bool hasCenterGroup = hasProperty([](const Trigger& trigger){ return trigger.hasCenterGroup; });
-        bool hasItem = hasProperty([](const Trigger& trigger){ return trigger.hasItem; });
-        bool hasEasing = hasProperty([](const Trigger& trigger){ return trigger.hasEasing; });
-        bool hasDuration = hasProperty([](const Trigger& trigger){ return trigger.hasDuration; });
-        bool hasOpacity = hasProperty([](const Trigger& trigger){ return trigger.hasOpacity; });
+        
+        bool hasTargetGroup = hasProperty(Trigger::TARGET_GROUP);
+        bool hasCenterGroup = hasProperty(Trigger::CENTER_GROUP);
+        bool hasItem = hasProperty(Trigger::ITEM);
+        bool hasEasing = hasProperty(Trigger::EASING);
+        bool hasDuration = hasProperty(Trigger::DURATION);
+        bool hasOpacity = hasProperty(Trigger::OPACITY);
         
         // ADD MENUS
 
-        auto targetGroupMenu = createGroupMenu(GroupMenuType::TargetGroup, initialTargetGroupID);
-        auto centerGroupMenu = createGroupMenu(GroupMenuType::CenterGroup, initialCenterGroupID);
-        auto itemMenu = createGroupMenu(GroupMenuType::Item, initialItemID);
-        auto easingMenu = createEasingMenu(initialEasingType);
+        auto targetGroupMenu = createGroupMenu(GroupMenuType::TargetGroup, initialTargetGroup);
+        auto centerGroupMenu = createGroupMenu(GroupMenuType::CenterGroup, initialCenterGroup);
+        auto itemMenu = createGroupMenu(GroupMenuType::Item, initialItem);
+        auto easingMenu = createEasingMenu(static_cast<std::optional<int>>(initialEasingType));
         auto durationMenu = createSliderMenu(SliderMenuType::Duration, initialDuration);
         auto opacityMenu = createSliderMenu(SliderMenuType::Opacity, initialOpacity);
 
-        auto layout = CCMenu::create();
-        layout->setLayout(
-            RowLayout::create()
-                ->setGap(20)
-                ->setGrowCrossAxis(true)
-                ->setAutoScale(false)
-        );
+        auto menu = CCMenu::create();
+        auto menuLayout = RowLayout::create()
+            ->setGap(20)
+            ->setGrowCrossAxis(true)
+            ->setAutoScale(false);
 
         easingMenu->setLayoutOptions(
             AxisLayoutOptions::create()
                 ->setNextGap(30.f)
         );
 
-        if (hasTargetGroup) layout->addChild(targetGroupMenu);
-        if (hasCenterGroup) layout->addChild(centerGroupMenu);
-        if (hasItem) layout->addChild(itemMenu);
-        if (hasEasing) layout->addChild(easingMenu);
-        if (hasDuration) layout->addChild(durationMenu);
-        if (hasOpacity) layout->addChild(opacityMenu);
+        if (hasTargetGroup) menu->addChild(targetGroupMenu);
+        if (hasCenterGroup) menu->addChild(centerGroupMenu);
+        if (hasItem) menu->addChild(itemMenu);
+        if (hasEasing) menu->addChild(easingMenu);
+        if (hasDuration) menu->addChild(durationMenu);
+        if (hasOpacity) menu->addChild(opacityMenu);
 
-        if (!initialTargetGroupID.has_value()) setMenuToMixed(targetGroupMenu, Trigger::PropType::TargetGroup);
-        if (!initialCenterGroupID.has_value()) setMenuToMixed(centerGroupMenu, Trigger::PropType::CenterGroup);
-        if (!initialItemID.has_value()) setMenuToMixed(itemMenu, Trigger::PropType::Item);
-        if (!initialEasingType.has_value()) setMenuToMixed(easingMenu, Trigger::PropType::Easing);
-        if (!initialDuration.has_value()) setMenuToMixed(durationMenu, Trigger::PropType::Duration);
-        if (!initialOpacity.has_value()) setMenuToMixed(opacityMenu, Trigger::PropType::Opacity);
+        if (!initialTargetGroup.has_value()) setMenuToMixed(targetGroupMenu, Trigger::TARGET_GROUP);
+        if (!initialCenterGroup.has_value()) setMenuToMixed(centerGroupMenu, Trigger::CENTER_GROUP);
+        if (!initialItem.has_value()) setMenuToMixed(itemMenu, Trigger::ITEM);
+        if (!initialEasingType.has_value()) setMenuToMixed(easingMenu, Trigger::EASING);
+        if (!initialDuration.has_value()) setMenuToMixed(durationMenu, Trigger::DURATION);
+        if (!initialOpacity.has_value()) setMenuToMixed(opacityMenu, Trigger::OPACITY);
 
-        auto numberChildren = layout->getChildrenCount();
+        auto numberChildren = menu->getChildrenCount();
         CCSize newAlertSize;
 
-        if (numberChildren > 4) {
-            newAlertSize = CCSize(440, 310);
-        } else if (numberChildren > 2) {
-            newAlertSize = CCSize(420, 230);
-        } else {
-            newAlertSize = CCSize(390, 220); //TODO: change to a better value and make it align column not row
+        if (numberChildren > 4) newAlertSize = CCSize(440, 310);
+        else if (numberChildren > 2) newAlertSize = CCSize(420, 230);
+        else {
+            newAlertSize = CCSize(390, 220);
+            menuLayout = menuLayout->setAxis(Axis::Column);
         }
 
-        layout->setContentSize(newAlertSize - CCSize(10, 70));
+        menu->setContentSize(newAlertSize - CCSize(10, 70));
 
-        layout->setPosition(winSize / 2 + ccp(0, 9));
-        layout->updateLayout();
-        this->addChild(layout);
+        menu->setPosition(winSize / 2 + ccp(0, 9));
+        menu->setLayout(menuLayout);
+        menu->updateLayout();
+        this->addChild(menu);
 
         // INCREASE ALERT SIZE
 
