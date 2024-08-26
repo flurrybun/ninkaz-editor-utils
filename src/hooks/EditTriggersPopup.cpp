@@ -116,6 +116,8 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         auto slider = Slider::create(this, menu_selector(MultiEditTriggersPopup::onSliderChanged), 0.64);
         slider->setPosition(center + ccp(0, -15));
         slider->getThumb()->setTag(type);
+        slider->getThumb()->setEnabled(initialValue.has_value());
+        slider->getThumb()->setVisible(initialValue.has_value());
 
         if (type == SliderMenuType::Duration) slider->setValue(initialValue.has_value() ? *initialValue / 10 : 0.f);
         else if (type == SliderMenuType::Opacity) slider->setValue(initialValue.has_value() ? *initialValue : 0.f);
