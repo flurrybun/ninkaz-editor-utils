@@ -7,7 +7,7 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short property) {
+bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
     CCArrayExt<EffectGameObject*> filteredTriggers;
     for (auto trigger : triggers) {
         if (Trigger::hasProperty(trigger, property)) {
@@ -16,8 +16,9 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     }
 
     m_property = property;
+    m_callback = callback;
     m_operator = Operator::Equal;
-    m_isFloat = Trigger::isPropertyFloat(property);
+    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(property);
     m_canBeNegative = Trigger::canPropertyBeNegative(property);
 
     m_modifierValue = 0;
@@ -63,7 +64,7 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     rightArrowBtn->setPosition({winSize.width - 25, 75});
     m_buttonMenu->addChild(rightArrowBtn);
 
-    // APPLY & CANCEL BUTTONS
+    // APPLY, CANCEL, & OPTIONS BUTTONS
 
     auto buttonLayout = CCMenu::create();
     buttonLayout->setLayout(
@@ -85,17 +86,15 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     buttonLayout->addChild(cancelBtn);
     buttonLayout->addChild(applyBtn);
 
-    if (!m_isFloat) {
-        auto settingsSpr = CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
-        auto settingsBtn = CCMenuItemSpriteExtra::create(
-            settingsSpr, this, menu_selector(MixedInputPopup::onSettings)
-        );
-        settingsBtn->setLayoutOptions(AxisLayoutOptions::create()
-            ->setMaxScale(0.6f)
-        );
+    auto settingsSpr = CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
+    auto settingsBtn = CCMenuItemSpriteExtra::create(
+        settingsSpr, this, menu_selector(MixedInputPopup::onSettings)
+    );
+    settingsBtn->setLayoutOptions(AxisLayoutOptions::create()
+        ->setMaxScale(0.6f)
+    );
 
-        buttonLayout->addChild(settingsBtn);
-    }
+    buttonLayout->addChild(settingsBtn);
 
     m_buttonMenu->addChild(buttonLayout);
     buttonLayout->updateLayout();
@@ -659,11 +658,14 @@ void MixedInputPopup::onSettings(CCObject* sender) {
 }
 
 void MixedInputPopup::onApply(CCObject* sender) {
+    std::vector<float> newProperties;
+    
     if (m_direction == DirectionType::None) {
         for (auto& trigger : m_triggers) {
             auto property = Trigger::getProperty(trigger, m_property);
             auto newProperty = applyOperation(property, m_modifierValue, m_operator);
 
+            newProperties.push_back(newProperty);
             Trigger::setProperty(trigger, m_property, newProperty);
         }
     } else {
@@ -675,9 +677,18 @@ void MixedInputPopup::onApply(CCObject* sender) {
             auto roundedProperty = m_rounding == RoundingType::Round ? std::round(newProperty) :
                 m_rounding == RoundingType::Floor ? std::floor(newProperty) : std::ceil(newProperty);
 
+            newProperties.push_back(roundedProperty);
             Trigger::setProperty(trigger, m_property, newProperty);
 
             count++;
+        }
+    }
+
+    if (m_callback) {
+        if (std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
+            m_callback(newProperties.front());
+        } else {
+            m_callback(std::nullopt);
         }
     }
     
@@ -703,6 +714,16 @@ float MixedInputPopup::applyOperation(float value, float modifier, Operator op) 
 }
 
 std::string MixedInputPopup::toTruncatedString(float value) {
+    auto factor = std::pow(10, m_decimalPlaces);
+
+    if (m_rounding == RoundingType::Round) {
+        value = std::round(value * factor) / factor;
+    } else if (m_rounding == RoundingType::Floor) {
+        value = std::floor(value * factor) / factor;
+    } else if (m_rounding == RoundingType::Ceiling) {
+        value = std::ceil(value * factor) / factor;
+    }
+    
     auto str = std::to_string(value);
     str.erase(str.find_last_not_of('0') + 1, std::string::npos);
     str.erase(str.find_last_not_of('.') + 1, std::string::npos);
@@ -710,12 +731,12 @@ std::string MixedInputPopup::toTruncatedString(float value) {
     return str;
 }
 
-std::string MixedInputPopup::toRoundedString(float value) {
-    auto roundedValue = m_rounding == RoundingType::Round ? std::round(value) :
-        m_rounding == RoundingType::Floor ? std::floor(value) : std::ceil(value);
+// std::string MixedInputPopup::toRoundedString(float value) {
+//     auto roundedValue = m_rounding == RoundingType::Round ? std::round(value) :
+//         m_rounding == RoundingType::Floor ? std::floor(value) : std::ceil(value);
 
-    return std::to_string(static_cast<int>(roundedValue));
-}
+//     return std::to_string(static_cast<int>(roundedValue));
+// }
 
 std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap() {
     std::vector<CalculationInfo> calcVector;
@@ -741,7 +762,8 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
 
         auto propertyString = toTruncatedString(property);
         auto changeString = m_operator != Operator::Equal ? toTruncatedString(change) : "0";
-        auto newPropertyString = m_isFloat ? toTruncatedString(newProperty) : toRoundedString(newProperty);
+        // auto newPropertyString = m_isFloat ? toTruncatedString(newProperty) : toRoundedString(newProperty);
+        auto newPropertyString = toTruncatedString(newProperty);
 
         CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 
@@ -764,9 +786,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     return calcVector;
 }
 
-MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short property){
+MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
     auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, triggers, property)) {
+    if (ret && ret->initAnchored(380.f, 280.f, triggers, property, callback)) {
         ret->autorelease();
         return ret;
     }
@@ -788,8 +810,7 @@ bool SettingsPopup::setup(MixedInputSettings settings, std::function<void(MixedI
     // INFO BUTTON
 
     auto infoText = "<cg>Round</c> rounds the final value to the nearest value.\n"
-        "<cy>Floor</c> always rounds down, <cl>ceiling</c> always rounds up.\n"
-        "This setting only works if the final value is a <cp>whole number</c>.";
+        "<cy>Floor</c> always rounds down and <cl>ceiling</c> always rounds up.\n";
     
     auto infoBtn = InfoAlertButton::create("Info", infoText, 0.7f);
     infoBtn->setPosition(winSize - ccp(18, 18));

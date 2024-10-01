@@ -270,7 +270,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         auto& triggers = m_fields->m_triggers;
         auto property = static_cast<short>(sender->getTag());
 
-        auto alert = MixedInputPopup::create(triggers, property);
+        auto alert = MixedInputPopup::create(triggers, property, nullptr);
 
         alert->m_noElasticity = true;
         alert->show();

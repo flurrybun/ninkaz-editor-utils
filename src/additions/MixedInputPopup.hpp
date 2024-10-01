@@ -12,7 +12,7 @@ struct MixedInputSettings {
     RoundingType rounding;
 };
 
-class MixedInputPopup : public Popup<const CCArrayExt<EffectGameObject*>&, const short> {
+class MixedInputPopup : public Popup<const CCArrayExt<EffectGameObject*>&, const short&, const std::function<void (std::optional<float>)>&> {
 protected:
     enum Operator {
         Add, Subtract, Multiply, Divide, Equal
@@ -23,11 +23,12 @@ protected:
     };
     
     CCArrayExt<EffectGameObject*> m_triggers;
+    std::function<void (std::optional<float>)> m_callback;
     short m_property;
     Operator m_operator;
     float m_modifierValue;
     float m_initialValue;
-    bool m_isFloat;
+    short m_decimalPlaces;
     bool m_canBeNegative;
     RoundingType m_rounding;
     DirectionType m_direction;
@@ -48,7 +49,7 @@ protected:
             : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), triggers(trig) {}
     };
 
-    bool setup(const CCArrayExt<EffectGameObject*>&, const short) override;
+    bool setup(const CCArrayExt<EffectGameObject*>&, const short&, const std::function<void (std::optional<float>)>&) override;
 
     void createFirstPageRow();
     void createSecondPageRow();
@@ -61,11 +62,10 @@ protected:
     void onApply(CCObject*);
 
     std::string toTruncatedString(float);
-    std::string toRoundedString(float);
     float applyOperation(float, float, Operator);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
-    static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short);
+    static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short&, const std::function<void (std::optional<float>)>&);
 };
 
 class SettingsPopup : public Popup<MixedInputSettings, std::function<void(MixedInputSettings)>> {

@@ -11,41 +11,61 @@ struct Trigger {
     static constexpr short EASING = 30;
     static constexpr short ITEM = 80;
 
-    static float getProperty(EffectGameObject* object, short property) {
+    static std::variant<float*, int*, EasingType*> getPropertyPointer(EffectGameObject* object, short property) {
         switch (property) {
-            case 10: return object->m_duration;
-            case 35: return object->m_opacity;
-            case 51: return object->m_targetGroupID;
-            case 71: return object->m_centerGroupID;
-            case 30: return static_cast<float>(object->m_easingType);
-            case 80: return object->m_itemID;
+            case 10: return &object->m_duration;
+            case 35: return &object->m_opacity;
+            case 51: return &object->m_targetGroupID;
+            case 71: return &object->m_centerGroupID;
+            case 75: return &object->m_shakeStrength;
+            case 84: return &object->m_shakeInterval;
+            case 28: return &object->m_moveOffsetX;
+            case 29: return &object->m_moveOffsetY;
+            case 30: return &object->m_easingType;
+            case 85: return &object->m_easingRate;
+            case 143: return &object->m_moveModX;
+            case 144: return &object->m_moveModY;
+            case 80: return &object->m_itemID;
+            default: throw std::invalid_argument("Invalid property");
         }
+    }
+
+    static float getProperty(EffectGameObject* object, short property) {
+        auto value = getPropertyPointer(object, property);
+
+        if (auto ptr = std::get_if<float*>(&value)) return **ptr;
+        else if (auto ptr = std::get_if<int*>(&value)) return static_cast<float>(**ptr);
+        else if (auto ptr = std::get_if<EasingType*>(&value)) return static_cast<float>(**ptr);
 
         return 0;
     }
 
-    static void setProperty(EffectGameObject* object, short property, float value) {
-        switch (property) {
-            case 10: object->m_duration = value; break;
-            case 35: object->m_opacity = value; break;
-            case 51: object->m_targetGroupID = value; break;
-            case 71: object->m_centerGroupID = value; break;
-            case 30: object->m_easingType = static_cast<EasingType>(value); break;
-            case 80: object->m_itemID = value; break;
-        }
+    static void setProperty(EffectGameObject* object, short property, float newValue) {
+        auto value = getPropertyPointer(object, property);
+
+        if (auto ptr = std::get_if<float*>(&value)) **ptr = newValue;
+        else if (auto ptr = std::get_if<int*>(&value)) **ptr = static_cast<int>(newValue);
+        else if (auto ptr = std::get_if<EasingType*>(&value)) **ptr = static_cast<EasingType>(newValue);
     }
 
     static bool hasProperty(EffectGameObject* object, short property) {
-        auto id = object->m_objectID;
+        auto in = [property](const std::vector<short>& vec) {
+            return std::find(vec.begin(), vec.end(), property) != vec.end();
+        };
 
-        switch (property) {
-            case 10: return id == 899 || id == 901 || id == 1007 || id == 1814;
-            case 35: return id == 1007;
-            case 51: return id == 901 || id == 1006 || id == 1007 || id == 1268 || id == 1346 || id == 2067 ||
-                id == 1347 || id == 1814 || id == 1611 || id == 1811 || id == 1817;
-            case 71: return id == 901 || id == 1346 || id == 2067 || id == 1347;
-            case 30: return id == 901 || id == 1346 || id == 2067;
-            case 80: return id == 1611 || id == 1811 || id == 1817;
+        switch (object->m_objectID) {
+            case 899: return in({10});
+            case 901: return in({10, 51, 71, 30, /**/ 28, 29});
+            case 1007: return in({10, 35, 51});
+            case 1006: return in({51});
+            case 1268: return in({51});
+            case 1346: return in({51, 71, 30});
+            case 2067: return in({51, 71, 30});
+            case 1347: return in({51, 71});
+            case 1814: return in({10, 51});
+            case 1611: return in({51, 80});
+            case 1811: return in({51, 80});
+            case 1817: return in({51, 80});
         }
 
         return false;
@@ -64,11 +84,18 @@ struct Trigger {
         return "";
     }
 
-    static bool isPropertyFloat(short property) {
-        return property == DURATION || property == OPACITY;
+    static short getPropertyDecimalPlaces(short property) {
+        int twoDecimalPlaces[] = {10, 35, 75, 84, 143, 144};
+
+        if (std::find(std::begin(twoDecimalPlaces), std::end(twoDecimalPlaces), property)
+            != std::end(twoDecimalPlaces)) return 2;
+        return 0;
     }
 
     static bool canPropertyBeNegative(short property) {
-        return false;
+        short negativeProperties[] = {28, 29, 143, 144};
+
+        return std::find(std::begin(negativeProperties), std::end(negativeProperties), property)
+            != std::end(negativeProperties);
     }
 };
