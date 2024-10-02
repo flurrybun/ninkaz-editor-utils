@@ -60,8 +60,9 @@ protected:
     void onSettings(CCObject*);
     void onApply(CCObject*);
 
-    std::string toTruncatedString(float);
     float applyOperation(float, float, Operator);
+    std::string toTruncatedString(float, std::optional<int> = std::nullopt);
+    float roundValue(float);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
     static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short&, const std::function<void (std::optional<float>)>&);

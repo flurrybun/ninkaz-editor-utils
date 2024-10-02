@@ -674,10 +674,7 @@ void MixedInputPopup::onApply(CCObject* sender) {
         for (auto& trigger : m_triggers) {
             auto newProperty = applyOperation(m_initialValue, m_modifierValue * count, m_operator);
 
-            auto roundedProperty = m_rounding == RoundingType::Round ? std::round(newProperty) :
-                m_rounding == RoundingType::Floor ? std::floor(newProperty) : std::ceil(newProperty);
-
-            newProperties.push_back(roundedProperty);
+            newProperties.push_back(newProperty);
             Trigger::setProperty(trigger, m_property, newProperty);
 
             count++;
@@ -710,18 +707,17 @@ float MixedInputPopup::applyOperation(float value, float modifier, Operator op) 
     }
 
     if (!m_canBeNegative && result < 0) return 0;
-    return result;
+    return roundValue(result);
 }
 
-std::string MixedInputPopup::toTruncatedString(float value) {
-    auto factor = std::pow(10, m_decimalPlaces);
-
-    if (m_rounding == RoundingType::Round) {
+std::string MixedInputPopup::toTruncatedString(float value, std::optional<int> decimalPlaces) {
+    if (decimalPlaces.has_value()) {
+        auto factor = std::pow(10, decimalPlaces.value());
         value = std::round(value * factor) / factor;
-    } else if (m_rounding == RoundingType::Floor) {
-        value = std::floor(value * factor) / factor;
-    } else if (m_rounding == RoundingType::Ceiling) {
-        value = std::ceil(value * factor) / factor;
+
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(decimalPlaces.value()) << value;
+        return out.str();
     }
     
     auto str = std::to_string(value);
@@ -729,6 +725,18 @@ std::string MixedInputPopup::toTruncatedString(float value) {
     str.erase(str.find_last_not_of('.') + 1, std::string::npos);
 
     return str;
+}
+
+float MixedInputPopup::roundValue(float value) {
+    auto factor = std::pow(10, m_decimalPlaces);
+
+    if (m_rounding == RoundingType::Round) {
+        return std::round(value * factor) / factor;
+    } else if (m_rounding == RoundingType::Floor) {
+        return std::floor(value * factor) / factor;
+    } else { // RoundingType::Ceiling
+        return std::ceil(value * factor) / factor;
+    }
 }
 
 std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap() {
@@ -755,8 +763,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
 
         auto propertyString = toTruncatedString(property);
         auto changeString = m_operator != Operator::Equal ? toTruncatedString(change) : "0";
-        // auto newPropertyString = m_isFloat ? toTruncatedString(newProperty) : toRoundedString(newProperty);
-        auto newPropertyString = toTruncatedString(newProperty);
+        auto newPropertyString = toTruncatedString(newProperty, m_decimalPlaces);
 
         CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 
