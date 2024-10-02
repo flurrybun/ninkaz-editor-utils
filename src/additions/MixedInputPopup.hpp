@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-
 using namespace geode::prelude;
 
 enum RoundingType {
@@ -66,16 +65,4 @@ protected:
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
     static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short&, const std::function<void (std::optional<float>)>&);
-};
-
-class SettingsPopup : public Popup<MixedInputSettings, std::function<void(MixedInputSettings)>> {
-protected:
-    MixedInputSettings m_settings;
-    std::function<void(MixedInputSettings)> m_callback;
-    CCMenuItemToggler* m_roundingBtn;
-
-    bool setup(MixedInputSettings, std::function<void(MixedInputSettings)>) override;
-    void onRoundingButton(CCObject*);
-public:
-    static SettingsPopup* create(MixedInputSettings, std::function<void(MixedInputSettings)>);
 };
