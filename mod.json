@@ -1,5 +1,5 @@
 {
-    "geode": "3.7.1",
+    "geode": "3.8.1",
     "gd": {
         "win": "2.206",
         "android": "2.206"
@@ -9,6 +9,9 @@
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
     "description": "Editor utilities to make my life easier",
+    "links": {
+        "source": "https://github.com/flurrybun/ninkaz-editor-utils"
+    },
     "tags": ["editor", "interface", "utility"],
     "dependencies": [
         {
