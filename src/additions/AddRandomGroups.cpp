@@ -1,7 +1,4 @@
 #include "AddRandomGroups.hpp"
-#include <Geode/ui/TextInput.hpp>
-#include <Geode/ui/Scrollbar.hpp>
-#include <Geode/ui/ScrollLayer.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -12,7 +9,8 @@ using namespace geode::prelude;
 #include <regex>
 
 bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
-    auto winSize = CCDirector::sharedDirector()->getWinSize();
+    auto winSize = m_mainLayer->getContentSize();
+    auto winCenter = winSize / 2;
     setTitle("Add Random Groups");
 
     m_groups = {};
@@ -26,13 +24,13 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
         "<cr>% coverage</c> controls the percentage of blocks that are assigned a group.";
     
     auto infoBtn = InfoAlertButton::create("Info", infoText, 0.7f);
-    infoBtn->setPosition({158, 108});
+    infoBtn->setPosition(winCenter + ccp(158, 108));
     m_buttonMenu->addChild(infoBtn);
 
     // GROUP INPUT
 
     auto groupInput = TextInput::create(70.f, "Num", "bigFont.fnt");
-    groupInput->setPosition({winSize.width / 2, winSize.height / 2 + 70});
+    groupInput->setPosition(winCenter + ccp(0, 70));
     groupInput->setFilter("0123456789-");
     groupInput->setMaxCharCount(9);
     groupInput->setString("0");
@@ -51,7 +49,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto decArrowBtn = CCMenuItemSpriteExtra::create(
         decArrowSpr, this, menu_selector(AddRandomGroupsPopup::onChangeInput)
     );
-    decArrowBtn->setPosition({-55, 70});
+    decArrowBtn->setPosition(winCenter + ccp(-55, 70));
     decArrowBtn->setTag(-1);
     m_buttonMenu->addChild(decArrowBtn);
 
@@ -63,7 +61,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto incArrowBtn = CCMenuItemSpriteExtra::create(
         incArrowSpr, this, menu_selector(AddRandomGroupsPopup::onChangeInput)
     );
-    incArrowBtn->setPosition({55, 70});
+    incArrowBtn->setPosition(winCenter + ccp(55, 70));
     incArrowBtn->setTag(1);
     m_buttonMenu->addChild(incArrowBtn);
 
@@ -73,7 +71,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto nextFreeBtn = CCMenuItemSpriteExtra::create(
         nextFreeSpr, this, menu_selector(AddRandomGroupsPopup::onNextFree)
     );
-    nextFreeBtn->setPosition({-120, 70});
+    nextFreeBtn->setPosition(winCenter + ccp(-120, 70));
     m_buttonMenu->addChild(nextFreeBtn);
 
     // ADD BUTTON
@@ -82,23 +80,23 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto addBtn = CCMenuItemSpriteExtra::create(
         addSpr, this, menu_selector(AddRandomGroupsPopup::onAddGroup)
     );
-    addBtn->setPosition(ccp(120, 70));
+    addBtn->setPosition(winCenter + ccp(120, 70));
     m_buttonMenu->addChild(addBtn);
 
     // GROUPS SCROLLING PANEL
 
     auto scrollLayer = ScrollLayer::create({300, 80});
     scrollLayer->setAnchorPoint({0, 0});
-    scrollLayer->setPosition(winSize / 2 - scrollLayer->getContentSize() / 2);
+    scrollLayer->setPosition(winCenter - scrollLayer->getContentSize() / 2);
 
     auto scrollbar = Scrollbar::create(scrollLayer);
-    scrollbar->setPosition(winSize / 2 + ccp(158, 0));
+    scrollbar->setPosition(winCenter + ccp(158, 0));
     // scrollbar->setVisible(false);
 
     auto groupBG = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     groupBG->setColor({ 0, 0, 0 });
     groupBG->setOpacity(50);
-    groupBG->setPosition(winSize / 2);
+    groupBG->setPosition(winCenter);
     groupBG->setContentSize({ 300, 80 });
     m_mainLayer->addChild(groupBG);
 
@@ -184,7 +182,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
         RowLayout::create()
             ->setGap(40.f)
     );
-    bottomLayout->setPositionY(winSize.height / 2 - 60);
+    bottomLayout->setPosition(winCenter + ccp(0, -60));
     bottomLayout->setScale(0.6f);
 
     bottomLayout->addChild(coverageLayout);
@@ -199,7 +197,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto applyBtn = CCMenuItemSpriteExtra::create(
         applySpr, this, menu_selector(AddRandomGroupsPopup::onApply)
     );
-    applyBtn->setPosition({0, -95});
+    applyBtn->setPosition(winCenter + ccp(0, -95));
     m_buttonMenu->addChild(applyBtn);
 
     return true;
@@ -307,33 +305,33 @@ void AddRandomGroupsPopup::assignGroups() {
     auto coverageValue = stoi(static_cast<std::string>(m_coverageInput->getString()));
     auto coveragePercent = coverageValue / 100.f;
 
-    auto linkedObjectsMap = std::make_unique<std::map<short, std::vector<GameObject*>>>();
-    auto linkedObjectGroups = std::make_unique<std::vector<std::vector<GameObject*>>>();
+    std::map<short, std::vector<GameObject*>> linkedObjectsMap;
+    std::vector<std::vector<GameObject*>> linkedObjectGroups;
     auto objects = as<CCArrayExt<GameObject*>>(GameManager::sharedState()->getEditorLayer()->m_editorUI->getSelectedObjects());
 
     for (GameObject* obj : objects)
-        (*linkedObjectsMap)[obj->m_linkedGroup].push_back(obj);
+        (linkedObjectsMap)[obj->m_linkedGroup].push_back(obj);
 
-    for (auto& pair : *linkedObjectsMap) {
+    for (auto& pair : linkedObjectsMap) {
         if (pair.second[0]->m_linkedGroup == 0) {
             for (GameObject* object : pair.second) {
-                linkedObjectGroups->push_back({object});
+                linkedObjectGroups.push_back({object});
             }
         } else {
-            linkedObjectGroups->push_back(pair.second);
+            linkedObjectGroups.push_back(pair.second);
         }
     };
 
     auto rd = std::random_device {};
     auto rng = std::default_random_engine { rd() };
-    std::shuffle(linkedObjectGroups->begin(), linkedObjectGroups->end(), rng);
+    std::shuffle(linkedObjectGroups.begin(), linkedObjectGroups.end(), rng);
 
-    short numToKeep = static_cast<int>(std::round(linkedObjectGroups->size() * coveragePercent));
-    linkedObjectGroups->resize(numToKeep);
+    short numToKeep = static_cast<int>(std::round(linkedObjectGroups.size() * coveragePercent));
+    linkedObjectGroups.resize(numToKeep);
 
     short groupIndex = 0;
 
-    for (std::vector<GameObject*>& linkedObject : *linkedObjectGroups) {
+    for (std::vector<GameObject*>& linkedObject : linkedObjectGroups) {
         if (isIgnoreLinked || linkedObject[0]->m_linkedGroup == 0) {
             std::shuffle(linkedObject.begin(), linkedObject.end(), rng);
 
@@ -376,7 +374,7 @@ void AddRandomGroupsPopup::onApply(CCObject* sender) {
 
 AddRandomGroupsPopup* AddRandomGroupsPopup::create(CCArray* selectedObjects) {
     auto ret = new AddRandomGroupsPopup();
-    if (ret && ret->init(350.f, 250.f, selectedObjects)) {
+    if (ret && ret->initAnchored(350.f, 250.f, selectedObjects)) {
         ret->autorelease();
         return ret;
     }

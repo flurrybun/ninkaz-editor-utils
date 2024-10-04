@@ -91,7 +91,7 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
         settingsSpr, this, menu_selector(MixedInputPopup::onSettings)
     );
     settingsBtn->setLayoutOptions(AxisLayoutOptions::create()
-        ->setMaxScale(0.6f)
+        ->setRelativeScale(0.6f)
     );
 
     buttonLayout->addChild(settingsBtn);
@@ -467,6 +467,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         triggerLayout->setLayout(
             RowLayout::create()
                 ->setAxisAlignment(AxisAlignment::Start)
+                ->setDefaultScaleLimits(0, 1)
         );
         triggerLayout->setPosition({57, rowSize.height / 2});
         triggerLayout->setContentWidth(112);
@@ -504,7 +505,8 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         auto calcLayout = CCMenu::create();
         calcLayout->setLayout(
             RowLayout::create()
-                ->setAxisAlignment(AxisAlignment::Even)
+                ->setAxisAlignment(AxisAlignment::Between)
+                ->setDefaultScaleLimits(0, 1)
         );
         calcLayout->setPosition({rowSize.width - 22, rowSize.height / 2});
         calcLayout->setAnchorPoint({1, 0.5});
@@ -519,7 +521,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         auto newLabel = CCLabelBMFont::create(newString.c_str(), "bigFont.fnt");
 
         auto signOptions = AxisLayoutOptions::create()
-            ->setMaxScale(0.6f);
+            ->setRelativeScale(0.6f);
 
         auto signName = m_operator == Operator::Add ? "plus-bigFont.png"_spr :
             m_operator == Operator::Subtract ? "minus-bigFont.png"_spr :
