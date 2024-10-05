@@ -377,7 +377,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
 
     if (isInit) {
         auto border = ListBorders::create();
-        border->setContentSize(scrollSize + CCSize(7, 7));
+        border->setContentSize(scrollSize + CCSize(3, 5));
         border->setPosition(scrollPosition);
         border->setZOrder(9);
         m_mainLayer->addChild(border);
