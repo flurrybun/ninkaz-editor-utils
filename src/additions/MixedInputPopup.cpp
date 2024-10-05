@@ -371,52 +371,16 @@ void MixedInputPopup::createSecondPageRow() {
 
 void MixedInputPopup::createScrollLayer(bool isInit) {
     auto winSize = m_mainLayer->getContentSize();
-    auto scrollSize = CCSize(300, 150);
     auto scrollPosition = winSize / 2 + ccp(0, 46);
-    
+    auto scrollSize = CCSize(300, 150);
+    auto rowSize = CCSize(scrollSize.width, 37);
+
     if (isInit) {
-        auto scroll = ScrollLayer::create(scrollSize);
-        scroll->setAnchorPoint({0, 0});
-        scroll->setPosition(scrollPosition - scrollSize / 2);
-        m_scroll = scroll;
-
-        scroll->m_contentLayer->setLayout(
-            ColumnLayout::create()
-                ->setAxisReverse(true)
-                ->setAxisAlignment(AxisAlignment::End)
-                ->setAutoGrowAxis(scrollSize.height)
-                ->setGap(0)
-        );
-
-        // BORDER
-
-        auto topBorder = CCSprite::createWithSpriteFrameName("GJ_commentTop_001.png");
-        topBorder->setPosition(scrollPosition + ccp(0, scrollSize.height / 2 - 4));
-        topBorder->setZOrder(10);
-        topBorder->setScale(0.885);
-        auto bottomBorder = CCSprite::createWithSpriteFrameName("GJ_commentTop_001.png");
-        bottomBorder->setPosition(scrollPosition + ccp(0, -scrollSize.height / 2 + 4));
-        bottomBorder->setZOrder(10);
-        bottomBorder->setFlipY(true);
-        bottomBorder->setScale(0.885);
-        auto leftBorder = CCSprite::createWithSpriteFrameName("GJ_commentSide_001.png");
-        leftBorder->setPosition(scrollPosition + ccp(-scrollSize.width / 2 - 3.4, 0));
-        leftBorder->setZOrder(9);
-        leftBorder->setScaleX(0.885);
-        leftBorder->setScaleY(4.5);
-        auto rightBorder = CCSprite::createWithSpriteFrameName("GJ_commentSide_001.png");
-        rightBorder->setPosition(scrollPosition + ccp(scrollSize.width / 2 + 3.4, 0));
-        rightBorder->setZOrder(9);
-        rightBorder->setFlipX(true);
-        rightBorder->setScaleX(0.885);
-        rightBorder->setScaleY(4.5);
-
-        m_mainLayer->addChild(topBorder);
-        m_mainLayer->addChild(bottomBorder);
-        m_mainLayer->addChild(leftBorder);
-        m_mainLayer->addChild(rightBorder);
-
-        // BACKGROUND
+        auto border = ListBorders::create();
+        border->setContentSize(scrollSize + CCSize(7, 7));
+        border->setPosition(scrollPosition);
+        border->setZOrder(9);
+        m_mainLayer->addChild(border);
 
         auto bg = CCLayerColor::create();
         bg->setColor(ccc3(191, 114, 62));
@@ -425,19 +389,12 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         bg->setPosition(scrollPosition);
         bg->ignoreAnchorPointForPosition(false);
         bg->setZOrder(-1);
-
         m_mainLayer->addChild(bg);
     } else {
-        m_scroll->m_contentLayer->removeAllChildren();
+        m_list->removeFromParent();
     }
 
     auto stringMap = createStringMap();
-    
-    size_t length = stringMap.size();
-    size_t index = 0;
-    auto rowSize = CCSize(scrollSize.width, 37);
-
-    m_scroll->m_contentLayer->setContentSize({rowSize.width, rowSize.height * length});
 
     int maxTriggerCount = 0;
     std::set<int> uniqueTriggerIDs;
@@ -451,15 +408,12 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         int triggerCount = uniqueTriggerIDs.size();
         if (triggerCount > maxTriggerCount) maxTriggerCount = triggerCount;
     }
-    
-    for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
-        index++;
 
-        auto bg = CCLayerColor::create();
-        bg->setColor((index % 2 == 0) ? ccc3(144, 79, 39) : ccc3(156, 85, 42));
-        bg->setOpacity(255);
-        bg->setContentSize(rowSize);
-        bg->setAnchorPoint({0.5, 0});
+    CCArrayExt<CCMenu*> rows;
+
+    for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
+        auto rowMenu = CCMenu::create();
+        rowMenu->setContentSize(rowSize);
 
         // TRIGGER COUNT LAYOUT
 
@@ -497,7 +451,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
             triggerLayout->addChild(spr);
         }
 
-        bg->addChild(triggerLayout);
+        rowMenu->addChild(triggerLayout);
         triggerLayout->updateLayout();
 
         // CALCULATION LAYOUT
@@ -543,7 +497,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         if (m_operator == Operator::Equal) sign->setVisible(false);
         if (m_operator == Operator::Equal) changeLabel->setVisible(false);
 
-        bg->addChild(calcLayout);
+        rowMenu->addChild(calcLayout);
         calcLayout->updateLayout();
 
         // visually align text with operators
@@ -553,22 +507,18 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
 
         // BOTTOM BORDER
 
-        auto border = CCLayerColor::create();
-        border->setColor(ccc3(0, 0, 0));
-        border->setOpacity(255 / 2);
-        border->setContentSize({rowSize.width, 0.8});
-        border->setPosition({0, -0.4});
-
-        bg->addChild(border);
-        m_scroll->m_contentLayer->addChild(bg);
+        rows.push_back(rowMenu);
     }
 
-    m_scroll->m_contentLayer->updateLayout();
+    auto list = ListView::create(rows.inner(), rowSize.height, scrollSize.width, scrollSize.height);
+    list->setPrimaryCellColor(ccc3(144, 79, 39));
+    list->setSecondaryCellColor(ccc3(156, 85, 42));
 
-    if (isInit) {
-        m_mainLayer->addChild(m_scroll);
-        m_scroll->scrollToTop();
-    }
+    list->setPosition(scrollPosition);
+    list->ignoreAnchorPointForPosition(false);
+    
+    m_mainLayer->addChild(list);
+    m_list = list;
 }
 
 void MixedInputPopup::onOperator(CCObject* sender) {
@@ -597,7 +547,7 @@ void MixedInputPopup::onDirection(CCObject* sender) {
     }
     if (m_operator == Operator::Equal) m_operator = Operator::Add;
 
-    if (oldDirection == DirectionType::None || m_direction == DirectionType::None) m_scroll->scrollToTop();
+    // if (oldDirection == DirectionType::None || m_direction == DirectionType::None) m_scroll->scrollToTop();
 
     auto decArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-dec-arrow"_spr));
     auto incArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-inc-arrow"_spr));

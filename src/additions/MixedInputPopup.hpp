@@ -35,7 +35,7 @@ protected:
 
     CCMenuItemToggler* m_operatorBtn;
     CCMenuItemToggler* m_directionBtn;
-    ScrollLayer* m_scroll;
+    ListView* m_list;
     CCMenu* m_pageMenu;
 
     struct CalculationInfo {
