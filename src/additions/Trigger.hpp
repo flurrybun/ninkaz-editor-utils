@@ -11,11 +11,12 @@ namespace Trigger {
     extern const short EASING;
     extern const short ITEM;
 
-    float getProperty(EffectGameObject* object, short property);
-    void setProperty(EffectGameObject* object, short property, float newValue);
-    bool hasProperty(EffectGameObject* object, short property);
+    SetupTriggerPopup* getTriggerPopup();
+
+    float getProperty(EffectGameObject*, short);
+    void setProperty(EffectGameObject*, short, float);
+    bool hasProperty(EffectGameObject*, short);
     std::string getEasingString(EasingType easing);
-    short getPropertyDecimalPlaces(short property);
-    bool canPropertyBeNegative(short property);
-    std::variant<float*, int*, EasingType*> getPropertyPointer(EffectGameObject* object, short property);
+    short getPropertyDecimalPlaces(short);
+    bool canPropertyBeNegative(short);
 };

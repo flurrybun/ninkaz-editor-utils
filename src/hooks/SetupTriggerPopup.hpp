@@ -17,6 +17,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
     void setInputValue(CCTextInputNode*, float);
     void onMixedInput(CCObject*);
+    // void tempLogVals();
 };
 
 class $modify(CCTextInputNodeTrigger, CCTextInputNode) {

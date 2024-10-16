@@ -14,6 +14,8 @@ void NewSetupTriggerPopup::updateDefaultTriggerValues() {
 
     std::vector<int> inputKeysToRemove;
 
+    // tempLogVals();
+
     for (auto const& [key, input] : inputNodes) {
         if (!triggerValues.contains(key)) {
             // replace input with button if the value is mixed
@@ -179,3 +181,30 @@ void CCTextInputNodeTrigger::onTripleTouchTimeout() {
     m_fields->m_action = nullptr;
     m_fields->m_tapCount = 0;
 }
+
+// temp function to determine what properties each trigger uses
+// used for Trigger::hasProperty
+
+// void NewSetupTriggerPopup::tempLogVals() {
+//     CCDictionaryExt<int, CCTextInputNode*> inputNodes = m_inputNodes;
+//     std::ostringstream os;
+
+//     auto objectID = m_gameObject ? m_gameObject->m_objectID : static_cast<GameObject*>(m_gameObjects->firstObject())->m_objectID;
+
+//     os << "case " << objectID << ": return in({";
+
+//     int count = 0;
+//     int size = inputNodes.size();
+//     for (auto const& [key, input] : inputNodes) {
+//         os << key;
+//         if (++count < size) {
+//             os << ", ";
+//         }
+//     }
+
+//     os << "});";
+
+//     log::info("{}", os.str());
+//     // auto old = clipboard::read();
+//     // clipboard::write(old + "\n" + os.str());
+// }
