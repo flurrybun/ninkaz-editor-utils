@@ -6,6 +6,10 @@ using namespace geode::prelude;
 
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
+
+    // for some reason, some editor-related settings menus extend SetupTriggerPopup
+    // even the settings in the pause menu, which crashes without this check
+    if (typeinfo_cast<GJOptionsLayer*>(this)) return;
     
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = m_inputNodes;
     CCDictionaryExt<int, CCFloat*> triggerValues = m_triggerValues;
