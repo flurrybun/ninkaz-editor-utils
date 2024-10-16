@@ -410,6 +410,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     }
 
     CCArrayExt<CCMenu*> rows;
+    size_t index = 0;
 
     for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
         auto rowMenu = CCMenu::create();
@@ -494,8 +495,10 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         calcLayout->addChild(equalSign);
         calcLayout->addChild(newLabel);
 
-        if (m_operator == Operator::Equal) sign->setVisible(false);
-        if (m_operator == Operator::Equal) changeLabel->setVisible(false);
+        if (m_operator == Operator::Equal || (m_direction != DirectionType::None && index == 0)) {
+            sign->setVisible(false);
+            changeLabel->setVisible(false);
+        }
 
         rowMenu->addChild(calcLayout);
         calcLayout->updateLayout();
@@ -508,6 +511,7 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         // BOTTOM BORDER
 
         rows.push_back(rowMenu);
+        index++;
     }
 
     auto list = ListView::create(rows.inner(), rowSize.height, scrollSize.width, scrollSize.height);
@@ -546,8 +550,6 @@ void MixedInputPopup::onDirection(CCObject* sender) {
         m_initialValue = 0;
     }
     if (m_operator == Operator::Equal) m_operator = Operator::Add;
-
-    // if (oldDirection == DirectionType::None || m_direction == DirectionType::None) m_scroll->scrollToTop();
 
     auto decArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-dec-arrow"_spr));
     auto incArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-inc-arrow"_spr));
@@ -624,7 +626,13 @@ void MixedInputPopup::onApply(CCObject* sender) {
         size_t count = 0;
 
         for (auto& trigger : m_triggers) {
-            auto newProperty = applyOperation(m_initialValue, m_modifierValue * count, m_operator);
+            float newProperty;
+
+            if (m_operator == Operator::Multiply || m_operator == Operator::Divide) {
+                newProperty = applyOperation(m_initialValue, std::pow(m_modifierValue, count), m_operator, false);
+            } else {
+                newProperty = applyOperation(m_initialValue, m_modifierValue * count, m_operator, false);
+            }
 
             newProperties.push_back(newProperty);
             Trigger::setProperty(trigger, m_property, newProperty);
@@ -644,7 +652,7 @@ void MixedInputPopup::onApply(CCObject* sender) {
     onClose(sender);
 }
 
-float MixedInputPopup::applyOperation(float value, float modifier, Operator op) {
+float MixedInputPopup::applyOperation(float value, float modifier, Operator op, bool shouldRound) {
     float result;
 
     switch (op) {
@@ -659,7 +667,8 @@ float MixedInputPopup::applyOperation(float value, float modifier, Operator op) 
     }
 
     if (!m_canBeNegative && result < 0) return 0;
-    return roundValue(result);
+    if (shouldRound) return roundValue(result);
+    return result;
 }
 
 std::string MixedInputPopup::toTruncatedString(float value, std::optional<int> decimalPlaces) {
@@ -695,22 +704,23 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     std::vector<CalculationInfo> calcVector;
 
     size_t index = 0;
+    float previousNewProperty = m_initialValue;
 
-    auto hasNoDirection = m_direction == DirectionType::None;
+    auto hasDirection = m_direction != DirectionType::None;
 
     for (const auto& trigger : m_triggers) {
         float property;
         float change;
         float newProperty;
 
-        if (hasNoDirection) {
+        if (hasDirection) {
+            property = roundValue(previousNewProperty);
+            change = m_modifierValue;
+            newProperty = index != 0 ? applyOperation(property, change, m_operator) : property;
+        } else {
             property = Trigger::getProperty(trigger, m_property);
             change = m_modifierValue;
-            newProperty = applyOperation(property, m_modifierValue, m_operator);
-        } else {
-            property = m_initialValue;
-            change = m_modifierValue * index;
-            newProperty = applyOperation(m_initialValue, m_modifierValue * index, m_operator);
+            newProperty = applyOperation(property, change, m_operator);
         }
 
         auto propertyString = toTruncatedString(property);
@@ -719,7 +729,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
 
         CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 
-        if (hasNoDirection) {
+        if (!hasDirection) {
             // group triggers with the same property string
             auto it = std::find_if(calcVector.begin(), calcVector.end(), [&](const CalculationInfo& ci) {
                 return ci.propertyString == calcInfo.propertyString;
@@ -733,6 +743,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
         }
 
         index++;
+        previousNewProperty = newProperty;
     }
 
     return calcVector;
