@@ -103,7 +103,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         if (tag == SliderMenuType::Duration) value *= 10;
 
         auto menu = typeinfo_cast<CCMenu*>(sliderThumb->getParent()->getParent()->getParent());
-        auto input = getChildOfType<TextInput>(menu, 0);
+        auto input = menu->getChildByType<TextInput>(0);
 
         input->setString(floatToRoundedString(value), true);
     }
@@ -239,7 +239,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
     };
 
     void setMenuToMixed(CCMenu* menu, short property) {
-        auto input = getChildOfType<TextInput>(menu, 0);
+        auto input = menu->getChildByType<TextInput>(0);
         if (input) {
             input->setEnabled(false);
             input->setVisible(false);
@@ -262,7 +262,7 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
             menu->addChild(btn);
         };
 
-        auto slider = getChildOfType<Slider>(menu, 1);
+        auto slider = menu->getChildByType<Slider>(1);
         if (slider) slider->setValue(100);
     }
 

@@ -132,7 +132,7 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
             setInputValue(static_cast<CCTextInputNode*>(sender), value.value());
     };
 
-    if (auto input = typeinfo_cast<CCTextInputNode*>(sender)) textInputClosed(input);
+    // if (auto input = typeinfo_cast<CCTextInputNode*>(sender)) textInputClosed(input);
 
     auto alert = MixedInputPopup::create(m_gameObjects, property, callback);
 
