@@ -21,11 +21,27 @@ SetupTriggerPopup* Trigger::getTriggerPopup() {
 
 float Trigger::getProperty(EffectGameObject* object, short property) {
     auto popup = getTriggerPopup();
-    return popup->getTriggerValue(property, object);
+    float value = popup->getTriggerValue(property, object);
+
+    // move trigger x/y is stored so 1 block is 30, but in the trigger menu it's 10
+    if ((property == 28 || property == 29) // move trigger x/y
+        && !popup->getTriggerValue(393, object)) { // small step enabled
+
+        value = std::floor(value / 3);
+    }
+
+    return value;
 }
 
 void Trigger::setProperty(EffectGameObject* object, short property, float newValue) {
     auto popup = getTriggerPopup();
+
+    // move trigger x/y is stored so 1 block is 30, but in the trigger menu it's 10
+    if ((property == 28 || property == 29) // move trigger x/y
+        && !popup->getTriggerValue(393, object)) { // small step enabled
+
+        newValue *= 3;
+    }
 
     // we don't have to worry about setting m_gameObject, because this function will only be called
     // when the popup is open, and the popup only opens if multiple objects are selected
