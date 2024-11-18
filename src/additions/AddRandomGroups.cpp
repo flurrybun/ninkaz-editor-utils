@@ -14,7 +14,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     setTitle("Add Random Groups");
 
     m_groups = {};
-    m_selectedObjects.initWithArray(as<CCArray*>(selectedObjects));
+    m_selectedObjects = selectedObjects;
 
     // INFO BUTTON
 
@@ -91,7 +91,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
 
     auto scrollbar = Scrollbar::create(scrollLayer);
     scrollbar->setPosition(winCenter + ccp(158, 0));
-    // scrollbar->setVisible(false);
+    scrollbar->setVisible(false);
 
     auto groupBG = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     groupBG->setColor({ 0, 0, 0 });
@@ -100,7 +100,10 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     groupBG->setContentSize({ 300, 80 });
     m_mainLayer->addChild(groupBG);
 
-    auto groupLayout = CCMenu::create();
+    auto realWinCenter = CCDirector::get()->getWinSize() / 2;
+    auto scrollRect = CCRect { realWinCenter.width - 150, realWinCenter.height - 40, 300, 80 };
+
+    auto groupLayout = CCBoundedMenu::create(scrollRect);
     groupLayout->setLayout(
         RowLayout::create()
             ->setGap(10.f)
@@ -286,7 +289,7 @@ void AddRandomGroupsPopup::onChangeGroups() {
     auto numRows = static_cast<int>(ceil(m_groups.size() / 5.f));
     if (numRows <= 2) numRows = 2;
 
-    // m_scrollbar->setVisible(m_groups.size() > 10);
+    m_scrollbar->setVisible(m_groups.size() > 10);
 
     short BTN_HEIGHT = 20;
     short PAD_HEIGHT = 10;
@@ -307,7 +310,7 @@ void AddRandomGroupsPopup::assignGroups() {
 
     std::map<short, std::vector<GameObject*>> linkedObjectsMap;
     std::vector<std::vector<GameObject*>> linkedObjectGroups;
-    auto objects = as<CCArrayExt<GameObject*>>(GameManager::sharedState()->getEditorLayer()->m_editorUI->getSelectedObjects());
+    CCArrayExt<GameObject*> objects = GameManager::sharedState()->getEditorLayer()->m_editorUI->getSelectedObjects();
 
     for (GameObject* obj : objects)
         (linkedObjectsMap)[obj->m_linkedGroup].push_back(obj);

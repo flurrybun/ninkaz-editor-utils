@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Geode/Geode.hpp>
-#include <Geode/ui/TextInput.hpp>
+#include "../etc/CCBoundedMenu.hpp"
 
+#include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
 class AddRandomGroupsPopup : public Popup<CCArray*> {
@@ -13,7 +13,7 @@ protected:
     ScrollLayer* m_scrollLayer;
     Scrollbar* m_scrollbar;
     std::vector<short> m_groups;
-    CCArray m_selectedObjects;
+    CCArray* m_selectedObjects;
     CCMenuItemToggler* m_toggleLinkedButton;
 
     bool setup(CCArray* selectedObjects) override;
