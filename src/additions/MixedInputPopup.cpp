@@ -8,7 +8,6 @@ using namespace geode::prelude;
 #include <regex>
 
 bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
-    CCArrayExt<EffectGameObject*> filteredTriggers;
     for (auto trigger : triggers) {
         if (Trigger::hasProperty(trigger, property)) {
             m_triggers.push_back(trigger);
@@ -399,7 +398,9 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     int maxTriggerCount = 0;
     std::set<int> uniqueTriggerIDs;
 
-    for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
+    for (const auto& calcInfo : stringMap) {
+        auto triggers = calcInfo.triggers;
+        
         uniqueTriggerIDs.clear();
         for (const auto& trigger : triggers) {
             uniqueTriggerIDs.insert(trigger->m_objectID);
@@ -412,7 +413,9 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     CCArrayExt<CCMenu*> rows;
     size_t index = 0;
 
-    for (const auto& [oldString, changeString, newString, triggers] : stringMap) {
+    for (const auto& calcInfo : stringMap) {
+        auto [oldString, changeString, newString, triggers] = calcInfo;
+        
         auto rowMenu = CCMenu::create();
         rowMenu->setContentSize(rowSize);
 
