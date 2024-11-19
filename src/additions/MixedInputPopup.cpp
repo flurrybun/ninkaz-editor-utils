@@ -8,15 +8,18 @@ using namespace geode::prelude;
 #include <regex>
 
 bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
+    std::vector<float> propertyValues;
+    
     for (auto trigger : triggers) {
         if (Trigger::hasProperty(trigger, property)) {
             m_triggers.push_back(trigger);
+            propertyValues.push_back(Trigger::getProperty(trigger, property));
         }
     }
 
     std::sort(m_triggers.begin(), m_triggers.end(), [property](EffectGameObject* a, EffectGameObject* b) {
-        auto aValue = Trigger::getProperty(a, property);
-        auto bValue = Trigger::getProperty(b, property);
+        float aValue = Trigger::getProperty(a, property);
+        float bValue = Trigger::getProperty(b, property);
 
         return aValue < bValue;
     });
@@ -29,6 +32,7 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
 
     m_modifierValue = 0;
     m_initialValue = 0;
+    if (std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
     m_direction = DirectionType::None;
     m_rounding = RoundingType::Round;
     m_isFirstPage = true;
@@ -173,6 +177,7 @@ void MixedInputPopup::createFirstPageRow() {
 
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
     input->setFilter("0123456789.-");
+    input->getInputNode()->m_numberInput = true;
     input->setString(toTruncatedString(m_modifierValue));
     input->setID("modifier-value-input"_spr);
     input->setCallback([&](const std::string& text) {
@@ -299,6 +304,7 @@ void MixedInputPopup::createSecondPageRow() {
     // INITIAL VALUE INPUT
 
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
+    input->getInputNode()->m_numberInput = true;
     input->setFilter("0123456789.-");
     input->setString(toTruncatedString(m_initialValue));
     input->setID("initial-value-input"_spr);
@@ -555,11 +561,10 @@ void MixedInputPopup::onDirection(CCObject* sender) {
 
     auto initialValueInput = static_cast<TextInput*>(m_pageMenu->getChildByIDRecursive("initial-value-input"_spr));
 
-    if (initialValueInput && m_direction == DirectionType::None) {
-        initialValueInput->setString("0");
-        m_initialValue = 0;
+    if (m_operator == Operator::Equal) {
+        m_operator = Operator::Add;
+        if (m_modifierValue == 0) m_modifierValue = 1;
     }
-    if (m_operator == Operator::Equal) m_operator = Operator::Add;
 
     auto decArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-dec-arrow"_spr));
     auto incArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-inc-arrow"_spr));
@@ -571,7 +576,6 @@ void MixedInputPopup::onDirection(CCObject* sender) {
     if (cover) cover->setVisible(m_direction == DirectionType::None);
 
     std::sort(m_triggers.begin(), m_triggers.end(), [&](const EffectGameObject* a, const EffectGameObject* b) {
-
         if (m_direction == DirectionType::Left) return a->m_positionX > b->m_positionX;
         else if (m_direction == DirectionType::Right) return a->m_positionX < b->m_positionX;
         else if (m_direction == DirectionType::Up) return a->m_positionY < b->m_positionY;
