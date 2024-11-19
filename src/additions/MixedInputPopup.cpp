@@ -14,6 +14,13 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
         }
     }
 
+    std::sort(m_triggers.begin(), m_triggers.end(), [property](EffectGameObject* a, EffectGameObject* b) {
+        auto aValue = Trigger::getProperty(a, property);
+        auto bValue = Trigger::getProperty(b, property);
+
+        return aValue < bValue;
+    });
+
     m_property = property;
     m_callback = callback;
     m_operator = Operator::Equal;
@@ -702,6 +709,9 @@ float MixedInputPopup::roundValue(float value) {
         return std::ceil(value * factor) / factor;
     }
 }
+
+// this is a mess of a function but it essentially creates a giant vector of CalculationInfo structs
+// which are used to display the values in the scroll layer
 
 std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap() {
     std::vector<CalculationInfo> calcVector;
