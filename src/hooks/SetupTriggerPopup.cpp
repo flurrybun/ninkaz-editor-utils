@@ -1,5 +1,7 @@
 #include "SetupTriggerPopup.hpp"
 #include "../additions/MixedInputPopup.hpp"
+#include "../additions/Trigger.hpp"
+#include "Geode/ui/Notification.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -134,6 +136,11 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
 
     // if (auto input = typeinfo_cast<CCTextInputNode*>(sender)) textInputClosed(input);
 
+    if (!m_gameObjects || m_gameObjects->count() == 0) {
+        Notification::create("Only one trigger selected", NotificationIcon::Error, 2)->show();
+        return;
+    }
+
     auto alert = MixedInputPopup::create(m_gameObjects, property, callback);
 
     alert->m_noElasticity = true;
@@ -185,6 +192,35 @@ void CCTextInputNodeTrigger::onTripleTouchTimeout() {
     m_fields->m_action = nullptr;
     m_fields->m_tapCount = 0;
 }
+
+#ifdef GEODE_IS_DESKTOP
+
+void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int action, int mods) {
+    CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
+    if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
+    if (action != GLFW_RELEASE) return;
+
+    auto popup = Trigger::getTriggerPopup();
+    if (!popup) return;
+
+    CCDictionaryExt<int, CCTextInputNode*> inputNodes = popup->m_inputNodes;
+    auto mousePosition = getMousePos();
+
+    for (auto const& [key, input] : inputNodes) {
+        if (!input->isVisible()) continue;
+        
+        auto inputPosition = input->m_textField->convertToWorldSpace({0, 0});
+        auto inputSize = input->m_textField->getContentSize();
+        auto inputRect = CCRect(inputPosition, inputSize);
+
+        if (inputRect.containsPoint(mousePosition)) {
+            static_cast<CCTextInputNodeTrigger*>(input)->onTripleTouch();
+            return;
+        }
+    }
+}
+
+#endif
 
 // temp function to determine what properties each trigger uses
 // used for Trigger::hasProperty

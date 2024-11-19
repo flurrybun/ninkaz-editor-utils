@@ -13,7 +13,10 @@ namespace Trigger {
 }
 
 SetupTriggerPopup* Trigger::getTriggerPopup() {
-    CCArrayExt<CCNode*> children = CCDirector::sharedDirector()->getRunningScene()->getChildren();
+    auto scene = CCDirector::sharedDirector()->getRunningScene();
+    if (!scene) return nullptr;
+
+    CCArrayExt<CCNode*> children = scene->getChildren();
 
     for (auto child : children) if (auto popup = typeinfo_cast<SetupTriggerPopup*>(child)) return popup;
     return nullptr;

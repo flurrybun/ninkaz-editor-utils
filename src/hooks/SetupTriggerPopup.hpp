@@ -31,3 +31,12 @@ class $modify(CCTextInputNodeTrigger, CCTextInputNode) {
     void onTripleTouch();
     void onTripleTouchTimeout();
 };
+
+#ifdef GEODE_IS_DESKTOP
+
+#include <Geode/modify/CCEGLView.hpp>
+class $modify(CCEGLViewTrigger, CCEGLView) {
+    void onGLFWMouseCallBack(GLFWwindow*, int, int, int);
+};
+
+#endif
