@@ -10,33 +10,34 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         CCDictionaryExt<int, CCTextInputNode*> m_removedInputNodes;
         CCDictionaryExt<int, CCMenuItemSpriteExtra*> m_mixedButtons;
+        bool m_isMixedMode = false;
+        CCMenuItemToggler* m_mixedModeButton = nullptr;
     };
 
-    virtual void updateDefaultTriggerValues();
+    $override bool init(EffectGameObject*, CCArray*, float, float, int);
+    $override virtual void updateDefaultTriggerValues();
     void replaceInputWithButton(CCTextInputNode*, int);
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
     void setInputValue(CCTextInputNode*, float);
+
     void onMixedInput(CCObject*);
+    void toggleMixedMode(CCObject*);
     // void tempLogVals();
 };
 
 class $modify(CCTextInputNodeTrigger, CCTextInputNode) {
     struct Fields {
         bool m_isTriggerInput = false;
-        short m_tapCount = 0;
-        CCAction* m_action;
     };
 
-    bool ccTouchBegan(CCTouch*, CCEvent*);
-    void onTripleTouch();
-    void onTripleTouchTimeout();
+    $override bool ccTouchBegan(CCTouch*, CCEvent*);
 };
 
 #ifdef GEODE_IS_DESKTOP
 
 #include <Geode/modify/CCEGLView.hpp>
 class $modify(CCEGLViewTrigger, CCEGLView) {
-    void onGLFWMouseCallBack(GLFWwindow*, int, int, int);
+    $override void onGLFWMouseCallBack(GLFWwindow*, int, int, int);
 };
 
 #endif

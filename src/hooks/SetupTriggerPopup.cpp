@@ -6,11 +6,50 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
+    if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
+
+#ifdef GEODE_IS_MOBILE
+    // for some reason, some editor-related settings menus extend SetupTriggerPopup
+    if (typeinfo_cast<GJOptionsLayer*>(this)) return true;
+    if (!m_gameObjects || m_gameObjects->count() == 0) return true;
+
+    auto winSize = CCDirector::sharedDirector()->getWinSize();
+
+    auto onIcon = CCSprite::createWithSpriteFrameName("GJ_completesIcon_001.png");
+    onIcon->setScale(0.8);
+    auto onSpr = IconButtonSprite::create("GJ_button_01.png", onIcon, "Mixed", "bigFont.fnt");
+
+    auto offIcon = CCSprite::createWithSpriteFrameName("GJ_deleteIcon_001.png");
+    offIcon->setScale(0.8);
+    auto offSpr = IconButtonSprite::create("GJ_button_06.png", offIcon, "Mixed", "bigFont.fnt");
+
+    auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
+    btn->setID("mixed-button"_spr);
+    btn->toggle(false);
+    m_fields->m_mixedModeButton = btn;
+
+    auto menu = CCMenu::create();
+    menu->setID("trigger-menu"_spr);
+    menu->setAnchorPoint({1, 0});
+    menu->setPosition(ccp(winSize.width - 5, 5));
+    menu->setScale(0.5);
+    menu->setLayout(ColumnLayout::create()
+        ->setAxisAlignment(AxisAlignment::Start)
+        ->setGap(5)
+    );
+    menu->setTouchPriority(-504);
+    menu->addChild(btn);
+    menu->updateLayout();
+
+    m_mainLayer->addChild(menu);
+#endif
+
+    return true;
+}
+
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
-
-    // for some reason, some editor-related settings menus extend SetupTriggerPopup
-    // even the settings in the pause menu, which crashes without this check
     if (typeinfo_cast<GJOptionsLayer*>(this)) return;
     
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = m_inputNodes;
@@ -28,7 +67,6 @@ void NewSetupTriggerPopup::updateDefaultTriggerValues() {
             replaceInputWithButton(input, key);
             inputKeysToRemove.push_back(key);
         } else {
-            // allow double clicking input
             static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_isTriggerInput = true;
         }
     }
@@ -98,7 +136,6 @@ void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button,
 
     m_mainLayer->addChild(input);
     m_inputNodes->setObject(input, property);
-    static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_isTriggerInput = true;
 
     m_fields->m_mixedButtons.inner()->removeObjectForKey(property);
     m_fields->m_removedInputNodes.inner()->removeObjectForKey(property);
@@ -142,59 +179,39 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
     }
 
     auto alert = MixedInputPopup::create(m_gameObjects, property, callback);
-
     alert->m_noElasticity = true;
     alert->show();
 }
 
-// open mixed input popup when triple clicking input
+void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
+    m_fields->m_isMixedMode = !m_fields->m_isMixedMode;
+}
+
 
 bool CCTextInputNodeTrigger::ccTouchBegan(CCTouch* touch, CCEvent* event) {
-    if (!CCTextInputNode::ccTouchBegan(touch, event)) return false;
-    if (!m_fields->m_isTriggerInput) return true;
+    if (!m_fields->m_isTriggerInput) return CCTextInputNode::ccTouchBegan(touch, event);
 
-    auto& action = m_fields->m_action;
+    auto parent = getParent();
+    if (!parent) return CCTextInputNode::ccTouchBegan(touch, event);
 
-    if (action) {
-        stopAction(action);
-        m_fields->m_action = nullptr;
-        m_fields->m_tapCount++;
+    auto popup = typeinfo_cast<SetupTriggerPopup*>(parent->getParent());
+    if (!popup) return CCTextInputNode::ccTouchBegan(touch, event);
 
-        if (m_fields->m_tapCount == 3) {
-            m_fields->m_tapCount = 0;
-            onTripleTouch();
-        } else {
-            action = runAction(CCSequence::create(
-                CCDelayTime::create(0.4),
-                CCCallFunc::create(this, callfunc_selector(CCTextInputNodeTrigger::onTripleTouchTimeout)),
-                nullptr
-            ));
-        }
-    } else {
-        m_fields->m_tapCount = 1;
-        action = runAction(CCSequence::create(
-            CCDelayTime::create(0.4),
-            CCCallFunc::create(this, callfunc_selector(CCTextInputNodeTrigger::onTripleTouchTimeout)),
-            nullptr
-        ));
-    }
+    auto isMixedMode = static_cast<NewSetupTriggerPopup*>(popup)->m_fields->m_isMixedMode;
+    if (!isMixedMode) return CCTextInputNode::ccTouchBegan(touch, event);
+
+    auto bounds = m_textField->boundingBox();
+    auto touchLocation = m_textField->convertToNodeSpace(touch->getLocation()) - m_textField->getContentSize() / 2;
+    if (!bounds.containsPoint(touchLocation)) return true;
+
+    log::info("input {} tag: {}", this, this->getTag());
+    static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(this);
 
     return true;
 }
 
-void CCTextInputNodeTrigger::onTripleTouch() {
-    auto triggerPopup = typeinfo_cast<SetupTriggerPopup*>(getParent()->getParent());
-
-    if (triggerPopup) static_cast<NewSetupTriggerPopup*>(triggerPopup)->onMixedInput(this);
-}
-
-void CCTextInputNodeTrigger::onTripleTouchTimeout() {
-    m_fields->m_action = nullptr;
-    m_fields->m_tapCount = 0;
-}
 
 #ifdef GEODE_IS_DESKTOP
-
 void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int action, int mods) {
     CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
     if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
@@ -202,6 +219,7 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
 
     auto popup = Trigger::getTriggerPopup();
     if (!popup) return;
+    if (typeinfo_cast<GJOptionsLayer*>(popup)) return;
 
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = popup->m_inputNodes;
     auto mousePosition = getMousePos();
@@ -214,12 +232,11 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
         auto inputRect = CCRect(inputPosition, inputSize);
 
         if (inputRect.containsPoint(mousePosition)) {
-            static_cast<CCTextInputNodeTrigger*>(input)->onTripleTouch();
+            static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(input);
             return;
         }
     }
 }
-
 #endif
 
 // temp function to determine what properties each trigger uses
