@@ -6,10 +6,12 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+#ifdef GEODE_IS_DESKTOP
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
 
-#ifdef GEODE_IS_MOBILE
+    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") == "Right Click") return true;
+
     // for some reason, some editor-related settings menus extend SetupTriggerPopup
     if (typeinfo_cast<GJOptionsLayer*>(this)) return true;
     if (!m_gameObjects || m_gameObjects->count() == 0) return true;
@@ -43,10 +45,10 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
     menu->updateLayout();
 
     m_mainLayer->addChild(menu);
-#endif
 
     return true;
 }
+#endif
 
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
@@ -216,6 +218,8 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
     CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
     if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
     if (action != GLFW_RELEASE) return;
+
+    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") == "Toggle Button") return;
 
     auto popup = Trigger::getTriggerPopup();
     if (!popup) return;
