@@ -20,6 +20,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     void setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*>);
     void replaceInputWithButton(CCTextInputNode*, int);
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
+    void toggleSliderOfKey(int, bool);
     void setInputValue(CCTextInputNode*, float);
 
     void onMixedInput(CCObject*);

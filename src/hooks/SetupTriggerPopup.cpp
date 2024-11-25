@@ -68,6 +68,13 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
     CCArrayExt<CCArray*> pageContainers = m_pageContainers;
 
+    CCDictionaryExt<int, Slider*> sliders = m_valueControls;
+    log::info("value controls: {}", sliders.size());
+
+    for (auto const& [key, input] : sliders) {
+        log::info("{}: {}", key, input);
+    }
+
     std::vector<int> inputKeysToRemove;
 
     for (auto const& [key, input] : inputNodes) {
@@ -119,6 +126,8 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
     CCArrayExt<CCArray*> pageContainers = m_pageContainers;
     int overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
 
+    // create "mixed" button
+
     auto spr = CCLabelBMFont::create("Mixed", "bigFont.fnt");
     spr->limitLabelWidth(input->m_maxLabelWidth, input->getScale(), 0);
 
@@ -126,6 +135,8 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
     btn->setPosition(input->getPosition() - m_buttonMenu->getPosition());
     if (overrideTag == -1) btn->setTag(input->getTag());
     else btn->setTag(overrideTag);
+
+    // add button to the correct group and page containers
 
     auto groupIt = std::find_if(groupContainers.begin(), groupContainers.end(), [&](auto const& group) { return group->containsObject(input); });
     auto pageIt = std::find_if(pageContainers.begin(), pageContainers.end(), [&](auto const& page) { return page->containsObject(input); });
@@ -145,11 +156,15 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
         pageContainer->removeObject(input);
     }
 
+    // swap input with button
+
     m_fields->m_removedInputNodes[property] = input;
     input->removeFromParent();
 
     m_buttonMenu->addChild(btn);
     m_fields->m_mixedButtons[property] = btn;
+
+    toggleSliderOfKey(property, false);
 }
 
 void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button, int property, float newValue) {
@@ -182,6 +197,19 @@ void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button,
     button->removeFromParent();
 
     setInputValue(input, newValue);
+
+    toggleSliderOfKey(property, true);
+}
+
+void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
+    auto slider = typeinfo_cast<Slider*>(m_valueControls->objectForKey(key));
+    if (!slider) return;
+
+    slider->setTouchEnabled(isEnabled);
+
+    slider->m_groove->setOpacity(isEnabled ? 255 : 100);
+    slider->getThumb()->setOpacity(isEnabled ? 255 : 0);
+    slider->m_sliderBar->setOpacity(isEnabled ? 255 : 0);
 }
 
 void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
@@ -267,6 +295,8 @@ class $modify(ColorSelectPopup) {
 
         setOverrideInputs(children, inputs, tagOverrides);
 
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
+
         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
@@ -284,6 +314,10 @@ class $modify(SetupPulsePopup) {
         };
 
         setOverrideInputs(children, inputs, tagOverrides);
+
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 45);
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 46);
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(2), 47);
 
         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
@@ -303,6 +337,9 @@ class $modify(SetupOpacityPopup) {
 
         setOverrideInputs(children, inputs, tagOverrides);
 
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
+        // m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 35);
+
         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
@@ -320,6 +357,10 @@ class $modify(GJFollowCommandLayer) {
         };
 
         setOverrideInputs(children, inputs, tagOverrides);
+
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 72);
+        m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(2), 73);
 
         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
