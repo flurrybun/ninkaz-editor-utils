@@ -2,6 +2,7 @@
 
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/CCTextInputNode.hpp>
+#include <Geode/modify/CCMenuItemSpriteExtra.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -12,6 +13,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         CCDictionaryExt<int, CCMenuItemSpriteExtra*> m_mixedButtons;
         bool m_isMixedMode = false;
         CCMenuItemToggler* m_mixedModeButton = nullptr;
+        // CCDictionaryExt<int, CCArray*> m_overrideArrowButtons;
     };
 
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
@@ -21,6 +23,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     void replaceInputWithButton(CCTextInputNode*, int);
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
     void toggleSliderOfKey(int, bool);
+    void toggleArrowButtonsOfKey(int, bool);
     void setInputValue(CCTextInputNode*, float);
 
     void onMixedInput(CCObject*);
@@ -35,6 +38,12 @@ class $modify(CCTextInputNodeTrigger, CCTextInputNode) {
     };
 
     $override bool ccTouchBegan(CCTouch*, CCEvent*);
+};
+
+class $modify(TriggerItemSprite, CCMenuItemSpriteExtra) {
+    struct Fields {
+        int m_overrideTag = -1;
+    };
 };
 
 #ifdef GEODE_IS_DESKTOP

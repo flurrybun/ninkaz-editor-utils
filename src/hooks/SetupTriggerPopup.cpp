@@ -68,13 +68,6 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
     CCArrayExt<CCArray*> pageContainers = m_pageContainers;
 
-    CCDictionaryExt<int, Slider*> sliders = m_valueControls;
-    log::info("value controls: {}", sliders.size());
-
-    for (auto const& [key, input] : sliders) {
-        log::info("{}: {}", key, input);
-    }
-
     std::vector<int> inputKeysToRemove;
 
     for (auto const& [key, input] : inputNodes) {
@@ -133,6 +126,7 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
 
     auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(NewSetupTriggerPopup::onMixedInput));
     btn->setPosition(input->getPosition() - m_buttonMenu->getPosition());
+    btn->setID("mixed-input-button"_spr);
     if (overrideTag == -1) btn->setTag(input->getTag());
     else btn->setTag(overrideTag);
 
@@ -164,6 +158,7 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
     m_buttonMenu->addChild(btn);
     m_fields->m_mixedButtons[property] = btn;
 
+    toggleArrowButtonsOfKey(property, false);
     toggleSliderOfKey(property, false);
 }
 
@@ -198,6 +193,7 @@ void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button,
 
     setInputValue(input, newValue);
 
+    toggleArrowButtonsOfKey(property, true);
     toggleSliderOfKey(property, true);
 }
 
@@ -210,6 +206,20 @@ void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
     slider->m_groove->setOpacity(isEnabled ? 255 : 100);
     slider->getThumb()->setOpacity(isEnabled ? 255 : 0);
     slider->m_sliderBar->setOpacity(isEnabled ? 255 : 0);
+}
+
+void NewSetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
+    CCArrayExt<CCNode*> children = m_buttonMenu->getChildren();
+
+    for (auto child : children) {
+        auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(child);
+        if (!button || button->getID() == "mixed-input-button"_spr) continue;
+
+        if (button->getTag() != key && static_cast<TriggerItemSprite*>(button)->m_fields->m_overrideTag != key) continue;
+
+        button->setEnabled(isEnabled);
+        button->setOpacity(isEnabled ? 255 : 100);
+    }
 }
 
 void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
@@ -267,7 +277,9 @@ void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
 
 // m_overrideTag is used in these cases when the input's tag doesn't match the property it represents
 
-void setOverrideInputs(CCArrayExt<CCNode*>& children, CCArrayExt<CCTextInputNode*>& inputs, std::map<int, int> tagOverrides) {
+void setOverrideInputs(CCLayer* mainLayer, CCArrayExt<CCTextInputNode*>& inputs, std::map<int, int> tagOverrides) {
+    CCArrayExt<CCNode*> children = mainLayer->getChildren();
+
     for (auto child : children) {
         if (auto input = typeinfo_cast<CCTextInputNode*>(child)) {
             inputs.push_back(input);
@@ -283,17 +295,38 @@ void setOverrideInputs(CCArrayExt<CCNode*>& children, CCArrayExt<CCTextInputNode
     }
 }
 
+void setOverrideArrowButtons(CCMenu* buttonMenu, std::map<int, std::vector<CCPoint>>& buttonPositions) {
+    CCArrayExt<CCNode*> buttons = buttonMenu->getChildren();
+
+    for (auto button : buttons) {
+        auto btn = typeinfo_cast<CCMenuItemSpriteExtra*>(button);
+        if (!btn) continue;
+
+        CCPoint pos = btn->getPosition();
+
+        for (auto const& [tag, positions] : buttonPositions) {
+            if (std::find(positions.begin(), positions.end(), pos) != positions.end()) {
+                static_cast<TriggerItemSprite*>(btn)->m_fields->m_overrideTag = tag;
+                break;
+            }
+        }
+    }
+}
+
 class $modify(ColorSelectPopup) {
     bool init(EffectGameObject* obj, CCArray* objs, ColorAction* action) {
         if (!ColorSelectPopup::init(obj, objs, action)) return false;
 
-        CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
         CCArrayExt<CCTextInputNode*> inputs;
-        std::map<int, int> tagOverrides = {
+        std::map<int, int> inputOverrides = {
             {5, 10}, {3, 23}
         };
+        std::map<int, std::vector<CCPoint>> arrowOverrides = {
+            {23, {{100, 36}, {200, 36}}}
+        };
 
-        setOverrideInputs(children, inputs, tagOverrides);
+        setOverrideInputs(m_mainLayer, inputs, inputOverrides);
+        setOverrideArrowButtons(m_buttonMenu, arrowOverrides);
 
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
 
@@ -307,13 +340,17 @@ class $modify(SetupPulsePopup) {
     bool init(EffectGameObject* obj, CCArray* objs) {
         if (!SetupPulsePopup::init(obj, objs)) return false;
 
-        CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
         CCArrayExt<CCTextInputNode*> inputs;
-        std::map<int, int> tagOverrides = {
+        std::map<int, int> inputOverrides = {
             {4, 51}, {5, 50}, {8, 45}, {9, 46}, {10, 47}
         };
+        std::map<int, std::vector<CCPoint>> arrowOverrides = {
+            {51, {{95, 6}, {195, 6}}},
+            {50, {{92, 177}, {192, 177}}}
+        };
 
-        setOverrideInputs(children, inputs, tagOverrides);
+        setOverrideInputs(m_mainLayer, inputs, inputOverrides);
+        setOverrideArrowButtons(m_buttonMenu, arrowOverrides);
 
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 45);
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 46);
@@ -329,13 +366,16 @@ class $modify(SetupOpacityPopup) {
     bool init(EffectGameObject* obj, CCArray* objs) {
         if (!SetupOpacityPopup::init(obj, objs)) return false;
 
-        CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
         CCArrayExt<CCTextInputNode*> inputs;
-        std::map<int, int> tagOverrides = {
+        std::map<int, int> inputOverrides = {
             {3, 51}, {4, 10}
         };
+        std::map<int, std::vector<CCPoint>> arrowOverrides = {
+            {51, {{-50, 186}, {50, 186}}}
+        };
 
-        setOverrideInputs(children, inputs, tagOverrides);
+        setOverrideInputs(m_mainLayer, inputs, inputOverrides);
+        setOverrideArrowButtons(m_buttonMenu, arrowOverrides);
 
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
         // m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 35);
@@ -350,13 +390,17 @@ class $modify(GJFollowCommandLayer) {
     bool init(EffectGameObject* obj, CCArray* objs) {
         if (!GJFollowCommandLayer::init(obj, objs)) return false;
 
-        CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
         CCArrayExt<CCTextInputNode*> inputs;
-        std::map<int, int> tagOverrides = {
+        std::map<int, int> inputOverrides = {
             {0, 72}, {1, 73}, {2, 51}, {3, 10}, {4, 71}
         };
+        std::map<int, std::vector<CCPoint>> arrowOverrides = {
+            {51, {{80, 101}, {80, 21}}},
+            {71, {{160, 101}, {160, 21}}}
+        };
 
-        setOverrideInputs(children, inputs, tagOverrides);
+        setOverrideInputs(m_mainLayer, inputs, inputOverrides);
+        setOverrideArrowButtons(m_buttonMenu, arrowOverrides);
 
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 72);
