@@ -32,7 +32,7 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
 
     m_modifierValue = 0;
     m_initialValue = 0;
-    if (std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
+    if (!propertyValues.empty() && std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
     m_direction = DirectionType::None;
     m_rounding = RoundingType::Round;
     m_isFirstPage = true;
