@@ -14,9 +14,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         CCMenuItemToggler* m_mixedModeButton = nullptr;
     };
 
-#ifdef GEODE_IS_DESKTOP
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
-#endif
     $override void updateDefaultTriggerValues();
     void setupMultiEdit();
     void setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*>);

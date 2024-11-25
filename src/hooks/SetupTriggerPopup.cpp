@@ -11,11 +11,12 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-#ifdef GEODE_IS_DESKTOP
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
 
+#ifdef GEODE_IS_DESKTOP
     if (Mod::get()->getSettingValue<std::string>("select-mixed-input") == "Right Click") return true;
+#endif
 
     // for some reason, some editor-related settings menus extend SetupTriggerPopup
     if (typeinfo_cast<GJOptionsLayer*>(this)) return true;
@@ -53,7 +54,6 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
 
     return true;
 }
-#endif
 
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
@@ -327,98 +327,6 @@ class $modify(GJFollowCommandLayer) {
     }
 };
 
-// #include <Geode/modify/SetupPulsePopup.hpp>
-// class $modify(SetupPulsePopup) {
-//     bool init(EffectGameObject* obj, CCArray* objs) {
-//         if (!SetupPulsePopup::init(obj, objs)) return false;
-
-//         CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
-//         CCArrayExt<CCTextInputNode*> inputs;
-
-//         for (auto child : children) {
-//             if (auto input = typeinfo_cast<CCTextInputNode*>(child)) {
-//                 inputs.push_back(input);
-//                 auto& overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
-
-//                 switch (input->getTag()) {
-//                     case 4: overrideTag = 51; break;
-//                     case 5: overrideTag = 50; break;
-//                     case 8: overrideTag = 45; break;
-//                     case 9: overrideTag = 46; break;
-//                     case 10: overrideTag = 47; break;
-//                 }
-
-//                 if (overrideTag == 50 || overrideTag == 51) input->setMaxLabelWidth(40);
-//             }
-//         }
-
-//         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
-
-//         return true;
-//     }
-// };
-
-// #include <Geode/modify/SetupOpacityPopup.hpp>
-// class $modify(SetupOpacityPopup) {
-//     bool init(EffectGameObject* obj, CCArray* objs) {
-//         if (!SetupOpacityPopup::init(obj, objs)) return false;
-
-//         CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
-//         CCArrayExt<CCTextInputNode*> inputs;
-
-//         for (auto child : children) {
-//             if (auto input = typeinfo_cast<CCTextInputNode*>(child)) {
-//                 inputs.push_back(input);
-//                 auto& overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
-
-//                 switch (input->getTag()) {
-//                     case 3: overrideTag = 51; break;
-//                     case 4: overrideTag = 10; break;
-//                 }
-
-//                 if (overrideTag == 51) input->setMaxLabelWidth(40);
-//                 if (overrideTag == 10) input->setMaxLabelWidth(50);
-//             }
-//         }
-
-//         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
-
-//         return true;
-//     }
-// };
-
-// #include <Geode/modify/GJFollowCommandLayer.hpp>
-// class $modify(GJFollowCommandLayer) {
-//     bool init(EffectGameObject* obj, CCArray* objs) {
-//         if (!GJFollowCommandLayer::init(obj, objs)) return false;
-
-//         CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
-//         CCArrayExt<CCTextInputNode*> inputs;
-
-//         for (auto child : children) {
-//             if (auto input = typeinfo_cast<CCTextInputNode*>(child)) {
-//                 inputs.push_back(input);
-//                 auto& overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
-
-//                 switch (input->getTag()) {
-//                     case 3: overrideTag = 10; break;
-//                     case 0: overrideTag = 72; break;
-//                     case 1: overrideTag = 73; break;
-//                     case 2: overrideTag = 51; break;
-//                     case 4: overrideTag = 71; break;
-//                 }
-
-//                 if (overrideTag == 51 || overrideTag == 71) input->setMaxLabelWidth(40);
-//                 else input->setMaxLabelWidth(50);
-//             }
-//         }
-
-//         static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
-
-//         return true;
-//     }
-// };
-
 
 bool CCTextInputNodeTrigger::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     if (!m_fields->m_isTriggerInput) return CCTextInputNode::ccTouchBegan(touch, event);
@@ -436,7 +344,6 @@ bool CCTextInputNodeTrigger::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     auto touchLocation = m_textField->convertToNodeSpace(touch->getLocation()) - m_textField->getContentSize() / 2;
     if (!bounds.containsPoint(touchLocation)) return true;
 
-    log::info("input {} tag: {}", this, this->getTag());
     static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(this);
 
     return true;
