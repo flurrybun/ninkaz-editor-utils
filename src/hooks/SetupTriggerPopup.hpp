@@ -17,7 +17,9 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
 #ifdef GEODE_IS_DESKTOP
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
 #endif
-    $override virtual void updateDefaultTriggerValues();
+    $override void updateDefaultTriggerValues();
+    void setupMultiEdit();
+    void setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*>);
     void replaceInputWithButton(CCTextInputNode*, int);
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
     void setInputValue(CCTextInputNode*, float);
@@ -29,6 +31,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
 
 class $modify(CCTextInputNodeTrigger, CCTextInputNode) {
     struct Fields {
+        int m_overrideTag = -1;
         bool m_isTriggerInput = false;
     };
 

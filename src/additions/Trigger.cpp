@@ -23,6 +23,16 @@ SetupTriggerPopup* Trigger::getTriggerPopup() {
 }
 
 float Trigger::getProperty(EffectGameObject* object, short property) {
+    // calling getTriggerValue with these properties always returns 0
+    // though setProperty works just fine???
+    if (property == 45) return object->m_fadeInDuration;
+    if (property == 46) return object->m_holdDuration;
+    if (property == 47) return object->m_fadeOutDuration;
+    if (property == 50) return object->m_copyColorID;
+    if (property == 72) return object->m_followXMod;
+    if (property == 73) return object->m_followYMod;
+    if (property == 23) return object->m_targetColor;
+
     auto popup = getTriggerPopup();
     float value = popup->getTriggerValue(property, object);
 
@@ -62,12 +72,21 @@ bool Trigger::hasProperty(EffectGameObject* object, short property) {
         return std::find(vec.begin(), vec.end(), property) != vec.end();
     };
 
+    // the following properties were generated via a script that goes through
+    // m_inputNodes and finds the tags of each input
+
+    // some early triggers don't use m_inputNodes and had to be added manually
+
     switch (object->m_objectID) {
+        case 899: return in({10, 23}); // doesn't use m_inputNodes
         case 901: return in({28, 29, 143, 144, 395, 71, 396, 10, 51});
         case 1616: return in({51});
+        case 1006: return in({50, 51, 45, 46, 47}); // doesn't use m_inputNodes
+        case 1007: return in({10, 51}); // doesn't use m_inputNodes
         case 1049: return in({51});
-        case 1268: return in({51, 63, 556, -1, -2});
+        case 1268: return in({51, 63, 556}); //removed: -1, -2
         case 2067: return in({150, 151, 10, 71, 51});
+        case 1347: return in({10, 72, 73, 51, 71}); // doesn't use m_inputNodes
         case 3033: return in({76, 51, 71, 520, 521, 545, 522, 523, 546});
         case 1346: return in({68, 69, 401, 402, 10, 403, 51, 71, 516, 518, 517, 519});
         case 3016: return in({51, 71, 365, 340, 363, 364, 292, 293, 298, 299, 308, 309, 366, 361, 362});
@@ -95,7 +114,7 @@ bool Trigger::hasProperty(EffectGameObject* object, short property) {
         case 3619: return in({80, 95, 479, 51});
         case 3620: return in({80, 95, 479, 483, 51, 71, 484});
         case 3641: return in({80});
-        case 3607: return in({-1, -2, 437, 438});
+        case 3607: return in({437, 438}); // removed: -1, -2
         case 3608: return in({51, 71, 547, 548, 549, 550, 552, 553, 554, 555});
         case 3618: return in({51});
         case 1913: return in({371, 10});
