@@ -13,7 +13,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         CCDictionaryExt<int, CCMenuItemSpriteExtra*> m_mixedButtons;
         bool m_isMixedMode = false;
         CCMenuItemToggler* m_mixedModeButton = nullptr;
-        // CCDictionaryExt<int, CCArray*> m_overrideArrowButtons;
+        CCArrayExt<CCTextInputNode*> m_overrideInputs;
     };
 
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
@@ -25,6 +25,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     void toggleSliderOfKey(int, bool);
     void toggleArrowButtonsOfKey(int, bool);
     void setInputValue(CCTextInputNode*, float);
+    CCTextInputNode* getInputOfKey(int);
 
     void onMixedInput(CCObject*);
     void toggleMixedMode(CCObject*);

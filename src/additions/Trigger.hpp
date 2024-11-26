@@ -17,6 +17,6 @@ namespace Trigger {
     void setProperty(EffectGameObject*, short, float);
     bool hasProperty(EffectGameObject*, short);
     std::string getEasingString(EasingType easing);
-    short getPropertyDecimalPlaces(short);
+    short getPropertyDecimalPlaces(short, InputValueType);
     bool canPropertyBeNegative(short);
 };

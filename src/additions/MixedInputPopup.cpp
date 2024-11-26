@@ -7,7 +7,7 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
+bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short property, const InputValueType valueType, const std::function<void (std::optional<float>)>& callback) {
     std::vector<float> propertyValues;
     
     for (auto trigger : triggers) {
@@ -27,8 +27,8 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     m_property = property;
     m_callback = callback;
     m_operator = Operator::Equal;
-    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(property);
-    m_canBeNegative = Trigger::canPropertyBeNegative(property);
+    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(property, valueType);
+    m_canBeNegative = valueType != InputValueType::Uint;
 
     m_modifierValue = 0;
     m_initialValue = 0;
@@ -766,9 +766,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     return calcVector;
 }
 
-MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short& property, const std::function<void (std::optional<float>)>& callback) {
+MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short property, const InputValueType valueType, const std::function<void (std::optional<float>)>& callback) {
     auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, triggers, property, callback)) {
+    if (ret && ret->initAnchored(380.f, 280.f, triggers, property, valueType, callback)) {
         ret->autorelease();
         return ret;
     }

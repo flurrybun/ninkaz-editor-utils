@@ -270,10 +270,12 @@ class $modify(MultiEditTriggersPopup, EditTriggersPopup) {
         auto& triggers = m_fields->m_triggers;
         auto property = static_cast<short>(sender->getTag());
 
-        auto alert = MixedInputPopup::create(triggers, property, nullptr);
+        // just to prevent errors. will be overhauling the edit triggers popup soon
 
-        alert->m_noElasticity = true;
-        alert->show();
+        // auto alert = MixedInputPopup::create(triggers, property, nullptr);
+
+        // alert->m_noElasticity = true;
+        // alert->show();
     }
 
     std::optional<float> getInitialTriggerValue(const CCArrayExt<EffectGameObject*>& triggers, const short property) {

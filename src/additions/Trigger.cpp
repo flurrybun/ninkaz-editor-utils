@@ -187,11 +187,16 @@ std::string Trigger::getEasingString(EasingType easing) {
     return "";
 }
 
-short Trigger::getPropertyDecimalPlaces(short property) {
-    int twoDecimalPlaces[] = {10, 35, 75, 84, 143, 144};
+short Trigger::getPropertyDecimalPlaces(short property, InputValueType valueType) {
+    int fourDecimalPlaces[] = {63, 556}; // spawn trigger delay/+-
+    int threeDecimalPlaces[] = {143, 144, 150, 151}; // move mod x/y, scale x/y
 
-    if (std::find(std::begin(twoDecimalPlaces), std::end(twoDecimalPlaces), property)
-        != std::end(twoDecimalPlaces)) return 2;
+    if (std::find(std::begin(fourDecimalPlaces), std::end(fourDecimalPlaces), property)
+        != std::end(fourDecimalPlaces)) return 4;
+    if (std::find(std::begin(threeDecimalPlaces), std::end(threeDecimalPlaces), property)
+        != std::end(threeDecimalPlaces)) return 3;
+
+    if (valueType == InputValueType::Float) return 2;
     return 0;
 }
 

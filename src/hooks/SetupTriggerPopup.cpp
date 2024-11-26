@@ -87,6 +87,7 @@ void NewSetupTriggerPopup::setupMultiEdit() {
 }
 
 void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> inputs) {
+    m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
 
     for (auto input : inputs) {
@@ -233,6 +234,15 @@ void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
     input->setString(str);
 }
 
+CCTextInputNode* NewSetupTriggerPopup::getInputOfKey(int key) {
+    for (auto input : m_fields->m_overrideInputs) {
+        if (static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag == key) return input;
+    }
+
+    auto input = typeinfo_cast<CCTextInputNode*>(m_inputNodes->objectForKey(key));
+    return input;
+}
+
 void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
     int property = static_cast<int>(sender->getTag());
 
@@ -254,14 +264,15 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
             setInputValue(static_cast<CCTextInputNode*>(sender), value.value());
     };
 
-    // if (auto input = typeinfo_cast<CCTextInputNode*>(sender)) textInputClosed(input);
-
     if (!m_gameObjects || m_gameObjects->count() == 0) {
         Notification::create("Only one trigger selected", NotificationIcon::Error, 2)->show();
         return;
     }
 
-    auto alert = MixedInputPopup::create(m_gameObjects, property, callback);
+    auto input = getInputOfKey(property);
+    InputValueType valueType = input ? input->m_valueType : InputValueType::Float;
+
+    auto alert = MixedInputPopup::create(m_gameObjects, property, valueType, callback);
     alert->m_noElasticity = true;
     alert->show();
 }
@@ -289,8 +300,13 @@ void setOverrideInputs(CCLayer* mainLayer, CCArrayExt<CCTextInputNode*>& inputs,
                 overrideTag = tagOverrides[input->getTag()];
             }
 
-            if (overrideTag == 50 || overrideTag == 51 || overrideTag == 71 || overrideTag == 23) input->setMaxLabelWidth(40);
-            else input->setMaxLabelWidth(50);
+            if (overrideTag == 50 || overrideTag == 51 || overrideTag == 71 || overrideTag == 23) {
+                input->m_valueType = InputValueType::Uint;
+                input->setMaxLabelWidth(40);
+            } else {
+                input->m_valueType = InputValueType::Float;
+                input->setMaxLabelWidth(50);
+            }
         }
     }
 }
