@@ -14,6 +14,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         bool m_isMixedMode = false;
         CCMenuItemToggler* m_mixedModeButton = nullptr;
         CCArrayExt<CCTextInputNode*> m_overrideInputs;
+        CCArrayExt<CCScale9Sprite*> m_inputBGs;
     };
 
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
@@ -24,6 +25,7 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     void replaceButtonWithInput(CCMenuItemSpriteExtra*, int, float);
     void toggleSliderOfKey(int, bool);
     void toggleArrowButtonsOfKey(int, bool);
+    void getInputBGs(CCArrayExt<CCTextInputNode*>);
     void setInputValue(CCTextInputNode*, float);
     CCTextInputNode* getInputOfKey(int);
 

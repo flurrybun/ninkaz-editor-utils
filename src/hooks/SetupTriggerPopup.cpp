@@ -68,11 +68,14 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
     CCArrayExt<CCArray*> pageContainers = m_pageContainers;
 
+    CCArrayExt<CCTextInputNode*> inputNodeArray;
     std::vector<int> inputKeysToRemove;
 
     for (auto const& [key, input] : inputNodes) {
         static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_isTriggerInput = true;
         if (!m_gameObjects || m_gameObjects->count() == 0) continue;
+
+        inputNodeArray.push_back(input);
 
         if (!triggerValues.contains(key)) {
             // replace input with button if the value is mixed
@@ -84,6 +87,8 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     for (auto const& key : inputKeysToRemove) {
         m_inputNodes->removeObjectForKey(key);
     }
+
+    getInputBGs(inputNodeArray);
 }
 
 void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> inputs) {
@@ -113,6 +118,8 @@ void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> i
 
         if (isMixed) replaceInputWithButton(input, overrideTag);
     }
+
+    getInputBGs(inputs);
 }
 
 void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int property) {
@@ -223,6 +230,24 @@ void NewSetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
     }
 }
 
+void NewSetupTriggerPopup::getInputBGs(CCArrayExt<CCTextInputNode*> inputs) {
+    CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
+    
+    for (auto input : inputs) {
+        auto position = input->getPosition();
+
+        for (auto child : children) {
+            auto bg = typeinfo_cast<CCScale9Sprite*>(child);
+            if (!bg) continue;
+
+            if (bg->getPosition() == position) {
+                m_fields->m_inputBGs.push_back(bg);
+                break;
+            }
+        }
+    }
+}
+
 void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
     auto factor = std::pow(10, input->m_decimalPlaces);
     auto newValue = std::floor(value * factor) / factor;
@@ -279,6 +304,13 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
 
 void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
     m_fields->m_isMixedMode = !m_fields->m_isMixedMode;
+
+    GLubyte opacity = m_fields->m_isMixedMode ? 140 : 70;
+
+    for (auto bg : m_fields->m_inputBGs) {
+        bg->setOpacity(opacity);
+        bg->runAction(CCEaseInOut::create(CCFadeTo::create(0.8, 100), 2));
+    }
 }
 
 
