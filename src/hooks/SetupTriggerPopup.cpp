@@ -317,6 +317,9 @@ class $modify(ColorSelectPopup) {
     bool init(EffectGameObject* obj, CCArray* objs, ColorAction* action) {
         if (!ColorSelectPopup::init(obj, objs, action)) return false;
 
+        // color action is only nullptr for color triggers
+        if (action) return true;
+
         CCArrayExt<CCTextInputNode*> inputs;
         std::map<int, int> inputOverrides = {
             {5, 10}, {3, 23}
