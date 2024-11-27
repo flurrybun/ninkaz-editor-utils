@@ -24,13 +24,19 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-    auto onIcon = CCSprite::createWithSpriteFrameName("GJ_completesIcon_001.png");
-    onIcon->setScale(0.8);
-    auto onSpr = IconButtonSprite::create("GJ_button_01.png", onIcon, "Mixed", "bigFont.fnt");
+    // create multi-edit button and menu
 
-    auto offIcon = CCSprite::createWithSpriteFrameName("GJ_deleteIcon_001.png");
-    offIcon->setScale(0.8);
-    auto offSpr = IconButtonSprite::create("GJ_button_06.png", offIcon, "Mixed", "bigFont.fnt");
+    auto onSprTop = CCSprite::createWithSpriteFrameName("multi-edit-btn.png"_spr);
+    auto onSpr = CCScale9Sprite::create("GJ_button_01.png");
+    onSprTop->setScale(0.7);
+    onSpr->setContentSize({30, 30});
+    onSpr->addChildAtPosition(onSprTop, Anchor::Center);
+
+    auto offSprTop = CCSprite::createWithSpriteFrameName("multi-edit-btn.png"_spr);
+    auto offSpr = CCScale9Sprite::create("GJ_button_04.png");
+    offSprTop->setScale(0.7);
+    offSpr->setContentSize({30, 30});
+    offSpr->addChildAtPosition(offSprTop, Anchor::Center);
 
     auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
     btn->setID("mixed-button"_spr);
@@ -39,9 +45,8 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
 
     auto menu = CCMenu::create();
     menu->setID("trigger-menu"_spr);
-    menu->setAnchorPoint({1, 0});
-    menu->setPosition(ccp(winSize.width - 5, 5));
-    menu->setScale(0.5);
+    menu->setAnchorPoint({0, 0});
+    menu->setPosition(winSize / 2 - m_buttonMenu->getPosition() + ccp(m_width / 2, -m_height / 2) + ccp(5, 0));
     menu->setLayout(ColumnLayout::create()
         ->setAxisAlignment(AxisAlignment::Start)
         ->setGap(5)
@@ -50,7 +55,7 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
     menu->addChild(btn);
     menu->updateLayout();
 
-    m_mainLayer->addChild(menu);
+    m_buttonMenu->addChild(menu);
 
     return true;
 }
@@ -70,6 +75,15 @@ void NewSetupTriggerPopup::setupMultiEdit() {
 
     CCArrayExt<CCTextInputNode*> inputNodeArray;
     std::vector<int> inputKeysToRemove;
+
+    // shifting the main layer to the left to make space for the multi-edit button menu
+    // it has to be done now bc doing it on init causes some elements to be placed incorrectly
+
+#ifdef GEODE_IS_DESKTOP
+    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") != "Right Click") {
+        m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    }
+#endif
 
     for (auto const& [key, input] : inputNodes) {
         static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_isTriggerInput = true;
@@ -94,6 +108,12 @@ void NewSetupTriggerPopup::setupMultiEdit() {
 void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> inputs) {
     m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
+
+#ifdef GEODE_IS_DESKTOP
+    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") != "Right Click") {
+        m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    }
+#endif
 
     for (auto input : inputs) {
         auto overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;

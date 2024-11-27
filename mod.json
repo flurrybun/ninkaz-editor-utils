@@ -33,7 +33,7 @@
             "description": "Change the method used to enter multi-edit mode.",
             "type": "string",
             "one-of": ["Right Click", "Button", "Right Click & Button"],
-            "default": "Right Click",
+            "default": "Right Click & Button",
             "platforms": ["desktop"]
         }
     }
