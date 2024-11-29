@@ -14,7 +14,7 @@
     "links": {
         "source": "https://github.com/flurrybun/ninkaz-editor-utils"
     },
-    "tags": ["editor", "interface", "utility"],
+    "tags": ["editor", "enhancement", "utility", "interface", "offline"],
     "dependencies": [
         {
             "id": "geode.node-ids",
@@ -28,12 +28,11 @@
         }
     },
     "settings": {
-        "select-mixed-input": {
-            "name": "Enter Multi-Edit Mode",
-            "description": "Change the method used to enter multi-edit mode.",
-            "type": "string",
-            "one-of": ["Right Click", "Button", "Right Click & Button"],
-            "default": "Right Click & Button",
+        "show-mobile-controls": {
+            "name": "Show Mobile-Friendly Controls",
+            "description": "Add buttons for all actions that require a mouse and keyboard. Disable for a more vanilla experience.",
+            "type": "bool",
+            "default": true,
             "platforms": ["desktop"]
         }
     }

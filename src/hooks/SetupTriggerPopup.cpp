@@ -8,40 +8,26 @@
 #include <Geode/modify/SetupOpacityPopup.hpp>
 #include <Geode/modify/GJFollowCommandLayer.hpp>
 
+#include <Geode/modify/CCKeyboardDispatcher.hpp>
+
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+bool isMobileControlsEnabled() {
+#ifdef GEODE_IS_MOBILE
+    return true;
+#endif
+    return Mod::get()->getSettingValue<bool>("show-mobile-controls");
+}
+
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
-
-#ifdef GEODE_IS_DESKTOP
-    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") == "Right Click") return true;
-#endif
+    if (!isMobileControlsEnabled()) return true;
 
     // for some reason, some editor-related settings menus extend SetupTriggerPopup
     if (typeinfo_cast<GJOptionsLayer*>(this)) return true;
-    if (!m_gameObjects || m_gameObjects->count() == 0) return true;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
-
-    // create multi-edit button and menu
-
-    auto onSprTop = CCSprite::createWithSpriteFrameName("multi-edit-btn.png"_spr);
-    auto onSpr = CCScale9Sprite::create("GJ_button_01.png");
-    onSprTop->setScale(0.7);
-    onSpr->setContentSize({30, 30});
-    onSpr->addChildAtPosition(onSprTop, Anchor::Center);
-
-    auto offSprTop = CCSprite::createWithSpriteFrameName("multi-edit-btn.png"_spr);
-    auto offSpr = CCScale9Sprite::create("GJ_button_04.png");
-    offSprTop->setScale(0.7);
-    offSpr->setContentSize({30, 30});
-    offSpr->addChildAtPosition(offSprTop, Anchor::Center);
-
-    auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
-    btn->setID("mixed-button"_spr);
-    btn->toggle(false);
-    m_fields->m_mixedModeButton = btn;
 
     auto menu = CCMenu::create();
     menu->setID("trigger-menu"_spr);
@@ -51,13 +37,46 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
         ->setAxisAlignment(AxisAlignment::Start)
         ->setGap(5)
     );
-    menu->setTouchPriority(-504);
-    menu->addChild(btn);
+    menu->setTouchPriority(-1000000);
+    m_fields->m_sideMenu = menu;
+
+    auto multiEditBtn = createMobileButton("multi-edit-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
+    multiEditBtn->setID("multi-edit-btn"_spr);
+    m_fields->m_mixedModeButton = multiEditBtn;
+
+    auto hideBtn = createMobileButton("hide-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleHideMode));
+    hideBtn->setID("hide-btn"_spr);
+
+    if (typeinfo_cast<SetupShaderEffectPopup*>(this)) {
+        hideBtn->toggleWithCallback(true);
+    }
+
+    menu->addChild(multiEditBtn);
+    menu->addChild(hideBtn);
     menu->updateLayout();
 
     m_buttonMenu->addChild(menu);
 
     return true;
+}
+
+CCMenuItemToggler* NewSetupTriggerPopup::createMobileButton(const char* sprName, SEL_MenuHandler selector) {
+    auto onSprTop = CCSprite::createWithSpriteFrameName(sprName);
+    auto onSpr = CCScale9Sprite::create("GJ_button_02.png");
+    onSprTop->setScale(0.7);
+    onSpr->setContentSize({30, 30});
+    onSpr->addChildAtPosition(onSprTop, Anchor::Center);
+
+    auto offSprTop = CCSprite::createWithSpriteFrameName(sprName);
+    auto offSpr = CCScale9Sprite::create("GJ_button_04.png");
+    offSprTop->setScale(0.7);
+    offSpr->setContentSize({30, 30});
+    offSpr->addChildAtPosition(offSprTop, Anchor::Center);
+
+    auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, selector);
+    btn->toggle(false);
+
+    return btn;
 }
 
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
@@ -76,20 +95,15 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     CCArrayExt<CCTextInputNode*> inputNodeArray;
     std::vector<int> inputKeysToRemove;
 
-    // shifting the main layer to the left to make space for the multi-edit button menu
+    // shifting the main layer to the left to make space for the mobile button menu
     // it has to be done now bc doing it on init causes some elements to be placed incorrectly
-
-#ifdef GEODE_IS_DESKTOP
-    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") != "Right Click") {
-        m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
-    }
-#endif
+    if (isMobileControlsEnabled()) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto const& [key, input] : inputNodes) {
+        inputNodeArray.push_back(input);
+
         static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_isTriggerInput = true;
         if (!m_gameObjects || m_gameObjects->count() == 0) continue;
-
-        inputNodeArray.push_back(input);
 
         if (!triggerValues.contains(key)) {
             // replace input with button if the value is mixed
@@ -109,11 +123,7 @@ void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> i
     m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
 
-#ifdef GEODE_IS_DESKTOP
-    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") != "Right Click") {
-        m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
-    }
-#endif
+    if (isMobileControlsEnabled()) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto input : inputs) {
         auto overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
@@ -261,7 +271,11 @@ void NewSetupTriggerPopup::getInputBGs(CCArrayExt<CCTextInputNode*> inputs) {
             if (!bg) continue;
 
             if (bg->getPosition() == position) {
-                m_fields->m_inputBGs.push_back(bg);
+                int tag = input->getTag();
+                int overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
+                if (overrideTag != -1) tag = overrideTag;
+                
+                m_fields->m_inputBGs[tag] = bg;
                 break;
             }
         }
@@ -327,12 +341,98 @@ void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
 
     GLubyte opacity = m_fields->m_isMixedMode ? 140 : 70;
 
-    for (auto bg : m_fields->m_inputBGs) {
+    for (auto [key, bg] : m_fields->m_inputBGs) {
         bg->setOpacity(opacity);
         bg->runAction(CCEaseInOut::create(CCFadeTo::create(0.8, 100), 2));
     }
 }
 
+void NewSetupTriggerPopup::toggleHideMode(CCObject* sender) {
+    m_fields->m_isHideMode = !m_fields->m_isHideMode;
+}
+
+void NewSetupTriggerPopup::sliderBegan(Slider* slider) {
+    m_fields->m_currentSlider = slider;
+    if (!m_fields->m_isHideMode) return;
+    hideOrShowUI(true);
+}
+
+void NewSetupTriggerPopup::sliderEnded(Slider* slider) {
+    m_fields->m_currentSlider = nullptr;
+    if (!m_fields->m_isHideMode) return;
+    hideOrShowUI(false);
+}
+
+void NewSetupTriggerPopup::hideOrShowUI(bool isHidden) {
+    auto slider = m_fields->m_currentSlider;
+    int sliderTag = slider ? slider->getTag() : -99;
+    
+    auto runOpacity = [isHidden](CCNode* node, GLubyte defaultOpacity = 255) {
+        node->runAction(CCFadeTo::create(0.15, isHidden ? 0 : defaultOpacity));
+    };
+
+    runOpacity(this, 150);
+
+    CCArrayExt<CCNode*> nodes;
+    nodes.inner()->addObjectsFromArray(m_mainLayer->getChildren());
+    nodes.inner()->addObjectsFromArray(m_buttonMenu->getChildren());
+    nodes.inner()->addObjectsFromArray(m_fields->m_sideMenu->getChildren());
+
+    nodes.inner()->removeObject(m_buttonMenu);
+    nodes.inner()->removeObject(m_fields->m_inputBGs[sliderTag]);
+    nodes.inner()->removeObject(m_inputLabels->objectForKey(sliderTag));
+
+    // using a traditional for loop so we can iterate over the array while modifying it
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+        auto node = nodes[i];
+
+        auto tag = node->getTag();
+        if (auto input = typeinfo_cast<CCTextInputNode*>(node)) {
+            auto overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
+            if (overrideTag != -1) tag = overrideTag;
+        } else if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node)) {
+            auto overrideTag = static_cast<TriggerItemSprite*>(button)->m_fields->m_overrideTag;
+            if (overrideTag != -1) tag = overrideTag;
+        }
+
+        if (tag == sliderTag) continue;
+
+        // im sorry this is a total mess
+
+        if (auto nodeSlider = typeinfo_cast<Slider*>(node)) {
+            runOpacity(nodeSlider->m_groove);
+            runOpacity(nodeSlider->m_sliderBar);
+            runOpacity(nodeSlider->getThumb());
+        } else if (auto nodeInput = typeinfo_cast<CCTextInputNode*>(node)) {
+            runOpacity(nodeInput->m_placeholderLabel);
+        } else if (auto nodeBG = typeinfo_cast<CCScale9Sprite*>(node); nodeBG && nodeBG->getTag() != 1) {
+            runOpacity(nodeBG, 100);
+        } else if (auto nodeBtn = typeinfo_cast<CCMenuItemSpriteExtra*>(node)) {
+            auto spr = nodeBtn->getNormalImage();
+
+            if (nodeBtn == m_easingRateButton) {
+                runOpacity(spr, 100);
+                runOpacity(spr->getChildByType<CCLabelBMFont>(0));
+            } else if (auto btnSpr = typeinfo_cast<ButtonSprite*>(spr)) {
+                if (auto spr = btnSpr->m_label) runOpacity(spr);
+                if (auto spr = btnSpr->m_BGSprite) runOpacity(spr);
+                if (auto spr = btnSpr->m_subSprite) runOpacity(spr);
+                if (auto spr = btnSpr->m_subBGSprite) runOpacity(spr);
+            } else if (auto subSpr = spr->getChildByType<CCSprite>(0)) {
+                runOpacity(spr);
+                runOpacity(subSpr);
+            } else {
+                runOpacity(spr);
+            }
+        } else if (auto nodeToggler = typeinfo_cast<CCMenuItemToggler*>(node)) {
+            nodes.push_back(nodeToggler->m_onButton);
+            nodes.push_back(nodeToggler->m_offButton);
+        } else {
+            runOpacity(node);
+        }
+    }
+}
 
 // some 2.0 triggers were likely made before rob had a good system for making trigger ui,
 // so they don't use the usual functions for creating inputs, updating values, etc.
@@ -504,6 +604,23 @@ bool CCTextInputNodeTrigger::ccTouchBegan(CCTouch* touch, CCEvent* event) {
 
     return true;
 }
+
+
+class $modify(CCKeyboardDispatcher) {
+    bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat) {
+        if (!CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat)) return false;
+        if (key != KEY_LeftShift && key != KEY_RightShift) return true;
+        if (isKeyRepeat) return true;
+
+        auto popup = Trigger::getTriggerPopup();
+        if (!popup) return true;
+        if (typeinfo_cast<GJOptionsLayer*>(popup)) return true;
+
+        static_cast<NewSetupTriggerPopup*>(popup)->hideOrShowUI(isKeyDown);
+
+        return true;
+    }
+};
 
 
 #ifdef GEODE_IS_DESKTOP

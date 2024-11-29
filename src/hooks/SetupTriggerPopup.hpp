@@ -7,17 +7,27 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+bool isMobileControlsEnabled();
+
 class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         CCDictionaryExt<int, CCTextInputNode*> m_removedInputNodes;
         CCDictionaryExt<int, CCMenuItemSpriteExtra*> m_mixedButtons;
-        bool m_isMixedMode = false;
-        CCMenuItemToggler* m_mixedModeButton = nullptr;
         CCArrayExt<CCTextInputNode*> m_overrideInputs;
-        CCArrayExt<CCScale9Sprite*> m_inputBGs;
+        CCDictionaryExt<int, CCScale9Sprite*> m_inputBGs;
+        CCMenu* m_sideMenu = nullptr;
+
+        CCMenuItemToggler* m_mixedModeButton = nullptr;
+        bool m_isMixedMode = false;
+
+        CCMenuItemToggler* m_hideModeButton = nullptr;
+        bool m_isHideMode = false;
+        Slider* m_currentSlider = nullptr;
     };
 
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
+    CCMenuItemToggler* createMobileButton(const char*, SEL_MenuHandler);
+
     $override void updateDefaultTriggerValues();
     void setupMultiEdit();
     void setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*>);
@@ -31,7 +41,12 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
 
     void onMixedInput(CCObject*);
     void toggleMixedMode(CCObject*);
+    void toggleHideMode(CCObject*);
     // void tempLogVals();
+
+    $override virtual void sliderBegan(Slider*);
+    $override virtual void sliderEnded(Slider*);
+    void hideOrShowUI(bool);
 };
 
 class $modify(CCTextInputNodeTrigger, CCTextInputNode) {
