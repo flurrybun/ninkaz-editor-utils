@@ -561,10 +561,8 @@ void MixedInputPopup::onDirection(CCObject* sender) {
 
     auto initialValueInput = static_cast<TextInput*>(m_pageMenu->getChildByIDRecursive("initial-value-input"_spr));
 
-    if (m_operator == Operator::Equal) {
-        m_operator = Operator::Add;
-        if (m_modifierValue == 0) m_modifierValue = 1;
-    }
+    if (m_operator == Operator::Equal) m_operator = Operator::Add;
+    if (m_modifierValue == 0) m_modifierValue = 1;
 
     auto decArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-dec-arrow"_spr));
     auto incArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-inc-arrow"_spr));
