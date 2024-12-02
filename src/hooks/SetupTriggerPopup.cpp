@@ -14,10 +14,10 @@
 using namespace geode::prelude;
 
 bool isMobileControlsEnabled() {
-#ifdef GEODE_IS_MOBILE
-    return true;
-#endif
+#ifdef GEODE_IS_WINDOWS
     return Mod::get()->getSettingValue<bool>("show-mobile-controls");
+#endif
+    return true;
 }
 
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
@@ -623,13 +623,11 @@ class $modify(CCKeyboardDispatcher) {
 };
 
 
-#ifdef GEODE_IS_DESKTOP
+#ifdef GEODE_IS_WINDOWS
 void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int action, int mods) {
     CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
     if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
     if (action != GLFW_RELEASE) return;
-
-    if (Mod::get()->getSettingValue<std::string>("select-mixed-input") == "Toggle Button") return;
 
     auto popup = Trigger::getTriggerPopup();
     if (!popup) return;

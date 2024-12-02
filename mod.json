@@ -33,7 +33,7 @@
             "description": "Add buttons for all actions that require a mouse and keyboard. Disable for a more vanilla experience.",
             "type": "bool",
             "default": true,
-            "platforms": ["desktop"]
+            "platforms": ["win"]
         }
     }
 }
