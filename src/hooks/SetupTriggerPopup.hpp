@@ -25,6 +25,8 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         Slider* m_currentSlider = nullptr;
     };
 
+    bool isTriggerPopup();
+
     $override bool init(EffectGameObject*, CCArray*, float, float, int);
     CCMenuItemToggler* createMobileButton(const char*, SEL_MenuHandler);
 

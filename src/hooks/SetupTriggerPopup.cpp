@@ -20,12 +20,24 @@ bool isMobileControlsEnabled() {
     return true;
 }
 
+bool NewSetupTriggerPopup::isTriggerPopup() {
+    // why does so much stuff inherit SetupTriggerPopup
+    if (typeinfo_cast<SelectEventLayer*>(this)) return false;
+    if (typeinfo_cast<CustomizeObjectSettingsPopup*>(this)) return false;
+    if (typeinfo_cast<ColorSelectPopup*>(this)) return false;
+    if (typeinfo_cast<SetupObjectOptions2Popup*>(this)) return false;
+    if (typeinfo_cast<GJOptionsLayer*>(this)) return false;
+    if (typeinfo_cast<UIOptionsLayer*>(this)) return false;
+    if (typeinfo_cast<UIPOptionsLayer*>(this)) return false;
+    if (typeinfo_cast<UISaveLoadLayer*>(this)) return false;
+    return true;
+}
+
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
     if (!isMobileControlsEnabled()) return true;
 
-    // for some reason, some editor-related settings menus extend SetupTriggerPopup
-    if (typeinfo_cast<GJOptionsLayer*>(this)) return true;
+    if (!isTriggerPopup()) return true;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -81,7 +93,7 @@ CCMenuItemToggler* NewSetupTriggerPopup::createMobileButton(const char* sprName,
 
 void NewSetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
-    if (typeinfo_cast<GJOptionsLayer*>(this)) return;
+    if (!isTriggerPopup()) return;
     
     setupMultiEdit();
 }
@@ -614,7 +626,7 @@ class $modify(CCKeyboardDispatcher) {
 
         auto popup = Trigger::getTriggerPopup();
         if (!popup) return true;
-        if (typeinfo_cast<GJOptionsLayer*>(popup)) return true;
+        if (!static_cast<NewSetupTriggerPopup*>(popup)->isTriggerPopup()) return true;
 
         static_cast<NewSetupTriggerPopup*>(popup)->hideOrShowUI(isKeyDown);
 
@@ -631,7 +643,7 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
 
     auto popup = Trigger::getTriggerPopup();
     if (!popup) return;
-    if (typeinfo_cast<GJOptionsLayer*>(popup)) return;
+    if (!static_cast<NewSetupTriggerPopup*>(popup)->isTriggerPopup()) return;
 
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = popup->m_inputNodes;
     auto mousePosition = getMousePos();
