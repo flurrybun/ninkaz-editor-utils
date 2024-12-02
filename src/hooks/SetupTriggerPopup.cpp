@@ -97,7 +97,7 @@ void NewSetupTriggerPopup::setupMultiEdit() {
 
     // shifting the main layer to the left to make space for the mobile button menu
     // it has to be done now bc doing it on init causes some elements to be placed incorrectly
-    if (isMobileControlsEnabled()) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    if (isMobileControlsEnabled() && CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto const& [key, input] : inputNodes) {
         inputNodeArray.push_back(input);
@@ -123,7 +123,7 @@ void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> i
     m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
 
-    if (isMobileControlsEnabled()) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    if (isMobileControlsEnabled() && CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto input : inputs) {
         auto overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
