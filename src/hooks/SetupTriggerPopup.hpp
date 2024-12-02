@@ -64,11 +64,9 @@ class $modify(TriggerItemSprite, CCMenuItemSpriteExtra) {
     };
 };
 
-#ifdef GEODE_IS_DESKTOP
-
+#ifdef GEODE_IS_WINDOWS
 #include <Geode/modify/CCEGLView.hpp>
 class $modify(CCEGLViewTrigger, CCEGLView) {
     $override void onGLFWMouseCallBack(GLFWwindow*, int, int, int);
 };
-
 #endif
