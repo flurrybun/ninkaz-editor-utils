@@ -17,10 +17,9 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         CCDictionaryExt<int, CCScale9Sprite*> m_inputBGs;
         CCMenu* m_sideMenu = nullptr;
 
-        CCMenuItemToggler* m_mixedModeButton = nullptr;
         bool m_isMixedMode = false;
+        Ref<Notification> m_mixedNotification;
 
-        CCMenuItemToggler* m_hideModeButton = nullptr;
         bool m_isHideMode = false;
         Slider* m_currentSlider = nullptr;
     };

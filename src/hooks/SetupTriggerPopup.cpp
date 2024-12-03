@@ -1,7 +1,6 @@
 #include "SetupTriggerPopup.hpp"
 #include "../additions/MixedInputPopup.hpp"
 #include "../additions/Trigger.hpp"
-#include "Geode/ui/Notification.hpp"
 
 #include <Geode/modify/ColorSelectPopup.hpp>
 #include <Geode/modify/SetupPulsePopup.hpp>
@@ -36,7 +35,6 @@ bool NewSetupTriggerPopup::isTriggerPopup() {
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
     if (!isMobileControlsEnabled()) return true;
-
     if (!isTriggerPopup()) return true;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
@@ -44,17 +42,21 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
     auto menu = CCMenu::create();
     menu->setID("trigger-menu"_spr);
     menu->setAnchorPoint({0, 0});
-    menu->setPosition(winSize / 2 - m_buttonMenu->getPosition() + ccp(m_width / 2, -m_height / 2) + ccp(5, 0));
+    menu->setPosition(winSize / 2 + ccp(m_width / 2, -m_height / 2) + ccp(5, 0));
     menu->setLayout(ColumnLayout::create()
         ->setAxisAlignment(AxisAlignment::Start)
         ->setGap(5)
     );
-    menu->setTouchPriority(-1000000);
+    menu->getLayout()->ignoreInvisibleChildren(true);
+    menu->setTouchPriority(-504);
+    menu->setZOrder(1000);
     m_fields->m_sideMenu = menu;
+
+    bool showMultiEdit = m_gameObjects && m_gameObjects->count() != 0;
 
     auto multiEditBtn = createMobileButton("multi-edit-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
     multiEditBtn->setID("multi-edit-btn"_spr);
-    m_fields->m_mixedModeButton = multiEditBtn;
+    multiEditBtn->setVisible(showMultiEdit);
 
     auto hideBtn = createMobileButton("hide-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleHideMode));
     hideBtn->setID("hide-btn"_spr);
@@ -67,7 +69,7 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
     menu->addChild(hideBtn);
     menu->updateLayout();
 
-    m_buttonMenu->addChild(menu);
+    m_mainLayer->addChild(menu);
 
     return true;
 }
@@ -315,6 +317,12 @@ CCTextInputNode* NewSetupTriggerPopup::getInputOfKey(int key) {
 }
 
 void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
+    if (!m_gameObjects || m_gameObjects->count() == 0) {
+        if (!m_fields->m_mixedNotification) m_fields->m_mixedNotification = Notification::create("Only one trigger selected", NotificationIcon::Error, 2);
+        m_fields->m_mixedNotification->show();
+        return;
+    }
+
     int property = static_cast<int>(sender->getTag());
 
     if (auto input = typeinfo_cast<CCTextInputNode*>(sender)) {
@@ -334,11 +342,6 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
         else if (shouldChangeInput)
             setInputValue(static_cast<CCTextInputNode*>(sender), value.value());
     };
-
-    if (!m_gameObjects || m_gameObjects->count() == 0) {
-        Notification::create("Only one trigger selected", NotificationIcon::Error, 2)->show();
-        return;
-    }
 
     auto input = getInputOfKey(property);
     InputValueType valueType = input ? input->m_valueType : InputValueType::Float;
