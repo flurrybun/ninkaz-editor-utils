@@ -1,12 +1,43 @@
 #include "AddRandomGroups.hpp"
-
-#include <Geode/Geode.hpp>
-using namespace geode::prelude;
-
 #include <algorithm>
 #include <random>
-#include <vector>
 #include <regex>
+
+$override
+bool ARGEditorPauseLayer::init(LevelEditorLayer* lel) {
+    if (!EditorPauseLayer::init(lel)) return false;
+
+    auto spr = ButtonSprite::create("Random\nGroups", 30, true, "bigFont.fnt", "GJ_button_04.png", 30.f, 0.3f);
+    spr->setScale(0.8f);
+
+    auto btn = CCMenuItemSpriteExtra::create(
+        spr, this, menu_selector(ARGEditorPauseLayer::onAddRandomGroups)
+    );
+    btn->setID("random-groups-button"_spr);
+
+    auto menu = getChildByID("small-actions-menu");
+    auto afterNode = static_cast<CCNode*>(menu->getChildren()->objectAtIndex(0));
+    menu->insertBefore(btn, afterNode);
+    menu->updateLayout();
+
+    return true;
+}
+
+void ARGEditorPauseLayer::onAddRandomGroups(CCObject* sender) {
+    CCArray* selectedObjects = m_editorLayer->m_editorUI->getSelectedObjects();
+    
+    if (selectedObjects->count() == 0) {
+        FLAlertLayer::create(
+            "Add Random Groups",
+            "You must have at least <cr>one object</c> selected to add groups to.",
+            "OK"
+        )->show();
+
+        return;
+    }
+
+    AddRandomGroupsPopup::create(selectedObjects)->show();
+}
 
 bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto winSize = m_mainLayer->getContentSize();

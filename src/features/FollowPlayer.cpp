@@ -1,27 +1,21 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/EditorPauseLayer.hpp>
-#include "../additions/AddRandomGroups.hpp"
+#include <Geode/modify/GJBaseGameLayer.hpp>
+#include <Geode/modify/LevelEditorLayer.hpp>
 
 using namespace geode::prelude;
 
-class $modify(NKEditorPauseLayer, EditorPauseLayer) {
+class $modify(FPEditorPauseLayer, EditorPauseLayer) {
     $override
     bool init(LevelEditorLayer* levelEditorLayer) {
 		if (!EditorPauseLayer::init(levelEditorLayer)) return false;
 
-        createFollowPlayerButton();
-		createAddRandomGroupsButton();
-
-		return true;
-	}
-
-    void createFollowPlayerButton() {
         auto offSpr = CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png");
         auto onSpr = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
         offSpr->setScale(0.55f);
         onSpr->setScale(0.55f);
 
-        auto toggle = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(NKEditorPauseLayer::onFollowPlayer));
+        auto toggle = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(FPEditorPauseLayer::onFollowPlayer));
         toggle->setID("follow-player-toggle"_spr);
 
         auto label = CCLabelBMFont::create("Follow Player", "bigFont.fnt");
@@ -79,48 +73,18 @@ class $modify(NKEditorPauseLayer, EditorPauseLayer) {
         optionMenu->setPositionY(optionMenu->getPositionY() - newHeight * (1 - scale) / 2);
 
         toggle->toggle(Mod::get()->getSavedValue<bool>("follow-player", true));
-    }
+
+		return true;
+	}
 
     void onFollowPlayer(CCObject* sender) {
         // follow player uses game variable "0001" but when i try changing it, it always gets set to false!! not sure why but oh well
-        
+
         bool isFollowPlayer = Mod::get()->getSavedValue<bool>("follow-player", true);
         Mod::get()->setSavedValue("follow-player", !isFollowPlayer);
     }
-
-    void createAddRandomGroupsButton() {
-        auto spr = ButtonSprite::create("Random\nGroups", 30, true, "bigFont.fnt", "GJ_button_04.png", 30.f, 0.3f);
-        spr->setScale(0.8f);
-
-        auto btn = CCMenuItemSpriteExtra::create(
-            spr, this, menu_selector(NKEditorPauseLayer::onAddRandomGroups)
-        );
-        btn->setID("random-groups-button"_spr);
-
-        auto menu = getChildByID("small-actions-menu");
-        auto afterNode = static_cast<CCNode*>(menu->getChildren()->objectAtIndex(0));
-        menu->insertBefore(btn, afterNode);
-        menu->updateLayout();
-    }
-
-    void onAddRandomGroups(CCObject* sender) {
-        CCArray* selectedObjects = m_editorLayer->m_editorUI->getSelectedObjects();
-        
-        if (selectedObjects->count() == 0) {
-            FLAlertLayer::create(
-                "Add Random Groups",
-                "You must have at least <cr>one object</c> selected to add groups to.",
-                "OK"
-            )->show();
-
-            return;
-        }
-
-        AddRandomGroupsPopup::create(selectedObjects)->show();
-    }
 };
 
-#include <Geode/modify/GJBaseGameLayer.hpp>
 class $modify(GJBaseGameLayer) {
     $override
     void updateCamera(float dt) {
@@ -132,7 +96,6 @@ class $modify(GJBaseGameLayer) {
     }
 };
 
-#include <Geode/modify/LevelEditorLayer.hpp>
 class $modify(LevelEditorLayer) {
     struct Fields {
         bool shouldUpdateVisibility = true;

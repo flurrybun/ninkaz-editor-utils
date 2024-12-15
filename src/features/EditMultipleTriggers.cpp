@@ -1,5 +1,5 @@
-#include "../additions/Trigger.hpp"
-#include "../additions/MixedInputPopup.hpp"
+#include "multi-edit/Trigger.hpp"
+#include "multi-edit/MixedInputPopup.hpp"
 #include <Geode/modify/EditTriggersPopup.hpp>
 #include <Geode/ui/TextInput.hpp>
 

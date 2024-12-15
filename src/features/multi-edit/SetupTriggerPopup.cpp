@@ -1,6 +1,6 @@
 #include "SetupTriggerPopup.hpp"
-#include "../additions/MixedInputPopup.hpp"
-#include "../additions/Trigger.hpp"
+#include "MixedInputPopup.hpp"
+#include "Trigger.hpp"
 
 #include <Geode/modify/ColorSelectPopup.hpp>
 #include <Geode/modify/SetupPulsePopup.hpp>
