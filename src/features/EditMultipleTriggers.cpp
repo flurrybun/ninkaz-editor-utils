@@ -1,5 +1,3 @@
-#include "multi-edit/Trigger.hpp"
-#include "multi-edit/MixedInputPopup.hpp"
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/EditTriggersPopup.hpp>
 
@@ -34,15 +32,20 @@ class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
         spawnTriggerBtn->setPosition(spawnTriggerBtn->getPosition() + ccp(90, 0));
         spawnTriggerLabel->setPosition(spawnTriggerLabel->getPosition() + ccp(90, 0));
 
-        CCPoint center = CCDirector::get()->getWinSize() / 2 + ccp(0, 3);
-        preSetup();
+        // SetupTriggerPopup::preSetup
+        m_disableTextDelegate = true;
+        SetupTriggerPopup::determineStartValues();
 
+        CCPoint center = CCDirector::get()->getWinSize() / 2 + ccp(0, 3);
         createValueControlAdvanced(51, "Target Group ID:", center + ccp(-70, 25), 0.8, true, InputValueType::Int, 10, true, 0, 10, 0, 0, GJInputStyle::GoldLabel, 0, false);
         createValueControlAdvanced(71, "Center Group ID:", center + ccp(70, 25), 0.8, true, InputValueType::Int, 10, true, 0, 10, 0, 0, GJInputStyle::GoldLabel, 0, false);
         createEasingControls(center + ccp(-90, -20), 0.8, 0, 0);
         createValueControlAdvanced(10, "Duration:", center + ccp(90, -25), 0.8, false, InputValueType::Float, 10, false, 0, 10, 0, 0, GJInputStyle::GoldLabel, 0, false);
 
-        postSetup();
+        // SetupTriggerPopup::postSetup
+        this->updateDefaultTriggerValues();
+        m_disableTextDelegate = false;
+
         return true;
     }
 };
