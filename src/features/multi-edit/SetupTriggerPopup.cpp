@@ -12,13 +12,6 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-bool isMobileControlsEnabled() {
-#ifdef GEODE_IS_WINDOWS
-    return Mod::get()->getSettingValue<bool>("show-mobile-controls");
-#endif
-    return true;
-}
-
 bool NewSetupTriggerPopup::isTriggerPopup() {
     // why does so much stuff inherit SetupTriggerPopup
     if (typeinfo_cast<SelectEventLayer*>(this)) return false;
@@ -34,7 +27,6 @@ bool NewSetupTriggerPopup::isTriggerPopup() {
 
 bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
-    if (!isMobileControlsEnabled()) return true;
     if (!isTriggerPopup()) return true;
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
@@ -111,7 +103,7 @@ void NewSetupTriggerPopup::setupMultiEdit() {
 
     // shifting the main layer to the left to make space for the mobile button menu
     // it has to be done now bc doing it on init causes some elements to be placed incorrectly
-    if (isMobileControlsEnabled() && CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    if (CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto const& [key, input] : inputNodes) {
         inputNodeArray.push_back(input);
@@ -137,7 +129,7 @@ void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> i
     m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
 
-    if (isMobileControlsEnabled() && CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
+    if (CCDirector::get()->getWinSize().width < 520) m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
 
     for (auto input : inputs) {
         auto overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;

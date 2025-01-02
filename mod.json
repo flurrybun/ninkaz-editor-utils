@@ -26,14 +26,5 @@
         "spritesheets": {
             "MultiEditSheet": ["resources/multi-edit/*.png"]
         }
-    },
-    "settings": {
-        "show-mobile-controls": {
-            "name": "Show Mobile-Friendly Controls",
-            "description": "Add buttons for all actions that require a mouse and keyboard. Disable for a more vanilla experience.",
-            "type": "bool",
-            "default": true,
-            "platforms": ["win"]
-        }
     }
 }

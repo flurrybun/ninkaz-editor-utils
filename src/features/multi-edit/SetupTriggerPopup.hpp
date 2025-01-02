@@ -7,8 +7,6 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-bool isMobileControlsEnabled();
-
 class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         CCDictionaryExt<int, CCTextInputNode*> m_removedInputNodes;
