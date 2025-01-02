@@ -1,3 +1,9 @@
+// this is supposed to bring back the "follow player" option from 2.1
+// and while it works, it's pretty broken. some objects don't get affected by triggers properly, probably bc gd thinks they're offscreen
+
+// future me: try reimplementing it using the same method as static camera triggers and ignore all attempts to change the camera position
+
+/*
 #include <Geode/Geode.hpp>
 #include <Geode/modify/EditorPauseLayer.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
@@ -117,3 +123,4 @@ class $modify(LevelEditorLayer) {
         if (!followPlayer) m_fields->shouldUpdateVisibility = false;
     }
 };
+*/
