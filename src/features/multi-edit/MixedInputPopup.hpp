@@ -31,12 +31,16 @@ protected:
     bool m_canBeNegative;
     RoundingType m_rounding;
     DirectionType m_direction;
-    bool m_isFirstPage;
 
+    CCMenu* m_topRow;
+    CCMenu* m_bottomRow;
     CCMenuItemToggler* m_operatorBtn;
     CCMenuItemToggler* m_directionBtn;
+    TextInput* m_modifierInput;
+    TextInput* m_initialInput;
+    CCLayerColor* m_equalBtnCover;
+    CCLayerColor* m_initialInputCover;
     ListView* m_list;
-    CCMenu* m_pageMenu;
 
     struct CalculationInfo {
         std::string propertyString;
@@ -50,13 +54,13 @@ protected:
 
     bool setup(const CCArrayExt<EffectGameObject*>&, const short, const InputValueType, const std::function<void (std::optional<float>)>&) override;
 
-    void createFirstPageRow();
-    void createSecondPageRow();
+    CCMenu* createTopRow();
+    CCMenu* createBottomRow();
     void createScrollLayer(bool);
+
     void onOperator(CCObject*);
     void onDirection(CCObject*);
     void onValueArrow(CCObject*);
-    void onChangePage(CCObject*);
     void onSettings(CCObject*);
     void onApply(CCObject*);
 

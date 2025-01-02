@@ -35,7 +35,6 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     if (!propertyValues.empty() && std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
     m_direction = DirectionType::None;
     m_rounding = RoundingType::Round;
-    m_isFirstPage = true;
     
     auto winSize = m_mainLayer->getContentSize();
     m_bgSprite->setZOrder(-10);
@@ -45,34 +44,19 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     // INFO BUTTON
 
     auto infoText = "Use the <cg>operators</c> to override, add, subtract, multiply, or divide the old values by the <cy>modifier value</c>.\n"
-        "When a <cl>direction</c> is selected, the operation is compounded for each subsequent object.\n"
-        "The <cp>initial value</c> is used for the first object in the sequence.\n";
+        "When a <cl>direction</c> is selected, the operation is compounded for each subsequent trigger, ordered by their x/y position.\n"
+        "The <cp>initial value</c> is the first value in the sequence.\n";
     
     auto infoBtn = InfoAlertButton::create("Info", infoText, 0.7f);
     infoBtn->setPosition(winSize - ccp(18, 18));
     m_buttonMenu->addChild(infoBtn);
 
-    createFirstPageRow();
+    auto topRow = createTopRow();
+    auto bottomRow = createBottomRow();
+    m_mainLayer->addChildAtPosition(topRow, Anchor::Center, {0, -51});
+    m_mainLayer->addChildAtPosition(bottomRow, Anchor::Center, {0, -80});
+
     createScrollLayer(true);
-
-    // SIDE ARROWS
-
-    auto leftArrowSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
-    leftArrowSpr->setScale(0.5);
-    auto leftArrowBtn = CCMenuItemSpriteExtra::create(
-        leftArrowSpr, this, menu_selector(MixedInputPopup::onChangePage)
-    );
-    leftArrowBtn->setPosition({25, 75});
-    m_buttonMenu->addChild(leftArrowBtn);
-
-    auto rightArrowSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
-    rightArrowSpr->setFlipX(true);
-    rightArrowSpr->setScale(0.5);
-    auto rightArrowBtn = CCMenuItemSpriteExtra::create(
-        rightArrowSpr, this, menu_selector(MixedInputPopup::onChangePage)
-    );
-    rightArrowBtn->setPosition({winSize.width - 25, 75});
-    m_buttonMenu->addChild(rightArrowBtn);
 
     // APPLY, CANCEL, & OPTIONS BUTTONS
 
@@ -112,21 +96,14 @@ bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const
     return true;
 }
 
-void MixedInputPopup::createFirstPageRow() {
+CCMenu* MixedInputPopup::createTopRow() {
     auto menu = CCMenu::create();
-    menu->setPosition({0, 0});
-    menu->setContentSize(m_mainLayer->getContentSize());
-    m_pageMenu = menu;
-    
-    auto winSize = m_mainLayer->getContentSize();
-    
-    auto bottomLayout = CCMenu::create();
-    bottomLayout->setLayout(
+    menu->setLayout(
         RowLayout::create()
             ->setGap(10.f)
     );
-    bottomLayout->setPosition({winSize.width / 2, 65});
-    bottomLayout->setScale(0.8f);
+    menu->setScale(0.8f);
+    m_topRow = menu;
 
     // OPERATOR BUTTONS
 
@@ -161,16 +138,7 @@ void MixedInputPopup::createFirstPageRow() {
         btn->toggle(m_operator == operatorType);
         if (m_operator == operatorType) m_operatorBtn = btn;
 
-        if (operatorType == Operator::Equal && m_direction != DirectionType::None) {
-            btn->setEnabled(false);
-            
-            auto cover = CCLayerColor::create(ccc4(153, 85, 51, 127), 25, 25);
-            cover->setZOrder(1);
-            cover->setPosition({63, 53});
-            menu->addChild(cover);
-        }
-
-        bottomLayout->addChild(btn);
+        menu->addChild(btn);
     }
 
     // MODIFIER INPUT
@@ -187,7 +155,7 @@ void MixedInputPopup::createFirstPageRow() {
             return;
         };
         
-        auto isValidFloat = std::regex_match(text, std::regex("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$"));
+        bool isValidFloat = std::regex_match(text, std::regex("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$"));
         if (isValidFloat) {
             m_modifierValue = std::stof(text);
             createScrollLayer(false);
@@ -198,78 +166,59 @@ void MixedInputPopup::createFirstPageRow() {
             ->setNextGap(10.f)
             ->setPrevGap(10.f)
     );
+    m_modifierInput = input;
 
     auto decArrowSpr = CCSprite::createWithSpriteFrameName("edit_leftBtn_001.png");
     auto decArrowBtn = CCMenuItemSpriteExtra::create(
         decArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
     );
     decArrowBtn->setTag(-1);
-    decArrowBtn->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setPrevGap(15.f)
-    );
 
     auto incArrowSpr = CCSprite::createWithSpriteFrameName("edit_rightBtn_001.png");
     auto incArrowBtn = CCMenuItemSpriteExtra::create(
         incArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
     );
     incArrowBtn->setTag(1);
-    incArrowBtn->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setNextGap(15.f)
+
+    auto label = CCLabelBMFont::create("Modifier:", "goldFont.fnt");
+    label->setAnchorPoint({1, 0.5});
+    label->setLayoutOptions(AxisLayoutOptions::create()
+        ->setLength(60)
+        ->setRelativeScale(0.6)
+        ->setPrevGap(30)
+        ->setNextGap(10)
     );
 
-    bottomLayout->addChild(decArrowBtn);
-    bottomLayout->addChild(input);
-    bottomLayout->addChild(incArrowBtn);
+    menu->addChild(label);
+    menu->addChild(decArrowBtn);
+    menu->addChild(input);
+    menu->addChild(incArrowBtn);
+    menu->updateLayout();
+    
+    auto equalBtnCover = CCLayerColor::create(ccc4(153, 85, 51, 127), 29, 29);
+    equalBtnCover->setPosition(menu->getChildByType<CCMenuItemToggler>(0)->getPosition());
+    equalBtnCover->ignoreAnchorPointForPosition(false);
+    equalBtnCover->setVisible(false);
+    menu->addChild(equalBtnCover);
+    m_equalBtnCover = equalBtnCover;
 
-    menu->addChild(bottomLayout);
-    bottomLayout->updateLayout();
-
-    // LABELS
-
-    auto operatorLabel = CCLabelBMFont::create("Operator", "goldFont.fnt");
-    operatorLabel->setScale(0.6);
-    operatorLabel->setPosition({winSize.width / 2 - 54, 93});
-    menu->addChild(operatorLabel);
-
-    auto inputLabel = CCLabelBMFont::create("Modifier Value", "goldFont.fnt");
-    inputLabel->setScale(0.6);
-    inputLabel->setPosition({winSize.width / 2 + 78, 93});
-    menu->addChild(inputLabel);
-
-    m_mainLayer->addChild(menu);
+    return menu;
 }
 
-void MixedInputPopup::createSecondPageRow() {
+CCMenu* MixedInputPopup::createBottomRow() {
     auto menu = CCMenu::create();
-    menu->setPosition({0, 0});
-    menu->setContentSize(m_mainLayer->getContentSize());
-    m_pageMenu = menu;
-    
-    auto winSize = m_mainLayer->getContentSize();
-    
-    auto bottomLayout = CCMenu::create();
-    bottomLayout->setLayout(
+    menu->setLayout(
         RowLayout::create()
             ->setGap(10.f)
     );
-    bottomLayout->setPosition({winSize.width / 2, 65});
-    bottomLayout->setScale(0.8f);
+    menu->setScale(0.8f);
+    m_bottomRow = menu;
 
     // DIRECTION BUTTONS
-    
-    const std::pair<const char*, DirectionType> directionOptions[] = {
-        {"None", DirectionType::None},
-        {"Up", DirectionType::Up},
-        {"Down", DirectionType::Down},
-        {"Left", DirectionType::Left},
-        {"Right", DirectionType::Right}
-    };
 
-    for (const auto& option : directionOptions) {
-        const char* labelText = option.first;
-        DirectionType directionType = option.second;
+    const DirectionType directions[] = {DirectionType::None, DirectionType::Up, DirectionType::Down, DirectionType::Left, DirectionType::Right};
+
+    for (const auto& directionType : directions) {
 
         auto selectedBaseSpr = CCScale9Sprite::create("GJ_button_02.png", {0, 0, 40, 40});
         selectedBaseSpr->setContentSize({35, 35});
@@ -298,7 +247,7 @@ void MixedInputPopup::createSecondPageRow() {
         btn->toggle(m_direction == directionType);
         if (m_direction == directionType) m_directionBtn = btn;
 
-        bottomLayout->addChild(btn);
+        menu->addChild(btn);
     }
 
     // INITIAL VALUE INPUT
@@ -310,7 +259,7 @@ void MixedInputPopup::createSecondPageRow() {
     input->setID("initial-value-input"_spr);
     input->setCallback([&](const std::string& text) {
         if (text.empty()) {
-            m_modifierValue = 0;
+            m_initialValue = 0;
             createScrollLayer(false);
             return;
         };
@@ -326,6 +275,7 @@ void MixedInputPopup::createSecondPageRow() {
             ->setNextGap(10.f)
             ->setPrevGap(10.f)
     );
+    m_initialInput = input;
 
     auto decArrowSpr = CCSprite::createWithSpriteFrameName("edit_leftBtn_001.png");
     auto decArrowBtn = CCMenuItemSpriteExtra::create(
@@ -333,10 +283,6 @@ void MixedInputPopup::createSecondPageRow() {
     );
     decArrowBtn->setTag(-2);
     decArrowBtn->setID("initial-value-dec-arrow"_spr);
-    decArrowBtn->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setPrevGap(15.f)
-    );
 
     auto incArrowSpr = CCSprite::createWithSpriteFrameName("edit_rightBtn_001.png");
     auto incArrowBtn = CCMenuItemSpriteExtra::create(
@@ -344,41 +290,34 @@ void MixedInputPopup::createSecondPageRow() {
     );
     incArrowBtn->setTag(2);
     incArrowBtn->setID("initial-value-inc-arrow"_spr);
-    incArrowBtn->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setNextGap(15.f)
-    );
-
-    bottomLayout->addChild(decArrowBtn);
-    bottomLayout->addChild(input);
-    bottomLayout->addChild(incArrowBtn);
 
     input->getInputNode()->setTouchEnabled(m_direction != DirectionType::None);
     decArrowBtn->setEnabled(m_direction != DirectionType::None);
     incArrowBtn->setEnabled(m_direction != DirectionType::None);
 
-    menu->addChild(bottomLayout);
-    bottomLayout->updateLayout();
+    auto label = CCLabelBMFont::create("Initial:", "goldFont.fnt");
+    label->setAnchorPoint({1, 0.5});
+    label->setLayoutOptions(AxisLayoutOptions::create()
+        ->setLength(60)
+        ->setRelativeScale(0.6)
+        ->setPrevGap(30)
+        ->setNextGap(10)
+    );
 
-    auto inputCover = CCLayerColor::create(ccc4(153, 85, 51, 127), 100, 35);
-    inputCover->setPosition({218, 47});
-    inputCover->setID("initial-value-cover"_spr);
+    menu->addChild(label);
+    menu->addChild(decArrowBtn);
+    menu->addChild(input);
+    menu->addChild(incArrowBtn);
+    menu->updateLayout();
+
+    auto inputCover = CCLayerColor::create(ccc4(153, 85, 51, 127), 127, 35);
+    inputCover->setPosition(input->getPosition());
+    inputCover->ignoreAnchorPointForPosition(false);
     inputCover->setVisible(m_direction == DirectionType::None);
     menu->addChild(inputCover);
+    m_initialInputCover = inputCover;
 
-    // LABELS
-
-    auto operatorLabel = CCLabelBMFont::create("Direction", "goldFont.fnt");
-    operatorLabel->setScale(0.6);
-    operatorLabel->setPosition({winSize.width / 2 - 54, 93});
-    menu->addChild(operatorLabel);
-
-    auto inputLabel = CCLabelBMFont::create("Initial Value", "goldFont.fnt");
-    inputLabel->setScale(0.6);
-    inputLabel->setPosition({winSize.width / 2 + 78, 93});
-    menu->addChild(inputLabel);
-
-    m_mainLayer->addChild(menu);
+    return menu;
 }
 
 void MixedInputPopup::createScrollLayer(bool isInit) {
@@ -553,25 +492,27 @@ void MixedInputPopup::onOperator(CCObject* sender) {
 
 void MixedInputPopup::onDirection(CCObject* sender) {
     if (m_directionBtn) m_directionBtn->toggle(false);
-    auto oldDirection = m_direction;
 
     auto btn = static_cast<CCMenuItemToggler*>(sender);
     m_direction = static_cast<DirectionType>(btn->getTag());
     m_directionBtn = btn;
 
-    auto initialValueInput = static_cast<TextInput*>(m_pageMenu->getChildByIDRecursive("initial-value-input"_spr));
+    // UX stuff
 
-    if (m_operator == Operator::Equal) m_operator = Operator::Add;
-    if (m_modifierValue == 0) m_modifierValue = 1;
+    if (m_operator == Operator::Equal) m_topRow->getChildByType<CCMenuItemToggler>(0)->toggleWithCallback(true);
+    m_equalBtnCover->setVisible(m_direction != DirectionType::None);
+    m_topRow->getChildByType<CCMenuItemToggler>(0)->setEnabled(m_direction == DirectionType::None);
 
-    auto decArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-dec-arrow"_spr));
-    auto incArrowBtn = static_cast<CCMenuItemSpriteExtra*>(m_pageMenu->getChildByIDRecursive("initial-value-inc-arrow"_spr));
-    auto cover = m_pageMenu->getChildByIDRecursive("initial-value-cover"_spr);
+    if (m_modifierValue == 0) m_modifierInput->setString("1", true);
 
-    if (initialValueInput) initialValueInput->getInputNode()->setTouchEnabled(m_direction != DirectionType::None);
-    if (decArrowBtn) decArrowBtn->setEnabled(m_direction != DirectionType::None);
-    if (incArrowBtn) incArrowBtn->setEnabled(m_direction != DirectionType::None);
-    if (cover) cover->setVisible(m_direction == DirectionType::None);
+    // set if the initial value input is enabled
+
+    m_initialInput->getInputNode()->setTouchEnabled(m_direction != DirectionType::None);
+    m_initialInputCover->setVisible(m_direction == DirectionType::None);
+    m_bottomRow->getChildByType<CCMenuItemSpriteExtra>(0)->setEnabled(m_direction != DirectionType::None);
+    m_bottomRow->getChildByType<CCMenuItemSpriteExtra>(1)->setEnabled(m_direction != DirectionType::None);
+
+    // sort triggers by direction
 
     std::sort(m_triggers.begin(), m_triggers.end(), [&](const EffectGameObject* a, const EffectGameObject* b) {
         if (m_direction == DirectionType::Left) return a->m_positionX > b->m_positionX;
@@ -589,26 +530,15 @@ void MixedInputPopup::onValueArrow(CCObject* sender) {
     auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
     auto tag = btn->getTag();
 
-    if (tag == -1) m_modifierValue--;
-    else if (tag == 1) m_modifierValue++;
-    else if (tag == -2) m_initialValue--;
-    else if (tag == 2) m_initialValue++;
-
-    auto modifierValueInput = static_cast<TextInput*>(m_pageMenu->getChildByIDRecursive("modifier-value-input"_spr));
-    auto initialValueInput = static_cast<TextInput*>(m_pageMenu->getChildByIDRecursive("initial-value-input"_spr));
-
-    if (modifierValueInput) modifierValueInput->setString(toTruncatedString(m_modifierValue));
-    if (initialValueInput) initialValueInput->setString(toTruncatedString(m_initialValue));
+    if (tag == -1 || tag == 1) {
+        m_modifierValue += tag;
+        m_modifierInput->setString(toTruncatedString(m_modifierValue));
+    } else if (tag == -2 || tag == 2) {
+        m_initialValue += tag / 2;
+        m_initialInput->setString(toTruncatedString(m_initialValue));
+    }
 
     createScrollLayer(false);
-}
-
-void MixedInputPopup::onChangePage(CCObject* sender) {
-    m_isFirstPage = !m_isFirstPage;
-
-    m_mainLayer->removeChild(m_pageMenu);
-    if (m_isFirstPage) createFirstPageRow();
-    else createSecondPageRow();
 }
 
 void MixedInputPopup::onSettings(CCObject* sender) {
