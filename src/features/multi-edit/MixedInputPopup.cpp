@@ -499,7 +499,7 @@ void MixedInputPopup::onDirection(CCObject* sender) {
 
     // UX stuff
 
-    if (m_operator == Operator::Equal) m_topRow->getChildByType<CCMenuItemToggler>(0)->toggleWithCallback(true);
+    if (m_operator == Operator::Equal) m_topRow->getChildByType<CCMenuItemToggler>(1)->toggleWithCallback(true);
     m_equalBtnCover->setVisible(m_direction != DirectionType::None);
     m_topRow->getChildByType<CCMenuItemToggler>(0)->setEnabled(m_direction == DirectionType::None);
 
