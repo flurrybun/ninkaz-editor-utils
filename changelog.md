@@ -1,3 +1,7 @@
+## 1.1.1
+
+- Fix duration controls in Improved Edit Triggers Popup being limited to whole numbers
+
 ## 1.1.0
 
 - Add Multi-Edit Triggers
