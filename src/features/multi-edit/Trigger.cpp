@@ -187,22 +187,31 @@ std::string Trigger::getEasingString(EasingType easing) {
     return "";
 }
 
-short Trigger::getPropertyDecimalPlaces(short property, InputValueType valueType) {
-    int fourDecimalPlaces[] = {63, 556}; // spawn trigger delay/+-
-    int threeDecimalPlaces[] = {143, 144, 150, 151}; // move mod x/y, scale x/y
+short Trigger::getPropertyDecimalPlaces(short property) {
+    // im sure im missing some obscure properties but oh well
+    int fourDecimalPlaces[] = {63, 556};
+    int threeDecimalPlaces[] = {143, 144, 150, 151, 90, 91, 479, 483, 484, 371, 175, 176, 180, 179, 181,
+        182, 177, 512, 290, 291, 183, 191};
+    int twoDecimalPlaces[] = {10, 35, 45, 46, 47, 402, 68, 72, 73, 75, 84, 520, 521, 545, 522, 523, 546, 
+        292, 293, 298, 299, 361, 362, 300, 301, 334, 335, 558, 559, 359, 360, 561, 562, 357, 358,
+        316, 317, 318, 319, 322, 323, 320, 321, 324, 325, 326, 327, 330, 331, 332, 333, 566, 567,
+        568, 569, 300, 301, 557, 288, 243, 249, 263, 264, 282, 467, 473, 470, 437, 438, 554, 555,
+        213, 454};
 
     if (std::find(std::begin(fourDecimalPlaces), std::end(fourDecimalPlaces), property)
         != std::end(fourDecimalPlaces)) return 4;
     if (std::find(std::begin(threeDecimalPlaces), std::end(threeDecimalPlaces), property)
         != std::end(threeDecimalPlaces)) return 3;
+    if (std::find(std::begin(twoDecimalPlaces), std::end(twoDecimalPlaces), property)
+        != std::end(twoDecimalPlaces)) return 2;
 
-    if (valueType == InputValueType::Float) return 2;
     return 0;
 }
 
 bool Trigger::canPropertyBeNegative(short property) {
-    short negativeProperties[] = {28, 29, 143, 144};
+    // this doesnt matter much so i only bothered adding common values
+    short positiveOnlyProps[] = {10, 85, 51, 71, 45, 46, 47, 35, 63, 556};
 
-    return std::find(std::begin(negativeProperties), std::end(negativeProperties), property)
-        != std::end(negativeProperties);
+    return std::find(std::begin(positiveOnlyProps), std::end(positiveOnlyProps), property)
+        == std::end(positiveOnlyProps);
 }
