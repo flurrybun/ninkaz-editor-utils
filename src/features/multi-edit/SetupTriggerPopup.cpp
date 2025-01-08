@@ -383,8 +383,8 @@ void NewSetupTriggerPopup::hideOrShowUI(bool isHidden) {
     nodes.inner()->addObjectsFromArray(m_fields->m_sideMenu->getChildren());
 
     nodes.inner()->removeObject(m_buttonMenu);
-    nodes.inner()->removeObject(m_fields->m_inputBGs[sliderTag]);
     nodes.inner()->removeObject(m_inputLabels->objectForKey(sliderTag));
+    if (m_fields->m_inputBGs.contains(sliderTag)) nodes.inner()->removeObject(m_fields->m_inputBGs[sliderTag]);
 
     // using a traditional for loop so we can iterate over the array while modifying it
 
