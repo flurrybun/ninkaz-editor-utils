@@ -245,7 +245,10 @@ void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
     auto slider = typeinfo_cast<Slider*>(m_valueControls->objectForKey(key));
     if (!slider) return;
 
+    // for some reason setTouchEnabled doesnt seem to do anything so i just move the slider thumb
+    // kinda hacky but it's invisible so it's fine
     slider->setTouchEnabled(isEnabled);
+    slider->getThumb()->setPosition(9999, 0);
 
     slider->m_groove->setOpacity(isEnabled ? 255 : 100);
     slider->getThumb()->setOpacity(isEnabled ? 255 : 0);
@@ -333,6 +336,9 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
             replaceButtonWithInput(static_cast<CCMenuItemSpriteExtra*>(sender), property, value.value());
         else if (shouldChangeInput)
             setInputValue(static_cast<CCTextInputNode*>(sender), value.value());
+
+        auto slider = typeinfo_cast<Slider*>(m_valueControls->objectForKey(property));
+        if (slider && value.has_value()) updateValueControls(property, value.value());
     };
 
     auto alert = MixedInputPopup::create(m_gameObjects, property, callback);
@@ -405,9 +411,13 @@ void NewSetupTriggerPopup::hideOrShowUI(bool isHidden) {
         // im sorry this is a total mess
 
         if (auto nodeSlider = typeinfo_cast<Slider*>(node)) {
-            runOpacity(nodeSlider->m_groove);
-            runOpacity(nodeSlider->m_sliderBar);
-            runOpacity(nodeSlider->getThumb());
+            if (nodeSlider->isTouchEnabled()) {
+                runOpacity(nodeSlider->m_groove);
+                runOpacity(nodeSlider->m_sliderBar);
+                runOpacity(nodeSlider->getThumb());
+            } else {
+                runOpacity(nodeSlider->m_groove, 100);
+            }
         } else if (auto nodeInput = typeinfo_cast<CCTextInputNode*>(node)) {
             runOpacity(nodeInput->m_placeholderLabel);
         } else if (auto nodeBG = typeinfo_cast<CCScale9Sprite*>(node); nodeBG && nodeBG->getTag() != 1) {
