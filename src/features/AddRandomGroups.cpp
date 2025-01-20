@@ -121,8 +121,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     scrollLayer->setPosition(winCenter - scrollLayer->getContentSize() / 2);
 
     auto scrollbar = Scrollbar::create(scrollLayer);
-    scrollbar->setPosition(winCenter + ccp(158, 0));
-    scrollbar->setVisible(false);
+    scrollbar->setPosition(winCenter + ccp(158 + 300, 0));
 
     auto groupBG = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     groupBG->setColor({ 0, 0, 0 });
@@ -155,61 +154,16 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
 
     handleTouchPriority(this);
 
-    // "% COVERAGE" INPUT
+    // BOTTOM ROW CONTROLS
 
-    auto coverageLayout = CCMenu::create();
-    coverageLayout->setLayout(
-        RowLayout::create()
-            ->setGap(5.f)
-            ->setGrowCrossAxis(true)
-    );
-    coverageLayout->setScale(0.8f);
-    coverageLayout->setContentWidth(160.f);
-
-    auto coverageInput = TextInput::create(70.f, "Num", "bigFont.fnt");
-    coverageInput->setMaxCharCount(3);
-    coverageInput->setFilter("0123456789");
-    coverageInput->setString("100");
-
-    coverageLayout->addChild(coverageInput);
-
-    auto coverageLabel = CCLabelBMFont::create("% cov.", "goldFont.fnt");
-    coverageLayout->setScale(0.5f);
-    coverageLayout->addChild(coverageLabel);
-
-    coverageLayout->updateLayout();
-    m_coverageInput = coverageInput;
-
-    coverageInput->setCallback([this](auto text) {
-        if (text != "" && stoi(text) > 100) m_coverageInput->setString("100");
-    });
-
-    // "IGNORE LINKED" CHECKBOX
-
-    auto toggleLayout = CCMenu::create();
-    toggleLayout->setLayout(
-        RowLayout::create()
-            ->setGap(15.f)
-            ->setGrowCrossAxis(true)
-    );
-    toggleLayout->setScale(0.5f);
-    toggleLayout->setContentWidth(280.f);
-
-    auto offSpr = CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png");
-    auto onSpr = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
-
-    auto toggleBtn = CCMenuItemToggler::create(
-        offSpr, onSpr, this, nullptr
-    );
-    toggleLayout->addChild(toggleBtn);
-
-    auto toggleLabel = CCLabelBMFont::create("Ignore linked", "bigFont.fnt");
-    toggleLayout->addChild(toggleLabel);
-
-    toggleLayout->updateLayout();
-    m_toggleLinkedButton = toggleBtn;
-
-    // BOTTOM ROW LAYOUT
+    // auto coverageLayout = CCMenu::create();
+    // coverageLayout->setLayout(
+    //     RowLayout::create()
+    //         ->setGap(5.f)
+    //         ->setGrowCrossAxis(true)
+    // );
+    // coverageLayout->setScale(0.8f);
+    // coverageLayout->setContentWidth(160.f);
 
     auto bottomLayout = CCMenu::create();
     bottomLayout->setLayout(
@@ -219,8 +173,51 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     bottomLayout->setPosition(winCenter + ccp(0, -60));
     bottomLayout->setScale(0.6f);
 
-    bottomLayout->addChild(coverageLayout);
-    bottomLayout->addChild(toggleLayout);
+    auto coverageInput = TextInput::create(70.f, "Num", "bigFont.fnt");
+    coverageInput->setMaxCharCount(3);
+    coverageInput->setFilter("0123456789");
+    coverageInput->setString("100");
+    coverageInput->setCallback([this](auto text) {
+        if (text != "" && stoi(text) > 100) m_coverageInput->setString("100");
+    });
+    coverageInput->setLayoutOptions(
+        AxisLayoutOptions::create()
+            ->setNextGap(5.f)
+    );
+    m_coverageInput = coverageInput;
+
+    auto coverageLabel = CCLabelBMFont::create("% cov.", "goldFont.fnt");
+
+    bottomLayout->addChild(coverageInput);
+    bottomLayout->addChild(coverageLabel);
+
+    // "IGNORE LINKED" CHECKBOX
+
+    // auto toggleLayout = CCMenu::create();
+    // toggleLayout->setLayout(
+    //     RowLayout::create()
+    //         ->setGap(15.f)
+    //         ->setGrowCrossAxis(true)
+    // );
+    // toggleLayout->setScale(0.5f);
+    // toggleLayout->setContentWidth(280.f);
+
+    auto offSpr = CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png");
+    auto onSpr = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
+
+    auto toggleBtn = CCMenuItemToggler::create(
+        offSpr, onSpr, this, nullptr
+    );
+    toggleBtn->setLayoutOptions(
+        AxisLayoutOptions::create()
+            ->setNextGap(15.f)
+    );
+    bottomLayout->addChild(toggleBtn);
+
+    auto toggleLabel = CCLabelBMFont::create("Ignore linked", "bigFont.fnt");
+    bottomLayout->addChild(toggleLabel);
+
+    m_toggleLinkedButton = toggleBtn;
 
     bottomLayout->updateLayout();
     m_mainLayer->addChild(bottomLayout);
@@ -320,7 +317,9 @@ void AddRandomGroupsPopup::onChangeGroups() {
     auto numRows = static_cast<int>(ceil(m_groups.size() / 5.f));
     if (numRows <= 2) numRows = 2;
 
-    m_scrollbar->setVisible(m_groups.size() > 10);
+    auto winCenter = m_mainLayer->getContentSize() / 2;
+    bool showScrollbar = m_groups.size() > 10;
+    m_scrollbar->setPosition(winCenter + ccp(158 + (showScrollbar ? 0 : 300), 0));
 
     short BTN_HEIGHT = 20;
     short PAD_HEIGHT = 10;
