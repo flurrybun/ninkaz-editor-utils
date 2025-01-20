@@ -1,6 +1,7 @@
 #include "MixedInputPopup.hpp"
 #include "MixedInputSettingsPopup.hpp"
 #include "Trigger.hpp"
+#include "../../misc/StringUtils.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -146,20 +147,18 @@ CCMenu* MixedInputPopup::createTopRow() {
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
     input->setFilter("0123456789.-");
     input->getInputNode()->m_numberInput = true;
-    input->setString(toTruncatedString(m_modifierValue));
+    input->setString(strutils::toString(m_modifierValue));
     input->setID("modifier-value-input"_spr);
     input->setCallback([&](const std::string& text) {
         if (text.empty()) {
             m_modifierValue = 0;
-            createScrollLayer(false);
-            return;
-        };
-        
-        bool isValidFloat = std::regex_match(text, std::regex("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$"));
-        if (isValidFloat) {
+        } else {
             m_modifierValue = std::stof(text);
-            createScrollLayer(false);
         }
+
+        m_modifierValue = text.empty() ? 0 : strutils::toFloat(text);
+
+        createScrollLayer(false);
     });
     input->setLayoutOptions(
         AxisLayoutOptions::create()
@@ -255,7 +254,7 @@ CCMenu* MixedInputPopup::createBottomRow() {
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
     input->getInputNode()->m_numberInput = true;
     input->setFilter("0123456789.-");
-    input->setString(toTruncatedString(m_initialValue));
+    input->setString(strutils::toString(m_initialValue));
     input->setID("initial-value-input"_spr);
     input->setCallback([&](const std::string& text) {
         if (text.empty()) {
@@ -532,10 +531,10 @@ void MixedInputPopup::onValueArrow(CCObject* sender) {
 
     if (tag == -1 || tag == 1) {
         m_modifierValue += tag;
-        m_modifierInput->setString(toTruncatedString(m_modifierValue));
+        m_modifierInput->setString(strutils::toString(m_modifierValue));
     } else if (tag == -2 || tag == 2) {
         m_initialValue += tag / 2;
-        m_initialInput->setString(toTruncatedString(m_initialValue));
+        m_initialInput->setString(strutils::toString(m_initialValue));
     }
 
     createScrollLayer(false);
@@ -613,23 +612,6 @@ float MixedInputPopup::applyOperation(float value, float modifier, Operator op, 
     return result;
 }
 
-std::string MixedInputPopup::toTruncatedString(float value, std::optional<int> decimalPlaces) {
-    if (decimalPlaces.has_value()) {
-        auto factor = std::pow(10, decimalPlaces.value());
-        value = std::round(value * factor) / factor;
-
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(decimalPlaces.value()) << value;
-        return out.str();
-    }
-    
-    auto str = std::to_string(value);
-    str.erase(str.find_last_not_of('0') + 1, std::string::npos);
-    str.erase(str.find_last_not_of('.') + 1, std::string::npos);
-
-    return str;
-}
-
 float MixedInputPopup::roundValue(float value) {
     auto factor = std::pow(10, m_decimalPlaces);
 
@@ -668,9 +650,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
             newProperty = applyOperation(property, change, m_operator);
         }
 
-        auto propertyString = toTruncatedString(property);
-        auto changeString = m_operator != Operator::Equal ? toTruncatedString(change) : "0";
-        auto newPropertyString = toTruncatedString(newProperty, m_decimalPlaces);
+        auto propertyString = strutils::toString(property, m_decimalPlaces);
+        auto changeString = m_operator != Operator::Equal ? strutils::toString(change, 3) : "0";
+        auto newPropertyString = strutils::toString(newProperty, m_decimalPlaces, false);
 
         CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 

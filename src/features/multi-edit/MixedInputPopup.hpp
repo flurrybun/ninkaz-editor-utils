@@ -65,7 +65,6 @@ protected:
     void onApply(CCObject*);
 
     float applyOperation(float, float, Operator, bool = true);
-    std::string toTruncatedString(float, std::optional<int> = std::nullopt);
     float roundValue(float);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
