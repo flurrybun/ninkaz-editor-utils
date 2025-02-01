@@ -86,9 +86,9 @@ bool AFEditorUI::shouldFilterObject(GameObject* object) {
         }
     }
 
-    auto checkColor = [](GJSpriteColor* color, int colorID, ccHSVValue& hsv, bool isBoth) {
+    auto checkColor = [](GJSpriteColor* color, int colorID, hsvValue& hsv, bool isBoth) {
         if (!color) {
-            if (colorID == 0 && hsv == ccHSVValue(0, 1, 1)) return false;
+            if (colorID == 0 && hsv == hsvValue(0, 1, 1)) return false;
             return true;
         }
 
@@ -189,8 +189,8 @@ void AFEditorUI::onUpdateFilter() {
 
     hasFilter = hasFilter || !m_fields->filterZLayers.empty();
 
-    hasFilter = hasFilter || std::any_of(m_fields->filterHSVs.begin(), m_fields->filterHSVs.end(), [](ccHSVValue hsv) {
-        return hsv != ccHSVValue(0, 1, 1);
+    hasFilter = hasFilter || std::any_of(m_fields->filterHSVs.begin(), m_fields->filterHSVs.end(), [](hsvValue hsv) {
+        return hsv != hsvValue(0, 1, 1);
     });
 
     m_fields->filterBtn->setSprite(hasFilter ? m_fields->activeSpr : m_fields->inactiveSpr);
@@ -217,11 +217,11 @@ std::set<ZLayer>& getFilterZLayers() {
     return static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterZLayers;
 }
 
-ccHSVValue getFilterHSV(ColorType colorType) {
+hsvValue getFilterHSV(ColorType colorType) {
     return static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterHSVs[colorType];
 }
 
-void setFilterHSV(ColorType colorType, ccHSVValue hsv) {
+void setFilterHSV(ColorType colorType, hsvValue hsv) {
     static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterHSVs[colorType] = hsv;
 }
 
@@ -369,7 +369,7 @@ bool AdvFilterPopup::setup() {
     }
 
     if (getFilterValue(Filter::BASECOLOR) != 0 || getFilterValue(Filter::DETAILCOLOR) != 0 ||
-        getFilterHSV(ColorType::BASE) != ccHSVValue(0, 1, 1) || getFilterHSV(ColorType::DETAIL) != ccHSVValue(0, 1, 1)) {
+        getFilterHSV(ColorType::BASE) != hsvValue(0, 1, 1) || getFilterHSV(ColorType::DETAIL) != hsvValue(0, 1, 1)) {
         colorToggler->toggle(true);
         onToggleColor(nullptr);
     }
@@ -474,7 +474,7 @@ void AdvFilterPopup::onUpdateValue() {
         auto hsv = getFilterHSV(static_cast<ColorType>(i));
         auto btn = m_moreColorBtns[i];
 
-        btn->toggle(hsv != ccHSVValue(0, 1, 1));
+        btn->toggle(hsv != hsvValue(0, 1, 1));
     }
 
     // enable reset button if anything needs to be reset
@@ -529,7 +529,7 @@ void AdvFilterPopup::onMoreColors(CCObject* sender) {
 
     ColorType colorType = static_cast<ColorType>(sender->getTag());
 
-    updateCallback onUpdate = [this, colorType](int colorID, std::string colorName, ccHSVValue hsv) {
+    updateCallback onUpdate = [this, colorType](int colorID, std::string colorName, hsvValue hsv) {
         Filter filter = static_cast<Filter>(static_cast<int>(colorType) + 1);
 
         setFilterHSV(colorType, hsv);

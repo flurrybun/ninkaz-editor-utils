@@ -4,10 +4,20 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+struct hsvValue {
+    float h, s, v;
+
+    hsvValue(float h, float s, float v) : h(h), s(s), v(v) {}
+
+    bool operator==(const hsvValue& other) const {
+        return h == other.h && s == other.s && v == other.v;
+    }
+};
+
 struct SavedFilter {
     std::array<float, 8> filterValues;
     std::set<ZLayer> filterZLayers;
-    std::array<ccHSVValue, 3> filterHSVs = {ccHSVValue(0, 1, 1), ccHSVValue(0, 1, 1), ccHSVValue(0, 1, 1)};
+    std::array<hsvValue, 3> filterHSVs = {hsvValue(0, 1, 1), hsvValue(0, 1, 1), hsvValue(0, 1, 1)};
 };
 
 template <>
@@ -54,7 +64,7 @@ struct matjson::Serialize<SavedFilter> {
             float h = GEODE_UNWRAP(hsv[0].asDouble());
             float s = GEODE_UNWRAP(hsv[1].asDouble());
             float v = GEODE_UNWRAP(hsv[2].asDouble());
-            filter.filterHSVs[i] = ccHSVValue(h, s, v);
+            filter.filterHSVs[i] = hsvValue(h, s, v);
         }
 
         return Ok(filter);
@@ -66,7 +76,7 @@ class $modify(AFEditorUI, EditorUI) {
         bool isFilterActive = false;
         std::array<float, 8> filterValues;
         std::set<ZLayer> filterZLayers;
-        std::array<ccHSVValue, 3> filterHSVs = {ccHSVValue(0, 1, 1), ccHSVValue(0, 1, 1), ccHSVValue(0, 1, 1)};
+        std::array<hsvValue, 3> filterHSVs = {hsvValue(0, 1, 1), hsvValue(0, 1, 1), hsvValue(0, 1, 1)};
 
         Ref<CCSprite> activeSpr;
         Ref<CCSprite> inactiveSpr;
@@ -102,8 +112,8 @@ enum ColorType {
 float getFilterValue(Filter filter);
 void setFilterValue(Filter filter, float value);
 std::set<ZLayer>& getFilterZLayers();
-ccHSVValue getFilterHSV(ColorType colorType);
-void setFilterHSV(ColorType colorType, ccHSVValue hsv);
+hsvValue getFilterHSV(ColorType colorType);
+void setFilterHSV(ColorType colorType, hsvValue hsv);
 
 std::string getColorName(int);
 
@@ -134,14 +144,14 @@ public:
     static AdvFilterPopup* create();
 };
 
-using updateCallback = std::function<void(int colorID, std::string colorName, ccHSVValue hsv)>;
+using updateCallback = std::function<void(int colorID, std::string colorName, hsvValue hsv)>;
 
 class MoreColorsPopup : public Popup<ColorType, updateCallback> {
 protected:
     ColorType m_colorType;
     updateCallback m_callback;
     int m_selectedColorID = 0;
-    ccHSVValue m_hsv = {0, 1, 1};
+    hsvValue m_hsv = {0, 1, 1};
     std::array<ButtonSprite*, 8> m_colorButtonSprites;
 
     bool setup(ColorType, updateCallback) override;
