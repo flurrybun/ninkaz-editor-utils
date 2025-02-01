@@ -1,12 +1,12 @@
 {
-    "geode": "4.1.0",
+    "geode": "4.2.0",
     "gd": {
         "win": "2.2074",
         "android": "2.2074",
         "mac": "2.2074",
         "ios": "2.2074"
     },
-    "version": "v1.1.1",
+    "version": "v1.2.0",
     "id": "ninkaz.editor_utils",
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
@@ -15,16 +15,15 @@
         "source": "https://github.com/flurrybun/ninkaz-editor-utils"
     },
     "tags": ["editor", "enhancement", "utility", "interface", "offline"],
-    "dependencies": [
-        {
-            "id": "geode.node-ids",
-            "version": ">=v1.17.0",
-            "importance": "required"
-        }
-    ],
+    "dependencies": {
+        "geode.node-ids": ">=v1.17.0"
+    },
     "resources": {
         "spritesheets": {
-            "MultiEditSheet": ["resources/multi-edit/*.png"]
+            "editor-sheet": [
+                "resources/multi-edit/*.png",
+                "resources/delete-filter/*.png"
+            ]
         }
     }
 }
