@@ -247,7 +247,6 @@ void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
 
     // for some reason setTouchEnabled doesnt seem to do anything so i just move the slider thumb
     // kinda hacky but it's invisible so it's fine
-    slider->setTouchEnabled(isEnabled);
     slider->getThumb()->setPosition(9999, 0);
 
     slider->m_groove->setOpacity(isEnabled ? 255 : 100);
@@ -411,7 +410,7 @@ void NewSetupTriggerPopup::hideOrShowUI(bool isHidden) {
         // im sorry this is a total mess
 
         if (auto nodeSlider = typeinfo_cast<Slider*>(node)) {
-            if (nodeSlider->isTouchEnabled()) {
+            if (nodeSlider->getThumb()->getPositionX() != 9999) {
                 runOpacity(nodeSlider->m_groove);
                 runOpacity(nodeSlider->m_sliderBar);
                 runOpacity(nodeSlider->getThumb());
