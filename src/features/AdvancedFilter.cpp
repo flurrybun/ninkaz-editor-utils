@@ -140,6 +140,13 @@ bool AFEditorUI::init(LevelEditorLayer* lel) {
     btn->setID("delete-filter-advanced"_spr);
     m_fields->filterBtn = btn;
 
+    // i made a node ids pr that does this but i have little faith it'll get merged anytime soon,
+    // so i'm just going to do it myself for the time being. no other mod uses this menu, it's fine
+
+    if (auto layout = typeinfo_cast<AxisLayout*>(filterMenu->getLayout())) {
+        layout->setCrossAxisAlignment(AxisAlignment::End);
+    }
+
     filterMenu->insertAfter(btn, filterMenu->getChildByID("delete-find-group-id"));
     filterMenu->updateLayout();
 
