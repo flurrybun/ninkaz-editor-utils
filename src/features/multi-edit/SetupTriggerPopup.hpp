@@ -16,7 +16,6 @@ class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
         CCMenu* m_sideMenu = nullptr;
 
         bool m_isMixedMode = false;
-        Ref<Notification> m_mixedNotification;
 
         bool m_isHideMode = false;
         Slider* m_currentSlider = nullptr;
@@ -62,10 +61,3 @@ class $modify(TriggerItemSprite, CCMenuItemSpriteExtra) {
         int m_overrideTag = -1;
     };
 };
-
-#ifdef GEODE_IS_WINDOWS
-#include <Geode/modify/CCEGLView.hpp>
-class $modify(CCEGLViewTrigger, CCEGLView) {
-    $override void onGLFWMouseCallBack(GLFWwindow*, int, int, int);
-};
-#endif
