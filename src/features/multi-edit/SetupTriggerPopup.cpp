@@ -170,7 +170,7 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
 
     auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(NewSetupTriggerPopup::onMixedInput));
     btn->setPosition(input->getPosition() - m_buttonMenu->getPosition());
-    btn->setID("mixed-input-button"_spr);
+    btn->setID("mixed-input-btn"_spr);
     if (overrideTag == -1) btn->setTag(input->getTag());
     else btn->setTag(overrideTag);
 
@@ -259,9 +259,10 @@ void NewSetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
 
     for (auto child : children) {
         auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(child);
-        if (!button || button->getID() == "mixed-input-button"_spr) continue;
+        if (!button || button->getID() == "mixed-input-btn"_spr) continue;
 
-        if (button->getTag() != key && static_cast<TriggerItemSprite*>(button)->m_fields->m_overrideTag != key) continue;
+        if (button->getTag() != key &&
+            static_cast<TriggerItemSprite*>(button)->m_fields->m_overrideTag != key) continue;
 
         button->setEnabled(isEnabled);
         button->setOpacity(isEnabled ? 255 : 100);
