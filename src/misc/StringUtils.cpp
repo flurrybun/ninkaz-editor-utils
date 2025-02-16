@@ -1,6 +1,6 @@
 #include "StringUtils.hpp"
 
-namespace strutils {
+namespace nk {
     std::string toString(float value, std::optional<int> decimalPlaces, bool removeTrailingZeros) {
         std::string str = std::to_string(value);
 

@@ -1,4 +1,5 @@
 #include "AddRandomGroups.hpp"
+#include "../misc/StringUtils.hpp"
 #include <algorithm>
 #include <random>
 #include <regex>
@@ -64,13 +65,16 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     groupInput->setPosition(winCenter + ccp(0, 70));
     groupInput->setFilter("0123456789-");
     groupInput->setMaxCharCount(9);
-    groupInput->setString("0");
 
     m_mainLayer->addChild(groupInput); 
     m_groupInput = groupInput;
 
     groupInput->setCallback([this](auto text) {
-        if (text != "" && text.find('-') == std::string::npos && stoi(text) > 9999) m_groupInput->setString("9999");
+        if (
+            text != "" &&
+            text.find('-') == std::string::npos &&
+            nk::toInt(text) > 9999
+        ) m_groupInput->setString("9999");
     });
 
     // DECREMENT GROUP ARROW
@@ -178,7 +182,10 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     coverageInput->setFilter("0123456789");
     coverageInput->setString("100");
     coverageInput->setCallback([this](auto text) {
-        if (text != "" && stoi(text) > 100) m_coverageInput->setString("100");
+        if (
+            text != "" &&
+            nk::toInt(text) > 100
+        ) m_coverageInput->setString("100");
     });
     coverageInput->setLayoutOptions(
         AxisLayoutOptions::create()
@@ -237,7 +244,7 @@ bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
 void AddRandomGroupsPopup::onChangeInput(CCObject* sender) {
     auto inputStr = m_groupInput->getString();
     auto inputValue = 0;
-    if (inputStr != "") inputValue = stoi(inputStr);
+    if (inputStr != "") inputValue = nk::toInt(inputStr);
 
     int newValue = inputValue + sender->getTag();
     if (newValue < 0 || newValue > 9999) return;
@@ -256,8 +263,8 @@ void AddRandomGroupsPopup::onNextFree(CCObject* sender) {
 void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
     auto inputStr = m_groupInput->getString();
     if (std::regex_match(inputStr, std::regex("^\\d+-\\d+$"))) {
-        auto rangeStart = stoi(inputStr.substr(0, inputStr.find("-")));
-        auto rangeEnd = stoi(inputStr.substr(inputStr.find("-") + 1));
+        auto rangeStart = nk::toInt(inputStr.substr(0, inputStr.find("-")));
+        auto rangeEnd = nk::toInt(inputStr.substr(inputStr.find("-") + 1));
 
         if (rangeStart < 1 || rangeStart > 9999 || rangeEnd < 1 || rangeEnd > 9999) return;
         if (rangeStart == rangeEnd) return;
@@ -270,7 +277,7 @@ void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
             }
         }
     } else {
-        auto inputValue = stoi(inputStr);
+        auto inputValue = nk::toInt(inputStr);
         if (inputValue < 1 || inputValue > 9999) return;
         if (std::find(m_groups.begin(), m_groups.end(), inputValue) != m_groups.end()) return;
 
@@ -335,7 +342,7 @@ void AddRandomGroupsPopup::onChangeGroups() {
 
 void AddRandomGroupsPopup::assignGroups() {
     auto isIgnoreLinked = m_toggleLinkedButton->isToggled();
-    auto coverageValue = stoi(static_cast<std::string>(m_coverageInput->getString()));
+    auto coverageValue = nk::toInt(static_cast<std::string>(m_coverageInput->getString()));
     auto coveragePercent = coverageValue / 100.f;
 
     std::map<short, std::vector<GameObject*>> linkedObjectsMap;
@@ -392,7 +399,7 @@ void AddRandomGroupsPopup::onApply(CCObject* sender) {
             "OK"
         )->show();
         return;
-    } else if (m_coverageInput->getString() == "" || stoi(static_cast<std::string>(m_coverageInput->getString())) == 0) {
+    } else if (m_coverageInput->getString() == "" || nk::toInt(m_coverageInput->getString()) == 0) {
         FLAlertLayer::create(
             "Error",
             "<cr>% coverage</c> must be defined.",

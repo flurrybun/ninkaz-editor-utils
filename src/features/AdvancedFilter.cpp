@@ -400,7 +400,7 @@ void AdvFilterPopup::addLine(std::string labelText, std::string id, Filter filte
     );
 
     float value = getFilterValue(filter);
-    std::string valueStr = value == 0 ? "" : strutils::toString(value, 2);
+    std::string valueStr = value == 0 ? "" : nk::toString(value, 2);
 
     if (value >= 1000 && (filter == Filter::COLOR || filter == Filter::BASECOLOR || filter == Filter::DETAILCOLOR)) {
         valueStr = getColorName(std::round(value));
@@ -414,7 +414,7 @@ void AdvFilterPopup::addLine(std::string labelText, std::string id, Filter filte
     input->setString(valueStr.c_str());
     input->setTag(filter);
     input->setCallback([this, filter](const std::string& string) {
-        setFilterValue(filter, strutils::toFloat(string));
+        setFilterValue(filter, nk::toFloat(string));
         onUpdateValue();
     });
     input->setLayoutOptions(
@@ -509,7 +509,7 @@ void AdvFilterPopup::onInputArrow(CCObject* sender) {
         if (newValue < 0) return;
     }
 
-    std::string string = strutils::toString(newValue, 2);
+    std::string string = nk::toString(newValue, 2);
     m_inputs[filter]->setString(string.c_str(), true);
 }
 
@@ -709,7 +709,7 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
 
         bool isDecimal = i != 0;
         float value = i == 0 ? m_hsv.h : i == 1 ? m_hsv.s : m_hsv.v;
-        std::string valueStr = strutils::toString(value, 2);
+        std::string valueStr = nk::toString(value, 2);
         if (i == 0 && value == 0) valueStr = "";
         if (i != 0 && value == 1) valueStr = "";
 
@@ -720,9 +720,9 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
         input->setString(valueStr.c_str());
         input->setTag(i);
         input->setCallback([this, i](const std::string& string) {
-            if (i == 0) m_hsv.h = strutils::toFloat(string);
-            else if (i == 1) m_hsv.s = strutils::toFloat(string);
-            else m_hsv.v = strutils::toFloat(string);
+            if (i == 0) m_hsv.h = nk::toFloat(string);
+            else if (i == 1) m_hsv.s = nk::toFloat(string);
+            else m_hsv.v = nk::toFloat(string);
 
             onUpdateValue();
         });

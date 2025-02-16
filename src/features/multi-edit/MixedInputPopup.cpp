@@ -147,17 +147,10 @@ CCMenu* MixedInputPopup::createTopRow() {
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
     input->setFilter("0123456789.-");
     input->getInputNode()->m_numberInput = true;
-    input->setString(strutils::toString(m_modifierValue));
+    input->setString(nk::toString(m_modifierValue));
     input->setID("modifier-value-input"_spr);
     input->setCallback([&](const std::string& text) {
-        if (text.empty()) {
-            m_modifierValue = 0;
-        } else {
-            m_modifierValue = std::stof(text);
-        }
-
-        m_modifierValue = text.empty() ? 0 : strutils::toFloat(text);
-
+        m_modifierValue = text.empty() ? 0 : nk::toFloat(text);
         createScrollLayer(false);
     });
     input->setLayoutOptions(
@@ -254,20 +247,11 @@ CCMenu* MixedInputPopup::createBottomRow() {
     auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
     input->getInputNode()->m_numberInput = true;
     input->setFilter("0123456789.-");
-    input->setString(strutils::toString(m_initialValue));
+    input->setString(nk::toString(m_initialValue));
     input->setID("initial-value-input"_spr);
     input->setCallback([&](const std::string& text) {
-        if (text.empty()) {
-            m_initialValue = 0;
-            createScrollLayer(false);
-            return;
-        };
-        
-        auto isValidFloat = std::regex_match(text, std::regex("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$"));
-        if (isValidFloat) {
-            m_initialValue = std::stof(text);
-            createScrollLayer(false);
-        }
+        m_initialValue = text.empty() ? 0 : nk::toFloat(text);
+        createScrollLayer(false);
     });
     input->setLayoutOptions(
         AxisLayoutOptions::create()
@@ -531,10 +515,10 @@ void MixedInputPopup::onValueArrow(CCObject* sender) {
 
     if (tag == -1 || tag == 1) {
         m_modifierValue += tag;
-        m_modifierInput->setString(strutils::toString(m_modifierValue));
+        m_modifierInput->setString(nk::toString(m_modifierValue));
     } else if (tag == -2 || tag == 2) {
         m_initialValue += tag / 2;
-        m_initialInput->setString(strutils::toString(m_initialValue));
+        m_initialInput->setString(nk::toString(m_initialValue));
     }
 
     createScrollLayer(false);
@@ -650,9 +634,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
             newProperty = applyOperation(property, change, m_operator);
         }
 
-        auto propertyString = strutils::toString(property, m_decimalPlaces);
-        auto changeString = m_operator != Operator::Equal ? strutils::toString(change, 3) : "0";
-        auto newPropertyString = strutils::toString(newProperty, m_decimalPlaces, false);
+        auto propertyString = nk::toString(property, m_decimalPlaces);
+        auto changeString = m_operator != Operator::Equal ? nk::toString(change, 3) : "0";
+        auto newPropertyString = nk::toString(newProperty, m_decimalPlaces, false);
 
         CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
 
