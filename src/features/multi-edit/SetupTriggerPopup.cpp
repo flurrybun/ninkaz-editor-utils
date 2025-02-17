@@ -312,6 +312,11 @@ CCTextInputNode* NewSetupTriggerPopup::getInputOfKey(int key) {
 }
 
 void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
+    if (!m_gameObjects || m_gameObjects->count() == 0) {
+        if (!m_fields->m_mixedNotification) m_fields->m_mixedNotification = Notification::create("Only one trigger selected", NotificationIcon::Error, 2);
+        m_fields->m_mixedNotification->show();
+        return;
+    }
     if (!m_gameObjects || m_gameObjects->count() == 0) return;
 
     int property = static_cast<int>(sender->getTag());
@@ -631,6 +636,31 @@ class $modify(CCKeyboardDispatcher) {
         return true;
     }
 };
+
+
+#ifdef GEODE_IS_WINDOWS
+void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int action, int mods) {
+    CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
+    if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
+    if (action != GLFW_RELEASE) return;
+    auto popup = Trigger::getTriggerPopup();
+    if (!popup) return;
+    if (!static_cast<NewSetupTriggerPopup*>(popup)->isTriggerPopup()) return;
+    CCDictionaryExt<int, CCTextInputNode*> inputNodes = popup->m_inputNodes;
+    auto mousePosition = getMousePos();
+    for (auto const& [key, input] : inputNodes) {
+        if (!input->isVisible()) continue;
+        
+        auto inputPosition = input->m_textField->convertToWorldSpace({0, 0});
+        auto inputSize = input->m_textField->getContentSize();
+        auto inputRect = CCRect(inputPosition, inputSize);
+        if (inputRect.containsPoint(mousePosition)) {
+            static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(input);
+            return;
+        }
+    }
+}
+#endif
 
 
 // temp function to determine what properties each trigger uses
