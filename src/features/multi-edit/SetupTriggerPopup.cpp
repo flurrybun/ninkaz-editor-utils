@@ -18,6 +18,8 @@ bool NewSetupTriggerPopup::isTriggerPopup() {
     if (typeinfo_cast<CustomizeObjectSettingsPopup*>(this)) return false;
     if (typeinfo_cast<ColorSelectPopup*>(this)) return false;
     if (typeinfo_cast<SetupObjectOptions2Popup*>(this)) return false;
+    if (typeinfo_cast<SetupRotatePopup*>(this)) return false;
+    if (typeinfo_cast<EditGameObjectPopup*>(this)) return false;
     if (typeinfo_cast<GJOptionsLayer*>(this)) return false;
     if (typeinfo_cast<UIOptionsLayer*>(this)) return false;
     if (typeinfo_cast<UIPOptionsLayer*>(this)) return false;
