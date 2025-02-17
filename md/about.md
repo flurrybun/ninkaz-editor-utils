@@ -4,7 +4,7 @@ A small collection of editor features to make my life a little easier.
 
 ### Multi-Edit Triggers
 
-Select **multiple triggers** and use the **toggle button** to independently modify values across different triggers. Perform operations like addition and multiplication to quickly change values. Select a direction to compound operations across multiple triggers.
+Select **multiple triggers** and use the **toggle button** (or right click on Windows) to independently modify values across different triggers. Perform operations like addition and multiplication to quickly change values. Select a direction to compound operations across multiple triggers.
 
 If multiple **different types of triggers** are selected, common properties like group ID and duration can be changed simultaneously.
 
