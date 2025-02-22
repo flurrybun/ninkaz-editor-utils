@@ -22,6 +22,8 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
 
         if (property != 51 && property != 71) return ret;
         if (inputStyle == GJInputStyle::ChatLabel) return ret;
+        // area stop trigger uses property 51 for effect id
+        if (label == "EffectID:") return ret;
 
         CCTextInputNode* inputNode;
         CCLabelBMFont* labelNode;
