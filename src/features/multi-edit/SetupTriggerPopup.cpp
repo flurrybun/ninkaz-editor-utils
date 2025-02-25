@@ -12,7 +12,7 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-bool NewSetupTriggerPopup::isTriggerPopup() {
+bool MESetupTriggerPopup::isTriggerPopup() {
     // why does so much stuff inherit SetupTriggerPopup
     if (typeinfo_cast<SelectEventLayer*>(this)) return false;
     if (typeinfo_cast<CustomizeObjectSettingsPopup*>(this)) return false;
@@ -27,7 +27,7 @@ bool NewSetupTriggerPopup::isTriggerPopup() {
     return true;
 }
 
-bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
+bool MESetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
     if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
     if (!isTriggerPopup()) return true;
 
@@ -48,11 +48,11 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
 
     bool showMultiEdit = m_gameObjects && m_gameObjects->count() != 0;
 
-    auto multiEditBtn = createMobileButton("multi-edit-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleMixedMode));
+    auto multiEditBtn = createMobileButton("multi-edit-btn.png"_spr, menu_selector(MESetupTriggerPopup::toggleMixedMode));
     multiEditBtn->setID("multi-edit-btn"_spr);
     multiEditBtn->setVisible(showMultiEdit);
 
-    auto hideBtn = createMobileButton("hide-btn.png"_spr, menu_selector(NewSetupTriggerPopup::toggleHideMode));
+    auto hideBtn = createMobileButton("hide-btn.png"_spr, menu_selector(MESetupTriggerPopup::toggleHideMode));
     hideBtn->setID("hide-btn"_spr);
 
     if (typeinfo_cast<SetupShaderEffectPopup*>(this)) {
@@ -68,7 +68,7 @@ bool NewSetupTriggerPopup::init(EffectGameObject* obj, CCArray* objs, float f1, 
     return true;
 }
 
-CCMenuItemToggler* NewSetupTriggerPopup::createMobileButton(const char* sprName, SEL_MenuHandler selector) {
+CCMenuItemToggler* MESetupTriggerPopup::createMobileButton(const char* sprName, SEL_MenuHandler selector) {
     auto onSprTop = CCSprite::createWithSpriteFrameName(sprName);
     auto onSpr = CCScale9Sprite::create("GJ_button_02.png");
     onSprTop->setScale(0.7);
@@ -87,14 +87,14 @@ CCMenuItemToggler* NewSetupTriggerPopup::createMobileButton(const char* sprName,
     return btn;
 }
 
-void NewSetupTriggerPopup::updateDefaultTriggerValues() {
+void MESetupTriggerPopup::updateDefaultTriggerValues() {
     SetupTriggerPopup::updateDefaultTriggerValues();
     if (!isTriggerPopup()) return;
     
     setupMultiEdit();
 }
 
-void NewSetupTriggerPopup::setupMultiEdit() {
+void MESetupTriggerPopup::setupMultiEdit() {
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = m_inputNodes;
     CCDictionaryExt<int, CCFloat*> triggerValues = m_triggerValues;
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
@@ -127,7 +127,7 @@ void NewSetupTriggerPopup::setupMultiEdit() {
     getInputBGs(inputNodeArray);
 }
 
-void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> inputs) {
+void MESetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> inputs) {
     m_fields->m_overrideInputs.inner()->addObjectsFromArray(inputs.inner());
     CCArrayExt<EffectGameObject*> triggers = m_gameObjects;
 
@@ -160,7 +160,7 @@ void NewSetupTriggerPopup::setupOverrideMultiEdit(CCArrayExt<CCTextInputNode*> i
     getInputBGs(inputs);
 }
 
-void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int property) {
+void MESetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int property) {
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
     CCArrayExt<CCArray*> pageContainers = m_pageContainers;
     int overrideTag = static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag;
@@ -170,7 +170,7 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
     auto spr = CCLabelBMFont::create("Mixed", "bigFont.fnt");
     spr->limitLabelWidth(input->m_maxLabelWidth, input->getScale(), 0);
 
-    auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(NewSetupTriggerPopup::onMixedInput));
+    auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MESetupTriggerPopup::onMixedInput));
     btn->setPosition(input->getPosition() - m_buttonMenu->getPosition());
     btn->setID("mixed-input-btn"_spr);
     if (overrideTag == -1) btn->setTag(input->getTag());
@@ -208,7 +208,7 @@ void NewSetupTriggerPopup::replaceInputWithButton(CCTextInputNode* input, int pr
     toggleSliderOfKey(property, false);
 }
 
-void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button, int property, float newValue) {
+void MESetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button, int property, float newValue) {
     CCTextInputNode* input = m_fields->m_removedInputNodes[property];
 
     CCArrayExt<CCArray*> groupContainers = m_groupContainers;
@@ -243,7 +243,7 @@ void NewSetupTriggerPopup::replaceButtonWithInput(CCMenuItemSpriteExtra* button,
     toggleSliderOfKey(property, true);
 }
 
-void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
+void MESetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
     auto slider = typeinfo_cast<Slider*>(m_valueControls->objectForKey(key));
     if (!slider) return;
 
@@ -256,7 +256,7 @@ void NewSetupTriggerPopup::toggleSliderOfKey(int key, bool isEnabled) {
     slider->m_sliderBar->setOpacity(isEnabled ? 255 : 0);
 }
 
-void NewSetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
+void MESetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
     CCArrayExt<CCNode*> children = m_buttonMenu->getChildren();
 
     for (auto child : children) {
@@ -271,7 +271,7 @@ void NewSetupTriggerPopup::toggleArrowButtonsOfKey(int key, bool isEnabled) {
     }
 }
 
-void NewSetupTriggerPopup::getInputBGs(CCArrayExt<CCTextInputNode*> inputs) {
+void MESetupTriggerPopup::getInputBGs(CCArrayExt<CCTextInputNode*> inputs) {
     CCArrayExt<CCNode*> children = m_mainLayer->getChildren();
     
     for (auto input : inputs) {
@@ -293,7 +293,7 @@ void NewSetupTriggerPopup::getInputBGs(CCArrayExt<CCTextInputNode*> inputs) {
     }
 }
 
-void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
+void MESetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
     auto factor = std::pow(10, input->m_decimalPlaces);
     auto newValue = std::floor(value * factor) / factor;
 
@@ -304,7 +304,7 @@ void NewSetupTriggerPopup::setInputValue(CCTextInputNode* input, float value) {
     input->setString(str);
 }
 
-CCTextInputNode* NewSetupTriggerPopup::getInputOfKey(int key) {
+CCTextInputNode* MESetupTriggerPopup::getInputOfKey(int key) {
     for (auto input : m_fields->m_overrideInputs) {
         if (static_cast<CCTextInputNodeTrigger*>(input)->m_fields->m_overrideTag == key) return input;
     }
@@ -313,7 +313,7 @@ CCTextInputNode* NewSetupTriggerPopup::getInputOfKey(int key) {
     return input;
 }
 
-void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
+void MESetupTriggerPopup::onMixedInput(CCObject* sender) {
     if (!m_gameObjects || m_gameObjects->count() == 0) {
         if (!m_fields->m_mixedNotification) m_fields->m_mixedNotification = Notification::create("Only one trigger selected", NotificationIcon::Error, 2);
         m_fields->m_mixedNotification->show();
@@ -349,7 +349,7 @@ void NewSetupTriggerPopup::onMixedInput(CCObject* sender) {
     alert->show();
 }
 
-void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
+void MESetupTriggerPopup::toggleMixedMode(CCObject* sender) {
     m_fields->m_isMixedMode = !m_fields->m_isMixedMode;
 
     GLubyte opacity = m_fields->m_isMixedMode ? 140 : 70;
@@ -360,23 +360,23 @@ void NewSetupTriggerPopup::toggleMixedMode(CCObject* sender) {
     }
 }
 
-void NewSetupTriggerPopup::toggleHideMode(CCObject* sender) {
+void MESetupTriggerPopup::toggleHideMode(CCObject* sender) {
     m_fields->m_isHideMode = !m_fields->m_isHideMode;
 }
 
-void NewSetupTriggerPopup::sliderBegan(Slider* slider) {
+void MESetupTriggerPopup::sliderBegan(Slider* slider) {
     m_fields->m_currentSlider = slider;
     if (!m_fields->m_isHideMode) return;
     hideOrShowUI(true);
 }
 
-void NewSetupTriggerPopup::sliderEnded(Slider* slider) {
+void MESetupTriggerPopup::sliderEnded(Slider* slider) {
     m_fields->m_currentSlider = nullptr;
     if (!m_fields->m_isHideMode) return;
     hideOrShowUI(false);
 }
 
-void NewSetupTriggerPopup::hideOrShowUI(bool isHidden) {
+void MESetupTriggerPopup::hideOrShowUI(bool isHidden) {
     auto slider = m_fields->m_currentSlider;
     int sliderTag = slider ? slider->getTag() : -99;
     
@@ -518,7 +518,7 @@ class $modify(ColorSelectPopup) {
 
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
 
-        static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
+        static_cast<MESetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
     }
@@ -544,7 +544,7 @@ class $modify(SetupPulsePopup) {
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 46);
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(2), 47);
 
-        static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
+        static_cast<MESetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
     }
@@ -568,7 +568,7 @@ class $modify(SetupOpacityPopup) {
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(0), 10);
         // m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 35);
 
-        static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
+        static_cast<MESetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
     }
@@ -594,7 +594,7 @@ class $modify(GJFollowCommandLayer) {
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(1), 72);
         m_valueControls->setObject(m_mainLayer->getChildByType<Slider>(2), 73);
 
-        static_cast<NewSetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
+        static_cast<MESetupTriggerPopup*>(static_cast<SetupTriggerPopup*>(this))->setupOverrideMultiEdit(inputs);
 
         return true;
     }
@@ -610,14 +610,14 @@ bool CCTextInputNodeTrigger::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     auto popup = typeinfo_cast<SetupTriggerPopup*>(parent->getParent());
     if (!popup) return CCTextInputNode::ccTouchBegan(touch, event);
 
-    auto isMixedMode = static_cast<NewSetupTriggerPopup*>(popup)->m_fields->m_isMixedMode;
+    auto isMixedMode = static_cast<MESetupTriggerPopup*>(popup)->m_fields->m_isMixedMode;
     if (!isMixedMode) return CCTextInputNode::ccTouchBegan(touch, event);
 
     auto bounds = m_textField->boundingBox();
     auto touchLocation = m_textField->convertToNodeSpace(touch->getLocation()) - m_textField->getContentSize() / 2;
     if (!bounds.containsPoint(touchLocation)) return true;
 
-    static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(this);
+    static_cast<MESetupTriggerPopup*>(popup)->onMixedInput(this);
 
     return true;
 }
@@ -631,9 +631,9 @@ class $modify(CCKeyboardDispatcher) {
 
         auto popup = Trigger::getTriggerPopup();
         if (!popup) return true;
-        if (!static_cast<NewSetupTriggerPopup*>(popup)->isTriggerPopup()) return true;
+        if (!static_cast<MESetupTriggerPopup*>(popup)->isTriggerPopup()) return true;
 
-        static_cast<NewSetupTriggerPopup*>(popup)->hideOrShowUI(isKeyDown);
+        static_cast<MESetupTriggerPopup*>(popup)->hideOrShowUI(isKeyDown);
 
         return true;
     }
@@ -647,7 +647,7 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
     if (action != GLFW_RELEASE) return;
     auto popup = Trigger::getTriggerPopup();
     if (!popup) return;
-    if (!static_cast<NewSetupTriggerPopup*>(popup)->isTriggerPopup()) return;
+    if (!static_cast<MESetupTriggerPopup*>(popup)->isTriggerPopup()) return;
     CCDictionaryExt<int, CCTextInputNode*> inputNodes = popup->m_inputNodes;
     auto mousePosition = getMousePos();
     for (auto const& [key, input] : inputNodes) {
@@ -657,7 +657,7 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
         auto inputSize = input->m_textField->getContentSize();
         auto inputRect = CCRect(inputPosition, inputSize);
         if (inputRect.containsPoint(mousePosition)) {
-            static_cast<NewSetupTriggerPopup*>(popup)->onMixedInput(input);
+            static_cast<MESetupTriggerPopup*>(popup)->onMixedInput(input);
             return;
         }
     }
@@ -668,7 +668,7 @@ void CCEGLViewTrigger::onGLFWMouseCallBack(GLFWwindow* window, int button, int a
 // temp function to determine what properties each trigger uses
 // used for Trigger::hasProperty
 
-// void NewSetupTriggerPopup::tempLogVals() {
+// void MESetupTriggerPopup::tempLogVals() {
 //     CCDictionaryExt<int, CCTextInputNode*> inputNodes = m_inputNodes;
 //     std::ostringstream os;
 

@@ -11,7 +11,7 @@ struct MixedInputSettings {
     RoundingType rounding;
 };
 
-class MixedInputPopup : public Popup<const CCArrayExt<EffectGameObject*>&, const short, const std::function<void (std::optional<float>)>&> {
+class MixedInputPopup : public Popup<const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&> {
 protected:
     enum Operator {
         Add, Subtract, Multiply, Divide, Equal
@@ -21,9 +21,10 @@ protected:
         None, Up, Down, Left, Right
     };
     
-    CCArrayExt<EffectGameObject*> m_triggers;
+    CCArrayExt<GameObject*> m_objects;
     std::function<void (std::optional<float>)> m_callback;
     short m_property;
+    bool m_isParticle;
     Operator m_operator;
     float m_modifierValue;
     float m_initialValue;
@@ -46,13 +47,13 @@ protected:
         std::string propertyString;
         std::string changeString;
         std::string newPropertyString;
-        CCArrayExt<EffectGameObject*> triggers;
+        CCArrayExt<GameObject*> objects;
 
-        CalculationInfo(const std::string& propStr, const std::string& changeStr, const std::string& newPropStr, const CCArrayExt<EffectGameObject*>& trig)
-            : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), triggers(trig) {}
+        CalculationInfo(const std::string& propStr, const std::string& changeStr, const std::string& newPropStr, const CCArrayExt<GameObject*>& obj)
+            : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), objects(obj) {}
     };
 
-    bool setup(const CCArrayExt<EffectGameObject*>&, const short, const std::function<void (std::optional<float>)>&) override;
+    bool setup(const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&) override;
 
     CCMenu* createTopRow();
     CCMenu* createBottomRow();
@@ -68,5 +69,5 @@ protected:
     float roundValue(float);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
-    static MixedInputPopup* create(const CCArrayExt<EffectGameObject*>&, const short, const std::function<void (std::optional<float>)>&);
+    static MixedInputPopup* create(const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&);
 };

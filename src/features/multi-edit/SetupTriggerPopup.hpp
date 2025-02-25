@@ -7,7 +7,7 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-class $modify(NewSetupTriggerPopup, SetupTriggerPopup) {
+class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         CCDictionaryExt<int, CCTextInputNode*> m_removedInputNodes;
         CCDictionaryExt<int, CCMenuItemSpriteExtra*> m_mixedButtons;

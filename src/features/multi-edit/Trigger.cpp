@@ -1,7 +1,5 @@
 #include "Trigger.hpp"
-
-#include <Geode/Geode.hpp>
-using namespace geode::prelude;
+#include "CreateParticlePopup.hpp"
 
 namespace Trigger {
     const short DURATION = 10;
@@ -12,26 +10,55 @@ namespace Trigger {
     const short ITEM = 80;
 }
 
-SetupTriggerPopup* Trigger::getTriggerPopup() {
+template<typename T>
+T* Trigger::getPopup() {
     auto scene = CCDirector::sharedDirector()->getRunningScene();
     if (!scene) return nullptr;
 
-    CCArrayExt<CCNode*> children = scene->getChildren();
+    for (auto child : CCArrayExt<CCNode*>(scene->getChildren())) {
+        if (auto popup = typeinfo_cast<T*>(child)) return popup;
+    }
 
-    for (auto child : children) if (auto popup = typeinfo_cast<SetupTriggerPopup*>(child)) return popup;
     return nullptr;
 }
 
-float Trigger::getProperty(EffectGameObject* object, short property) {
-    // calling getTriggerValue with these properties always returns 0
-    // though setProperty works just fine???
-    if (property == 45) return object->m_fadeInDuration;
-    if (property == 46) return object->m_holdDuration;
-    if (property == 47) return object->m_fadeOutDuration;
-    if (property == 50) return object->m_copyColorID;
-    if (property == 72) return object->m_followXMod;
-    if (property == 73) return object->m_followYMod;
-    if (property == 23) return object->m_targetColor;
+SetupTriggerPopup* Trigger::getTriggerPopup() {
+    return getPopup<SetupTriggerPopup>();
+}
+
+CreateParticlePopup* Trigger::getParticlePopup() {
+    return getPopup<CreateParticlePopup>();
+}
+
+CCParticleSystemQuad* Trigger::getParticleForObject(GameObject* object) {
+    auto popup = getParticlePopup();
+    if (!popup) return nullptr;
+
+    u_int index = popup->m_targetObjects->indexOfObject(object);
+    if (index == UINT_MAX) return nullptr;
+
+    auto particle = typeinfo_cast<CCParticleSystemQuad*>(popup->m_particles->objectAtIndex(index));
+    return particle;
+}
+
+float Trigger::getProperty(GameObject* object, short property) {
+    if (typeinfo_cast<ParticleGameObject*>(object)) {
+        auto particle = getParticleForObject(object);
+        if (!particle) return 0;
+
+        return getParticleValue(particle, property - 10000);
+    }
+
+    if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
+        // these properties aren't supported by SetupTriggerPopup::getTriggerValue
+        if (property == 45) return trigger->m_fadeInDuration;
+        if (property == 46) return trigger->m_holdDuration;
+        if (property == 47) return trigger->m_fadeOutDuration;
+        if (property == 50) return trigger->m_copyColorID;
+        if (property == 72) return trigger->m_followXMod;
+        if (property == 73) return trigger->m_followYMod;
+        if (property == 23) return trigger->m_targetColor;
+    }
 
     auto popup = getTriggerPopup();
     float value = popup->getTriggerValue(property, object);
@@ -46,7 +73,14 @@ float Trigger::getProperty(EffectGameObject* object, short property) {
     return value;
 }
 
-void Trigger::setProperty(EffectGameObject* object, short property, float newValue) {
+void Trigger::setProperty(GameObject* object, short property, float newValue) {
+    if (typeinfo_cast<ParticleGameObject*>(object)) {
+        auto particle = getParticleForObject(object);
+
+        if (particle) setParticleValue(particle, property - 10000, newValue);
+        return;
+    }
+
     auto popup = getTriggerPopup();
 
     // move trigger x/y is stored so 1 block is 30, but in the trigger menu it's 10
@@ -67,7 +101,11 @@ void Trigger::setProperty(EffectGameObject* object, short property, float newVal
     popup->m_gameObjects = savedGameObjects;
 }
 
-bool Trigger::hasProperty(EffectGameObject* object, short property) {
+bool Trigger::hasProperty(GameObject* object, short property) {
+    if (typeinfo_cast<ParticleGameObject*>(object)) {
+        return property >= 10000;
+    }
+
     auto in = [property](const std::vector<short>& vec) {
         return std::find(vec.begin(), vec.end(), property) != vec.end();
     };
@@ -188,11 +226,20 @@ std::string Trigger::getEasingString(EasingType easing) {
 }
 
 short Trigger::getPropertyDecimalPlaces(short property) {
+    if (property >= 10000) {
+        property -= 10000;
+
+        if (property >= 0x2 && property <= 0x4) return 2;
+        if (property >= 0x1A && property <= 0x31) return 2;
+        if (property >= 0x45 && property <= 0x48) return 2;
+        return 0;
+    }
+
     // im sure im missing some obscure properties but oh well
-    int fourDecimalPlaces[] = {63, 556};
-    int threeDecimalPlaces[] = {143, 144, 150, 151, 90, 91, 479, 483, 484, 371, 175, 176, 180, 179, 181,
+    short fourDecimalPlaces[] = {63, 556};
+    short threeDecimalPlaces[] = {143, 144, 150, 151, 90, 91, 479, 483, 484, 371, 175, 176, 180, 179, 181,
         182, 177, 512, 290, 291, 183, 191};
-    int twoDecimalPlaces[] = {10, 35, 45, 46, 47, 402, 68, 72, 73, 75, 84, 520, 521, 545, 522, 523, 546, 
+    short twoDecimalPlaces[] = {10, 35, 45, 46, 47, 402, 68, 72, 73, 75, 84, 520, 521, 545, 522, 523, 546, 
         292, 293, 298, 299, 361, 362, 300, 301, 334, 335, 558, 559, 359, 360, 561, 562, 357, 358,
         316, 317, 318, 319, 322, 323, 320, 321, 324, 325, 326, 327, 330, 331, 332, 333, 566, 567,
         568, 569, 300, 301, 557, 288, 243, 249, 263, 264, 282, 467, 473, 470, 437, 438, 554, 555,

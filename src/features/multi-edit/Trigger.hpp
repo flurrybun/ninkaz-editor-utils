@@ -11,11 +11,16 @@ namespace Trigger {
     extern const short EASING;
     extern const short ITEM;
 
+    template<typename T>
+    T* getPopup();
     SetupTriggerPopup* getTriggerPopup();
+    CreateParticlePopup* getParticlePopup();
 
-    float getProperty(EffectGameObject*, short);
-    void setProperty(EffectGameObject*, short, float);
-    bool hasProperty(EffectGameObject*, short);
+    CCParticleSystemQuad* getParticleForObject(GameObject*);
+
+    float getProperty(GameObject*, short);
+    void setProperty(GameObject*, short, float);
+    bool hasProperty(GameObject*, short);
     std::string getEasingString(EasingType easing);
     short getPropertyDecimalPlaces(short);
     bool canPropertyBeNegative(short);

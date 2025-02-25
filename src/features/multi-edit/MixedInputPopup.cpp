@@ -8,17 +8,18 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(const CCArrayExt<EffectGameObject*>& triggers, const short property, const std::function<void (std::optional<float>)>& callback) {
+bool MixedInputPopup::setup(const CCArrayExt<GameObject*>& objects, const short property, const std::function<void (std::optional<float>)>& callback) {
+    m_isParticle = property > 10000;
     std::vector<float> propertyValues;
     
-    for (auto trigger : triggers) {
-        if (Trigger::hasProperty(trigger, property)) {
-            m_triggers.push_back(trigger);
-            propertyValues.push_back(Trigger::getProperty(trigger, property));
+    for (auto object : objects) {
+        if (Trigger::hasProperty(object, property)) {
+            m_objects.push_back(object);
+            propertyValues.push_back(Trigger::getProperty(object, property));
         }
     }
 
-    std::sort(m_triggers.begin(), m_triggers.end(), [property](EffectGameObject* a, EffectGameObject* b) {
+    std::sort(m_objects.begin(), m_objects.end(), [property](GameObject* a, GameObject* b) {
         float aValue = Trigger::getProperty(a, property);
         float bValue = Trigger::getProperty(b, property);
 
@@ -334,10 +335,10 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     std::set<int> uniqueTriggerIDs;
 
     for (const auto& calcInfo : stringMap) {
-        auto triggers = calcInfo.triggers;
+        auto objects = calcInfo.objects;
         
         uniqueTriggerIDs.clear();
-        for (const auto& trigger : triggers) {
+        for (const auto& trigger : objects) {
             uniqueTriggerIDs.insert(trigger->m_objectID);
         }
 
@@ -497,7 +498,7 @@ void MixedInputPopup::onDirection(CCObject* sender) {
 
     // sort triggers by direction
 
-    std::sort(m_triggers.begin(), m_triggers.end(), [&](const EffectGameObject* a, const EffectGameObject* b) {
+    std::sort(m_objects.begin(), m_objects.end(), [&](const GameObject* a, const GameObject* b) {
         if (m_direction == DirectionType::Left) return a->m_positionX > b->m_positionX;
         else if (m_direction == DirectionType::Right) return a->m_positionX < b->m_positionX;
         else if (m_direction == DirectionType::Up) return a->m_positionY < b->m_positionY;
@@ -540,17 +541,17 @@ void MixedInputPopup::onApply(CCObject* sender) {
     std::vector<float> newProperties;
     
     if (m_direction == DirectionType::None) {
-        for (auto& trigger : m_triggers) {
-            auto property = Trigger::getProperty(trigger, m_property);
+        for (auto& object : m_objects) {
+            auto property = Trigger::getProperty(object, m_property);
             auto newProperty = applyOperation(property, m_modifierValue, m_operator);
 
             newProperties.push_back(newProperty);
-            Trigger::setProperty(trigger, m_property, newProperty);
+            Trigger::setProperty(object, m_property, newProperty);
         }
     } else {
         size_t count = 0;
 
-        for (auto& trigger : m_triggers) {
+        for (auto& trigger : m_objects) {
             float newProperty;
 
             if (m_operator == Operator::Multiply || m_operator == Operator::Divide) {
@@ -619,7 +620,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
 
     auto hasDirection = m_direction != DirectionType::None;
 
-    for (const auto& trigger : m_triggers) {
+    for (const auto& object : m_objects) {
         float property;
         float change;
         float newProperty;
@@ -629,7 +630,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
             change = m_modifierValue;
             newProperty = index != 0 ? applyOperation(property, change, m_operator) : property;
         } else {
-            property = Trigger::getProperty(trigger, m_property);
+            property = Trigger::getProperty(object, m_property);
             change = m_modifierValue;
             newProperty = applyOperation(property, change, m_operator);
         }
@@ -638,7 +639,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
         auto changeString = m_operator != Operator::Equal ? nk::toString(change, 3) : "0";
         auto newPropertyString = nk::toString(newProperty, m_decimalPlaces, false);
 
-        CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(trigger));
+        CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(object));
 
         if (!hasDirection) {
             // group triggers with the same property string
@@ -647,7 +648,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
             });
 
             if (it == calcVector.end()) calcVector.push_back(calcInfo);
-            else it->triggers.push_back(trigger);
+            else it->objects.push_back(object);
         } else {
             // don't group triggers
             calcVector.push_back(calcInfo);
@@ -660,9 +661,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     return calcVector;
 }
 
-MixedInputPopup* MixedInputPopup::create(const CCArrayExt<EffectGameObject*>& triggers, const short property, const std::function<void (std::optional<float>)>& callback) {
+MixedInputPopup* MixedInputPopup::create(const CCArrayExt<GameObject*>& objects, const short property, const std::function<void (std::optional<float>)>& callback) {
     auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, triggers, property, callback)) {
+    if (ret && ret->initAnchored(380.f, 280.f, objects, property, callback)) {
         ret->autorelease();
         return ret;
     }
