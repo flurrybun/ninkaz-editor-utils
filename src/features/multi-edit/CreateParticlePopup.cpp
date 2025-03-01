@@ -10,16 +10,28 @@
 float getParticleValueByKey(CCParticleSystemQuad* particle, int key, bool isSet, float newValue) {
     #define GET_SET_NUMBER(key, name) \
         case key: \
-            if (isSet) { particle->set##name(newValue); return newValue; } \
-            else { return particle->get##name(); }
+            if (isSet) { \
+                particle->set##name(newValue); \
+                return newValue; \
+            } else { \
+                return particle->get##name(); \
+            }
 
     #define GET_SET_POINT(keyX, keyY, name) \
         case keyX: \
-            if (isSet) { particle->set##name({newValue, particle->get##name().y}); return newValue; } \
-            else { return particle->get##name().x; } \
+            if (isSet) { \
+                particle->set##name({newValue, particle->get##name().y}); \
+                return newValue; \
+            } else { \
+                return particle->get##name().x; \
+            } \
         case keyY: \
-            if (isSet) { particle->set##name({particle->get##name().x, newValue}); return newValue; } \
-            else { return particle->get##name().y; } \
+            if (isSet) { \
+                particle->set##name({particle->get##name().x, newValue}); \
+                return newValue; \
+            } else { \
+                return particle->get##name().y; \
+            }
 
     #define GET_SET_INDIVIDUAL_COLOR(rgba, key, name) \
         case key: \
@@ -28,13 +40,24 @@ float getParticleValueByKey(CCParticleSystemQuad* particle, int key, bool isSet,
                 color.rgba = newValue; \
                 particle->set##name(color); \
                 return newValue; \
-            } else { return particle->get##name().rgba; }
+            } else { \
+                return particle->get##name().rgba; \
+            }
 
     #define GET_SET_COLOR(keyR, keyG, keyB, keyA, name) \
         GET_SET_INDIVIDUAL_COLOR(r, keyR, name) \
         GET_SET_INDIVIDUAL_COLOR(g, keyG, name) \
         GET_SET_INDIVIDUAL_COLOR(b, keyB, name) \
         GET_SET_INDIVIDUAL_COLOR(a, keyA, name)
+
+    #define GET_SET_MEMBER(key, member) \
+        case key: \
+            if (isSet) { \
+                particle->member = newValue; \
+                return newValue; \
+            } else { \
+                return particle->member; \
+            }
 
     switch (key) {
         GET_SET_NUMBER(0x1, TotalParticles);
@@ -64,30 +87,31 @@ float getParticleValueByKey(CCParticleSystemQuad* particle, int key, bool isSet,
         GET_SET_COLOR(0x1B, 0x1D, 0x1F, 0x21, StartColorVar);
         GET_SET_COLOR(0x22, 0x24, 0x26, 0x28, EndColor);
         GET_SET_COLOR(0x23, 0x25, 0x27, 0x29, EndColorVar);
-        GET_SET_NUMBER(0x2A, FadeInTime);
-        GET_SET_NUMBER(0x2B, FadeInTimeVar);
-        GET_SET_NUMBER(0x2C, FadeOutTime);
-        GET_SET_NUMBER(0x2D, FadeOutTimeVar);
-        GET_SET_NUMBER(0x2E, FrictionPos);
-        GET_SET_NUMBER(0x2F, FrictionPosVar);
-        GET_SET_NUMBER(0x30, Respawn);
-        GET_SET_NUMBER(0x31, RespawnVar);
+        GET_SET_MEMBER(0x2A, m_fFadeInTime);
+        GET_SET_MEMBER(0x2B, m_fFadeInTimeVar);
+        GET_SET_MEMBER(0x2C, m_fFadeOutTime);
+        GET_SET_MEMBER(0x2D, m_fFadeOutTimeVar);
+        GET_SET_MEMBER(0x2E, m_fFrictionPos);
+        GET_SET_MEMBER(0x2F, m_fFrictionPosVar);
+        GET_SET_MEMBER(0x30, m_fRespawn);
+        GET_SET_MEMBER(0x31, m_fRespawnVar);
         GET_SET_NUMBER(0x32, StartRadius);
         GET_SET_NUMBER(0x33, StartRadiusVar);
         GET_SET_NUMBER(0x34, EndRadius);
         GET_SET_NUMBER(0x35, EndRadiusVar);
         GET_SET_NUMBER(0x36, RotatePerSecond);
         GET_SET_NUMBER(0x37, RotatePerSecondVar);
-        GET_SET_NUMBER(0x45, FrictionSize);
-        GET_SET_NUMBER(0x46, FrictionSizeVar);
-        GET_SET_NUMBER(0x47, FrictionRot);
-        GET_SET_NUMBER(0x48, FrictionRotVar);
+        GET_SET_MEMBER(0x45, m_fFrictionSize);
+        GET_SET_MEMBER(0x46, m_fFrictionSizeVar);
+        GET_SET_MEMBER(0x47, m_fFrictionRot);
+        GET_SET_MEMBER(0x48, m_fFrictionRotVar);
     }
 
     #undef GET_SET_NUMBER
     #undef GET_SET_POINT
     #undef GET_SET_INDIVIDUAL_COLOR
     #undef GET_SET_COLOR
+    #undef GET_SET_MEMBER
 
     return 0.0f;
 }
