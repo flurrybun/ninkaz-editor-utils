@@ -24,7 +24,6 @@ protected:
     CCArrayExt<GameObject*> m_objects;
     std::function<void (std::optional<float>)> m_callback;
     short m_property;
-    bool m_isParticle;
     Operator m_operator;
     float m_modifierValue;
     float m_initialValue;

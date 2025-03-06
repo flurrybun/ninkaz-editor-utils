@@ -52,6 +52,7 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
         labelNode->setPositionX(position.x + labelX);
 
         m_buttonMenu->addChild(plusBtn);
+        ret->addObject(plusBtn);
 
         return ret;
     }

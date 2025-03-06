@@ -9,7 +9,6 @@ using namespace geode::prelude;
 #include <regex>
 
 bool MixedInputPopup::setup(const CCArrayExt<GameObject*>& objects, const short property, const std::function<void (std::optional<float>)>& callback) {
-    m_isParticle = property > 10000;
     std::vector<float> propertyValues;
     
     for (auto object : objects) {
@@ -29,7 +28,7 @@ bool MixedInputPopup::setup(const CCArrayExt<GameObject*>& objects, const short 
     m_property = property;
     m_callback = callback;
     m_operator = Operator::Equal;
-    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(property);
+    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(m_objects[0], property);
     m_canBeNegative = Trigger::canPropertyBeNegative(property);
 
     m_modifierValue = 0;

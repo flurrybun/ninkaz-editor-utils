@@ -1,33 +1,44 @@
 #include "Trigger.hpp"
-#include "CreateParticlePopup.hpp"
 
-namespace Trigger {
-    const short DURATION = 10;
-    const short OPACITY = 35;
-    const short TARGET_GROUP = 51;
-    const short CENTER_GROUP = 71;
-    const short EASING = 30;
-    const short ITEM = 80;
-}
+static SetupTriggerPopup* s_triggerPopup = nullptr;
+static CreateParticlePopup* s_particlePopup = nullptr;
 
-template<typename T>
-T* Trigger::getPopup() {
-    auto scene = CCDirector::sharedDirector()->getRunningScene();
-    if (!scene) return nullptr;
-
-    for (auto child : CCArrayExt<CCNode*>(scene->getChildren())) {
-        if (auto popup = typeinfo_cast<T*>(child)) return popup;
-    }
-
-    return nullptr;
+void Trigger::setTriggerPopup(SetupTriggerPopup* popup) {
+    s_triggerPopup = popup;
 }
 
 SetupTriggerPopup* Trigger::getTriggerPopup() {
-    return getPopup<SetupTriggerPopup>();
+    return s_triggerPopup;
+}
+
+void Trigger::setParticlePopup(CreateParticlePopup* popup) {
+    s_particlePopup = popup;
 }
 
 CreateParticlePopup* Trigger::getParticlePopup() {
-    return getPopup<CreateParticlePopup>();
+    return s_particlePopup;
+}
+
+void Trigger::resetPopups() {
+    s_triggerPopup = nullptr;
+    s_particlePopup = nullptr;
+}
+
+bool Trigger::isTriggerPopup(SetupTriggerPopup* popup) {
+    // why does so much stuff inherit SetupTriggerPopup
+    if (typeinfo_cast<SelectEventLayer*>(popup)) return false;
+    if (typeinfo_cast<CustomizeObjectSettingsPopup*>(popup)) return false;
+    if (typeinfo_cast<ColorSelectPopup*>(popup)) {
+        return popup->m_gameObject || popup->m_gameObjects;
+    }
+    if (typeinfo_cast<SetupObjectOptions2Popup*>(popup)) return false;
+    if (typeinfo_cast<SetupRotatePopup*>(popup)) return false;
+    if (typeinfo_cast<EditGameObjectPopup*>(popup)) return false;
+    if (typeinfo_cast<GJOptionsLayer*>(popup)) return false;
+    if (typeinfo_cast<UIOptionsLayer*>(popup)) return false;
+    if (typeinfo_cast<UIPOptionsLayer*>(popup)) return false;
+    if (typeinfo_cast<UISaveLoadLayer*>(popup)) return false;
+    return true;
 }
 
 CCParticleSystemQuad* Trigger::getParticleForObject(GameObject* object) {
@@ -46,7 +57,7 @@ float Trigger::getProperty(GameObject* object, short property) {
         auto particle = getParticleForObject(object);
         if (!particle) return 0;
 
-        return getParticleValue(particle, property - 10000);
+        return getParticleValue(particle, property);
     }
 
     if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
@@ -77,7 +88,7 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         auto particle = getParticleForObject(object);
 
-        if (particle) setParticleValue(particle, property - 10000, newValue);
+        if (particle) setParticleValue(particle, property, newValue);
         return;
     }
 
@@ -103,7 +114,7 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
 
 bool Trigger::hasProperty(GameObject* object, short property) {
     if (typeinfo_cast<ParticleGameObject*>(object)) {
-        return property >= 10000;
+        return true;
     }
 
     auto in = [property](const std::vector<short>& vec) {
@@ -172,6 +183,7 @@ bool Trigger::hasProperty(GameObject* object, short property) {
         case 1615: return in({80});
         case 3613: return in({51, 71});
         case 3662: return in({51});
+        case 1815: return in({80, 95, 51});
         case 3609: return in({80, 95, 51, 71});
         case 3640: return in({51, 71});
         case 3643: return in({51});
@@ -225,10 +237,8 @@ std::string Trigger::getEasingString(EasingType easing) {
     return "";
 }
 
-short Trigger::getPropertyDecimalPlaces(short property) {
-    if (property >= 10000) {
-        property -= 10000;
-
+short Trigger::getPropertyDecimalPlaces(GameObject* object, short property) {
+    if (typeinfo_cast<ParticleGameObject*>(object)) {
         if (property >= 0x2 && property <= 0x4) return 2;
         if (property >= 0x1A && property <= 0x31) return 2;
         if (property >= 0x45 && property <= 0x48) return 2;
@@ -261,4 +271,121 @@ bool Trigger::canPropertyBeNegative(short property) {
 
     return std::find(std::begin(positiveOnlyProps), std::end(positiveOnlyProps), property)
         == std::end(positiveOnlyProps);
+}
+
+float Trigger::getParticleValueByKey(CCParticleSystemQuad* particle, int key, bool isSet, float newValue) {
+    #define GET_SET_NUMBER(key, name) \
+        case key: \
+            if (isSet) { \
+                particle->set##name(newValue); \
+                return newValue; \
+            } else { \
+                return particle->get##name(); \
+            }
+
+    #define GET_SET_POINT(keyX, keyY, name) \
+        case keyX: \
+            if (isSet) { \
+                particle->set##name({newValue, particle->get##name().y}); \
+                return newValue; \
+            } else { \
+                return particle->get##name().x; \
+            } \
+        case keyY: \
+            if (isSet) { \
+                particle->set##name({particle->get##name().x, newValue}); \
+                return newValue; \
+            } else { \
+                return particle->get##name().y; \
+            }
+
+    #define GET_SET_INDIVIDUAL_COLOR(rgba, key, name) \
+        case key: \
+            if (isSet) { \
+                auto color = particle->get##name(); \
+                color.rgba = newValue; \
+                particle->set##name(color); \
+                return newValue; \
+            } else { \
+                return particle->get##name().rgba; \
+            }
+
+    #define GET_SET_COLOR(keyR, keyG, keyB, keyA, name) \
+        GET_SET_INDIVIDUAL_COLOR(r, keyR, name) \
+        GET_SET_INDIVIDUAL_COLOR(g, keyG, name) \
+        GET_SET_INDIVIDUAL_COLOR(b, keyB, name) \
+        GET_SET_INDIVIDUAL_COLOR(a, keyA, name)
+
+    #define GET_SET_MEMBER(key, member) \
+        case key: \
+            if (isSet) { \
+                particle->member = newValue; \
+                return newValue; \
+            } else { \
+                return particle->member; \
+            }
+
+    switch (key) {
+        GET_SET_NUMBER(0x1, TotalParticles);
+        GET_SET_NUMBER(0x2, Duration);
+        GET_SET_NUMBER(0x3, Life);
+        GET_SET_NUMBER(0x4, LifeVar);
+        GET_SET_NUMBER(0x5, EmissionRate);
+        GET_SET_NUMBER(0x6, Angle);
+        GET_SET_NUMBER(0x7, AngleVar);
+        GET_SET_NUMBER(0x8, Speed);
+        GET_SET_NUMBER(0x9, SpeedVar);
+        GET_SET_POINT(0xA, 0xB, PosVar);
+        GET_SET_POINT(0xC, 0xD, Gravity);
+        GET_SET_NUMBER(0xE, RadialAccel);
+        GET_SET_NUMBER(0xF, RadialAccelVar);
+        GET_SET_NUMBER(0x10, TangentialAccel);
+        GET_SET_NUMBER(0x11, TangentialAccelVar);
+        GET_SET_NUMBER(0x12, StartSize);
+        GET_SET_NUMBER(0x13, StartSizeVar);
+        GET_SET_NUMBER(0x14, EndSize);
+        GET_SET_NUMBER(0x15, EndSizeVar);
+        GET_SET_NUMBER(0x16, StartSpin);
+        GET_SET_NUMBER(0x17, StartSpinVar);
+        GET_SET_NUMBER(0x18, EndSpin);
+        GET_SET_NUMBER(0x19, EndSpinVar);
+        GET_SET_COLOR(0x1A, 0x1C, 0x1E, 0x20, StartColor);
+        GET_SET_COLOR(0x1B, 0x1D, 0x1F, 0x21, StartColorVar);
+        GET_SET_COLOR(0x22, 0x24, 0x26, 0x28, EndColor);
+        GET_SET_COLOR(0x23, 0x25, 0x27, 0x29, EndColorVar);
+        GET_SET_MEMBER(0x2A, m_fFadeInTime);
+        GET_SET_MEMBER(0x2B, m_fFadeInTimeVar);
+        GET_SET_MEMBER(0x2C, m_fFadeOutTime);
+        GET_SET_MEMBER(0x2D, m_fFadeOutTimeVar);
+        GET_SET_MEMBER(0x2E, m_fFrictionPos);
+        GET_SET_MEMBER(0x2F, m_fFrictionPosVar);
+        GET_SET_MEMBER(0x30, m_fRespawn);
+        GET_SET_MEMBER(0x31, m_fRespawnVar);
+        GET_SET_NUMBER(0x32, StartRadius);
+        GET_SET_NUMBER(0x33, StartRadiusVar);
+        GET_SET_NUMBER(0x34, EndRadius);
+        GET_SET_NUMBER(0x35, EndRadiusVar);
+        GET_SET_NUMBER(0x36, RotatePerSecond);
+        GET_SET_NUMBER(0x37, RotatePerSecondVar);
+        GET_SET_MEMBER(0x45, m_fFrictionSize);
+        GET_SET_MEMBER(0x46, m_fFrictionSizeVar);
+        GET_SET_MEMBER(0x47, m_fFrictionRot);
+        GET_SET_MEMBER(0x48, m_fFrictionRotVar);
+    }
+
+    #undef GET_SET_NUMBER
+    #undef GET_SET_POINT
+    #undef GET_SET_INDIVIDUAL_COLOR
+    #undef GET_SET_COLOR
+    #undef GET_SET_MEMBER
+
+    return 0.0f;
+}
+
+float Trigger::getParticleValue(CCParticleSystemQuad* particle, int key) {
+    return getParticleValueByKey(particle, key, false);
+}
+
+void Trigger::setParticleValue(CCParticleSystemQuad* particle, int key, float value) {
+    getParticleValueByKey(particle, key, true, value);
 }

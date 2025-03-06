@@ -4,17 +4,13 @@
 using namespace geode::prelude;
 
 namespace Trigger {
-    extern const short DURATION;
-    extern const short OPACITY;
-    extern const short TARGET_GROUP;
-    extern const short CENTER_GROUP;
-    extern const short EASING;
-    extern const short ITEM;
-
-    template<typename T>
-    T* getPopup();
     SetupTriggerPopup* getTriggerPopup();
+    void setTriggerPopup(SetupTriggerPopup*);
     CreateParticlePopup* getParticlePopup();
+    void setParticlePopup(CreateParticlePopup*);
+    void resetPopups();
+
+    bool isTriggerPopup(SetupTriggerPopup* popup);
 
     CCParticleSystemQuad* getParticleForObject(GameObject*);
 
@@ -22,6 +18,10 @@ namespace Trigger {
     void setProperty(GameObject*, short, float);
     bool hasProperty(GameObject*, short);
     std::string getEasingString(EasingType easing);
-    short getPropertyDecimalPlaces(short);
+    short getPropertyDecimalPlaces(GameObject*, short);
     bool canPropertyBeNegative(short);
+
+    float getParticleValueByKey(CCParticleSystemQuad* particle, int key, bool isSet, float newValue = 0.0f);
+    float getParticleValue(CCParticleSystemQuad* particle, int key);
+    void setParticleValue(CCParticleSystemQuad* particle, int key, float value);
 };
