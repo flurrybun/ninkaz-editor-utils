@@ -90,8 +90,6 @@ class $modify(HSVWidgetPopup) {
         CCMenu* buttonMenu = m_widget->getChildByType<CCMenu*>(0);
         mem->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(0), SATURATION + baseOrDetailOffset);
         mem->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(1), VALUE + baseOrDetailOffset);
-        buttonMenu->getChildByType<CCMenuItemToggler*>(0)->setCascadeOpacityEnabled(true);
-        buttonMenu->getChildByType<CCMenuItemToggler*>(1)->setCascadeOpacityEnabled(true);
 
         mem->setInputParentNode(m_widget);
         mem->setButtonOffset(m_widget->getPosition());
@@ -106,7 +104,172 @@ class $modify(HSVWidgetPopup) {
     }
 };
 
+class $modify(CustomizeObjectLayer) {
+    void hsvPopupClosed(HSVWidgetPopup* hsvPopup, ccHSVValue newHSV) {
+        if (!m_targetObjects || m_targetObjects->count() <= 1) {
+            CustomizeObjectLayer::hsvPopupClosed(hsvPopup, newHSV);
+            return;
+        }
+
+        for (auto object : CCArrayExt<GameObject*>(m_targetObjects)) {
+            auto color = object->getRelativeSpriteColor(m_selectedMode);
+            if (!color) continue;
+
+            ccHSVValue& hsv = color->m_hsv;
+
+            if (!isMixed(newHSV.h)) hsv.h = newHSV.h;
+            if (!isMixed(newHSV.s)) {
+                hsv.s = newHSV.s;
+                hsv.absoluteSaturation = newHSV.absoluteSaturation;
+            }
+            if (!isMixed(newHSV.v)) {
+                hsv.v = newHSV.v;
+                hsv.absoluteBrightness = newHSV.absoluteBrightness;
+            }
+        }
+
+        updateHSVButtons();
+    }
+};
+
+class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
+    struct Fields {
+        std::map<int, CCMenuItemSpriteExtra*> unlinkButtons;
+    };
+
+    $override
+    bool init(GameObject* obj, CCArray* objs) {
+        if (!HSVLiveOverlay::init(obj, objs)) return false;
+        setupMixedSliders();
+        return true;
+    }
+
+    $override
+    void onSelectTab(CCObject* sender) {
+        HSVLiveOverlay::onSelectTab(sender);
+        setupMixedSliders();
+    }
+
+    void setupMixedSliders() {
+        int hsvTypes[] = {HUE, SATURATION, VALUE};
+        Slider* sliders[] = {m_widget->m_hueSlider, m_widget->m_saturationSlider, m_widget->m_brightnessSlider};
+        CCMenu* widgetButtonMenu = m_widget->getChildByType<CCMenu*>(0);
+
+        for (int i = 0; i < 3; i++) {
+            Slider* slider = sliders[i];
+            int hsvType = hsvTypes[i];
+
+            auto spr = CCSprite::createWithSpriteFrameName("GJ_resetBtn_001.png");
+            auto btn = CCMenuItemSpriteExtra::create(
+                spr, this, menu_selector(MEHSVLiveOverlay::onUnlink)
+            );
+
+            btn->setPosition(slider->getPosition() - widgetButtonMenu->getPosition());
+            btn->setVisible(false);
+            btn->setID("unlink-btn"_spr);
+            btn->setTag(hsvType);
+
+            widgetButtonMenu->addChild(btn);
+            m_fields->unlinkButtons[hsvType] = btn;
+        }
+
+        if (isMixed(m_widget->m_hsv.h)) toggleSlider(HUE, false);
+        if (isMixed(m_widget->m_hsv.s)) toggleSlider(SATURATION, false);
+        if (isMixed(m_widget->m_hsv.v)) toggleSlider(VALUE, false);
+    }
+
+    void toggleSlider(int hsvType, bool isEnabled) {
+        Slider* slider = nullptr;
+        CCMenuItemToggler* toggle = nullptr;
+        CCMenu* buttonMenu = m_widget->getChildByType<CCMenu*>(0);
+
+        switch (hsvType) {
+            case HUE:
+                slider = m_widget->m_hueSlider;
+                break;
+            case SATURATION:
+                slider = m_widget->m_saturationSlider;
+                toggle = buttonMenu->getChildByType<CCMenuItemToggler*>(0);
+                break;
+            case VALUE:
+                slider = m_widget->m_brightnessSlider;
+                toggle = buttonMenu->getChildByType<CCMenuItemToggler*>(1);
+                break;
+        }
+
+        if (isEnabled) {
+            float resetValue = 0;
+            if (hsvType == SATURATION && !m_widget->m_hsv.absoluteSaturation) resetValue = 1;
+            else if (hsvType == VALUE && !m_widget->m_hsv.absoluteBrightness) resetValue = 1;
+
+            if (hsvType == HUE) m_widget->m_hsv.h = resetValue;
+            else if (hsvType == SATURATION) m_widget->m_hsv.s = resetValue;
+            else if (hsvType == VALUE) m_widget->m_hsv.v = resetValue;
+
+            setSliderValue(m_widget, hsvType, resetValue);
+            m_widget->updateLabels();
+            hsvChanged(m_widget);
+        } else {
+            slider->getThumb()->setPosition(9999, 0);
+        }
+
+        slider->m_groove->setOpacity(isEnabled ? 255 : 100);
+        slider->getThumb()->setOpacity(isEnabled ? 255 : 0);
+        slider->m_sliderBar->setOpacity(isEnabled ? 255 : 0);
+
+        if (toggle) {
+            toggle->setEnabled(isEnabled);
+            toggle->setOpacity(isEnabled ? 255 : 100);
+        }
+
+        m_fields->unlinkButtons[hsvType]->setVisible(!isEnabled);
+    }
+
+    void onUnlink(CCObject* sender) {
+        int hsvType = sender->getTag();
+        toggleSlider(hsvType, true);
+    }
+
+    $override
+    void hsvChanged(ConfigureHSVWidget* widget) {
+        if (!m_objects || m_objects->count() <= 1) {
+            HSVLiveOverlay::hsvChanged(widget);
+            return;
+        }
+
+        ccHSVValue& newHSV = widget->m_hsv;
+
+        for (auto object : CCArrayExt<GameObject*>(m_objects)) {
+            auto color = object->getRelativeSpriteColor(m_activeTab);
+            if (!color) continue;
+
+            ccHSVValue& hsv = color->m_hsv;
+
+            if (!isMixed(newHSV.h)) hsv.h = newHSV.h;
+            if (!isMixed(newHSV.s)) {
+                hsv.s = newHSV.s;
+                hsv.absoluteSaturation = newHSV.absoluteSaturation;
+            }
+            if (!isMixed(newHSV.v)) {
+                hsv.v = newHSV.v;
+                hsv.absoluteBrightness = newHSV.absoluteBrightness;
+            }
+        }
+    }
+};
+
 class $modify(ConfigureHSVWidget) {
+    $override
+    bool init(ccHSVValue hsv, bool unused, bool addInputs) {
+        if (!ConfigureHSVWidget::init(hsv, unused, addInputs)) return false;
+
+        CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
+        buttonMenu->getChildByType<CCMenuItemToggler*>(0)->setCascadeOpacityEnabled(true);
+        buttonMenu->getChildByType<CCMenuItemToggler*>(1)->setCascadeOpacityEnabled(true);
+
+        return true;
+    }
+
     $override
     void updateLabels() {
         ConfigureHSVWidget::updateLabels();
@@ -148,132 +311,29 @@ class $modify(ConfigureHSVWidget) {
 
         return multiHSV;
     }
-};
-
-class $modify(CustomizeObjectLayer) {
-    void hsvPopupClosed(HSVWidgetPopup* hsvPopup, ccHSVValue newHSV) {
-        if (!m_targetObjects || m_targetObjects->count() <= 1) {
-            CustomizeObjectLayer::hsvPopupClosed(hsvPopup, newHSV);
-            return;
-        }
-
-        for (auto object : CCArrayExt<GameObject*>(m_targetObjects)) {
-            auto color = object->getRelativeSpriteColor(m_selectedMode);
-            if (!color) continue;
-
-            ccHSVValue& hsv = color->m_hsv;
-
-            if (!isMixed(newHSV.h)) hsv.h = newHSV.h;
-            if (!isMixed(newHSV.s)) {
-                hsv.s = newHSV.s;
-                hsv.absoluteSaturation = newHSV.absoluteSaturation;
-            }
-            if (!isMixed(newHSV.v)) {
-                hsv.v = newHSV.v;
-                hsv.absoluteBrightness = newHSV.absoluteBrightness;
-            }
-        }
-    }
-};
-
-class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
-    struct Fields {
-        std::map<int, CCMenuItemSpriteExtra*> unlinkButtons;
-    };
 
     $override
-    bool init(GameObject* obj, CCArray* objs) {
-        if (!HSVLiveOverlay::init(obj, objs)) return false;
+    void onResetHSV(CCObject* sender) {
+        ConfigureHSVWidget::onResetHSV(sender);
 
-        int hsvTypes[] = {HUE, SATURATION, VALUE};
-        Slider* sliders[] = {m_widget->m_hueSlider, m_widget->m_saturationSlider, m_widget->m_brightnessSlider};
-        CCMenu* widgetButtonMenu = m_widget->getChildByType<CCMenu*>(0);
-
-        for (int i = 0; i < 3; i++) {
-            Slider* slider = sliders[i];
-            int hsvType = hsvTypes[i];
-
-            auto spr = CCSprite::createWithSpriteFrameName("GJ_resetBtn_001.png");
-            auto btn = CCMenuItemSpriteExtra::create(
-                spr, this, menu_selector(MEHSVLiveOverlay::onUnlink)
-            );
-
-            btn->setPosition(slider->getPosition() - widgetButtonMenu->getPosition());
-            btn->setVisible(false);
-            btn->setID("unlink-btn"_spr);
-            btn->setTag(hsvType);
-
-            widgetButtonMenu->addChild(btn);
-            m_fields->unlinkButtons[hsvType] = btn;
+        HSVLiveOverlay* hsvOverlay = EditorUI::get()->m_hsvOverlay;
+        if (hsvOverlay) {
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HUE, true);
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(SATURATION, true);
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(VALUE, true);
+        } else if (m_addInputs) {
+            GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
+            mem->removeMixed(HUE, 0);
+            mem->removeMixed(HUE + 3, 0);
+            mem->removeMixed(SATURATION, 1);
+            mem->removeMixed(SATURATION + 3, 1);
+            mem->removeMixed(VALUE, 1);
+            mem->removeMixed(VALUE + 3, 1);
         }
 
-        if (isMixed(m_widget->m_hsv.h)) toggleSlider(HUE, false);
-        if (isMixed(m_widget->m_hsv.s)) toggleSlider(SATURATION, false);
-        if (isMixed(m_widget->m_hsv.v)) toggleSlider(VALUE, false);
-
-        return true;
-    }
-
-    void toggleSlider(int hsvType, bool isEnabled) {
-        Slider* slider = hsvType == HUE ? m_widget->m_hueSlider :
-            hsvType == SATURATION ? m_widget->m_saturationSlider :
-            m_widget->m_brightnessSlider;
-
-        if (isEnabled) {
-            switch (hsvType) {
-                case HUE:
-                    m_widget->m_hsv.h = 0;
-                    break;
-                case SATURATION:
-                    m_widget->m_hsv.s = 1;
-                    break;
-                case VALUE:
-                    m_widget->m_hsv.v = 1;
-                    break;
-            }
-            setSliderValue(m_widget, hsvType, hsvType == HUE ? 0 : 1);
-            m_widget->updateLabels();
-            hsvChanged(m_widget);
-        } else {
-            slider->getThumb()->setPosition(9999, 0);
-        }
-
-        slider->m_groove->setOpacity(isEnabled ? 255 : 100);
-        slider->getThumb()->setOpacity(isEnabled ? 255 : 0);
-        slider->m_sliderBar->setOpacity(isEnabled ? 255 : 0);
-
-        m_fields->unlinkButtons[hsvType]->setVisible(!isEnabled);
-    }
-
-    void onUnlink(CCObject* sender) {
-        int hsvType = sender->getTag();
-        toggleSlider(hsvType, true);
-    }
-
-    $override
-    void hsvChanged(ConfigureHSVWidget* widget) {
-        if (!m_objects || m_objects->count() <= 1) {
-            HSVLiveOverlay::hsvChanged(widget);
-            return;
-        }
-
-        ccHSVValue& newHSV = widget->m_hsv;
-
-        for (auto object : CCArrayExt<GameObject*>(m_objects)) {
-            auto color = object->getRelativeSpriteColor(m_activeTab);
-            if (!color) continue;
-
-            ccHSVValue& hsv = color->m_hsv;
-
-            if (!isMixed(newHSV.h)) hsv.h = newHSV.h;
-            if (!isMixed(newHSV.s)) {
-                hsv.s = newHSV.s;
-                hsv.absoluteSaturation = newHSV.absoluteSaturation;
-            }
-            if (!isMixed(newHSV.v)) {
-                hsv.v = newHSV.v;
-                hsv.absoluteBrightness = newHSV.absoluteBrightness;
-            }
-        }
+        // this is a fix for a vanilla bug
+        CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
+        buttonMenu->getChildByType<CCMenuItemToggler*>(0)->toggle(false);
+        buttonMenu->getChildByType<CCMenuItemToggler*>(1)->toggle(false);
     }
 };
