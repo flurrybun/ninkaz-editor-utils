@@ -9,6 +9,7 @@ MultiEditManager* MultiEditManager::s_instance = nullptr;
 
 bool MultiEditManager::init(FLAlertLayer* popup, CCArray* gameObjects) {
     m_popup = popup;
+    m_inputParentNode = popup->m_mainLayer;
     if (gameObjects) m_gameObjects.inner()->addObjectsFromArray(gameObjects);
 
     if (auto triggerPopup = typeinfo_cast<SetupTriggerPopup*>(popup)) {
@@ -52,7 +53,6 @@ void MultiEditManager::setupSideMenu() {
         ->setGap(5)
     );
     menu->getLayout()->ignoreInvisibleChildren(true);
-    menu->setTouchPriority(-504);
     menu->setZOrder(1000);
     m_sideMenu = menu;
 
@@ -66,6 +66,7 @@ void MultiEditManager::setupSideMenu() {
     menu->updateLayout();
 
     m_popup->m_mainLayer->addChild(menu);
+    handleTouchPriority(m_popup);
 }
 
 void MultiEditManager::addSideMenuButton(CCMenuItem* button) {
@@ -83,7 +84,7 @@ void MultiEditManager::addSlider(Slider* slider, int property) {
     m_sliders[property] = slider;
 }
 
-void MultiEditManager::addButton(CCMenuItemSpriteExtra* button, int property) {
+void MultiEditManager::addButton(CCMenuItem* button, int property) {
     button->setUserObject("property"_spr, CCInteger::create(property));
     m_buttons[property].push_back(button);
 }
@@ -127,7 +128,7 @@ void MultiEditManager::makeMixed(int property) {
 
     CCMenuItemSpriteExtra* btn = createMixedButton(property);
 
-    btn->setPosition(input->getPosition() - m_popup->m_buttonMenu->getPosition());
+    btn->setPosition(input->getPosition() - m_popup->m_buttonMenu->getPosition() + m_buttonOffset);
     btn->setID("mixed-input-btn"_spr);
     btn->setTag(property);
 
@@ -185,7 +186,7 @@ void MultiEditManager::removeMixed(int property, float newValue) {
 
     m_mixedButtons.erase(property);
 
-    m_popup->m_mainLayer->addChild(input);
+    m_inputParentNode->addChild(input);
     btn->removeFromParent();
 
     toggleSlider(property, true);

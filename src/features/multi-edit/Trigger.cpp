@@ -53,6 +53,15 @@ CCParticleSystemQuad* Trigger::getParticleForObject(GameObject* object) {
 }
 
 float Trigger::getProperty(GameObject* object, short property) {
+    if (property >= 2000 && property <= 2005) {
+        GJSpriteColor* color = object->getRelativeSpriteColor(property >= 2003 ? 2 : 1);
+        if (!color) return 0;
+
+        if (property == 2000 || property == 2003) return color->m_hsv.h;
+        if (property == 2001 || property == 2004) return color->m_hsv.s;
+        if (property == 2002 || property == 2005) return color->m_hsv.v;
+    }
+
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         auto particle = getParticleForObject(object);
         if (!particle) return 0;
@@ -85,6 +94,25 @@ float Trigger::getProperty(GameObject* object, short property) {
 }
 
 void Trigger::setProperty(GameObject* object, short property, float newValue) {
+    if (property >= 2000 && property <= 2005) {
+        GJSpriteColor* color = object->getRelativeSpriteColor(property >= 2003 ? 2 : 1);
+        if (!color) return;
+
+        switch (property) {
+            case 2000:
+            case 2003:
+                while (newValue > 180) newValue -= 360;
+                while (newValue < -180) newValue += 360;
+                color->m_hsv.h = newValue; return;
+            case 2001:
+            case 2004:
+                color->m_hsv.s = newValue; return;
+            case 2002:
+            case 2005:
+                color->m_hsv.v = newValue; return;
+        }
+    }
+    
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         auto particle = getParticleForObject(object);
 
@@ -113,6 +141,8 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
 }
 
 bool Trigger::hasProperty(GameObject* object, short property) {
+    if (property >= 2000 && property <= 2005) return true;
+
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         return true;
     }
@@ -224,20 +254,10 @@ bool Trigger::hasProperty(GameObject* object, short property) {
     return false;
 }
 
-std::string Trigger::getEasingString(EasingType easing) {
-    switch (easing) {
-        case EasingType::None: return "None";
-        case EasingType::EaseInOut: return "Ease In Out"; case EasingType::EaseIn: return "Ease In"; case EasingType::EaseOut: return "Ease Out";
-        case EasingType::ElasticInOut: return "Elastic In Out"; case EasingType::ElasticIn: return "Elastic In"; case EasingType::ElasticOut: return "Elastic Out";
-        case EasingType::BounceInOut: return "Bounce In Out"; case EasingType::BounceIn: return "Bounce In"; case EasingType::BounceOut: return "Bounce Out";
-        case EasingType::ExponentialInOut: return "Exponential In Out"; case EasingType::ExponentialIn: return "Exponential In"; case EasingType::ExponentialOut: return "Exponential Out";
-        case EasingType::SineInOut: return "Sine In Out"; case EasingType::SineIn: return "Sine In"; case EasingType::SineOut: return "Sine Out";
-        case EasingType::BackInOut: return "Back In Out"; case EasingType::BackIn: return "Back In"; case EasingType::BackOut: return "Back Out";
-    }
-    return "";
-}
-
 short Trigger::getPropertyDecimalPlaces(GameObject* object, short property) {
+    if (property == 2000 || property == 2003) return 0;
+    if (property >= 2000 && property <= 2005) return 2;
+
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         if (property >= 0x2 && property <= 0x4) return 2;
         if (property >= 0x1A && property <= 0x31) return 2;

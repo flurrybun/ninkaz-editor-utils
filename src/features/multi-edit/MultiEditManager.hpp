@@ -17,10 +17,13 @@ private:
 
     std::map<int, Ref<CCTextInputNode>> m_inputs;
     std::map<int, Slider*> m_sliders;
-    std::map<int, std::vector<CCMenuItemSpriteExtra*>> m_buttons;
+    std::map<int, std::vector<CCMenuItem*>> m_buttons;
     std::map<int, CCScale9Sprite*> m_inputBGs;
     std::map<int, CCLabelBMFont*> m_inputLabels;
     std::map<int, CCMenuItemSpriteExtra*> m_mixedButtons;
+
+    CCNode* m_inputParentNode;
+    CCPoint m_buttonOffset = {0, 0};
 
     std::optional<CCArrayExt<CCArray*>> m_groups;
     std::optional<CCArrayExt<CCArray*>> m_pages;
@@ -39,17 +42,20 @@ public:
 
     void addInput(CCTextInputNode* input, int property);
     void addSlider(Slider* slider, int property);
-    void addButton(CCMenuItemSpriteExtra* button, int property);
+    void addButton(CCMenuItem* button, int property);
     void addInputBG(CCScale9Sprite* bg, int property);
     void addInputLabel(CCLabelBMFont* label, int property);
 
     bool isMixedEnabled() { return m_isMixedEnabled; }
     std::map<int, Ref<CCTextInputNode>>& getInputs() { return m_inputs; }
     std::map<int, Slider*>& getSliders() { return m_sliders; }
-    std::map<int, std::vector<CCMenuItemSpriteExtra*>>& getButtons() { return m_buttons; }
+    std::map<int, std::vector<CCMenuItem*>>& getButtons() { return m_buttons; }
     std::map<int, CCScale9Sprite*>& getInputBGs() { return m_inputBGs; }
     std::map<int, CCLabelBMFont*>& getInputLabels() { return m_inputLabels; }
     std::map<int, CCMenuItemSpriteExtra*>& getMixedButtons() { return m_mixedButtons; }
+
+    void setInputParentNode(CCNode* node) { m_inputParentNode = node; }
+    void setButtonOffset(CCPoint offset) { m_buttonOffset = offset; }
 
     void setGroups(CCArrayExt<CCArray*> groups) { m_groups.emplace(groups); }
     void setPages(CCArrayExt<CCArray*> pages) { m_pages.emplace(pages); }
