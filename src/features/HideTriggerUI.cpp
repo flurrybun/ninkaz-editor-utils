@@ -16,6 +16,7 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     $override
     bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
         if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum)) return false;
+        if (!Trigger::isTriggerPopup(this)) return true;
 
         GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
         m_fields->multiEditManager = mem;
