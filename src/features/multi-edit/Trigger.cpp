@@ -62,6 +62,11 @@ float Trigger::getProperty(GameObject* object, short property) {
         if (property == 2002 || property == 2005) return color->m_hsv.v;
     }
 
+    if (object->m_objectID == 1816 && property == 80) {
+        auto collisionBlock = typeinfo_cast<EffectGameObject*>(object);
+        return collisionBlock ? collisionBlock->m_itemID : 0;
+    }
+
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         auto particle = getParticleForObject(object);
         if (!particle) return 0;
@@ -112,7 +117,13 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
                 color->m_hsv.v = newValue; return;
         }
     }
-    
+
+    if (object->m_objectID == 1816 && property == 80) {
+        auto collisionBlock = typeinfo_cast<EffectGameObject*>(object);
+        if (collisionBlock) collisionBlock->m_itemID = newValue;
+        return;
+    }
+
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         auto particle = getParticleForObject(object);
 
@@ -216,6 +227,7 @@ bool Trigger::hasProperty(GameObject* object, short property) {
         case 1815: return in({80, 95, 51});
         case 3609: return in({80, 95, 51, 71});
         case 3640: return in({51, 71});
+        case 1816: return in({80}); // doesn't extend SetupTriggerPopup ??
         case 3643: return in({51});
         case 1812: return in({51});
         case 3600: return in({51, 71});
@@ -287,7 +299,7 @@ short Trigger::getPropertyDecimalPlaces(GameObject* object, short property) {
 
 bool Trigger::canPropertyBeNegative(short property) {
     // this doesnt matter much so i only bothered adding common values
-    short positiveOnlyProps[] = {10, 85, 51, 71, 45, 46, 47, 35, 63, 556};
+    short positiveOnlyProps[] = {10, 85, 51, 71, 45, 46, 47, 35, 63, 556, 80};
 
     return std::find(std::begin(positiveOnlyProps), std::end(positiveOnlyProps), property)
         == std::end(positiveOnlyProps);

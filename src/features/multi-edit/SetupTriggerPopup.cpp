@@ -2,6 +2,7 @@
 #include "MultiEditManager.hpp"
 #include "Trigger.hpp"
 #include "../../misc/CCScale9SpriteFix.hpp"
+#include "../../misc/StringUtils.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -370,6 +371,46 @@ class $modify(SetupCollisionTriggerPopup) {
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
 
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/CollisionBlockPopup.hpp>
+// note: CollisionBlockPopup isn't a subclass of SetupTriggerPopup
+
+class $modify(CollisionBlockPopup) {
+    struct Fields {
+        Ref<MultiEditManager> multiEditManager;
+    };
+
+    $override
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!CollisionBlockPopup::init(obj, objs)) return false;
+
+        auto mem = MultiEditManager::create(this, objs);
+        m_fields->multiEditManager = mem;
+
+        mem->setCallback([this](int property, std::optional<float> value) {
+            for (auto obj : CCArrayExt<GameObject*>(m_gameObjects)) {
+                LevelEditorLayer::updateObjectLabel(obj);
+            }
+
+            if (!value.has_value()) return;
+
+            m_blockIDInput->setString(nk::toString(value.value(), 0));
+        });
+
+        mem->addInput(m_blockIDInput, 80);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
+        m_blockIDInput->setMaxLabelWidth(40);
+
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 80);
+
+        mem->setupSideMenu();
         mem->setupMixed();
 
         return true;
