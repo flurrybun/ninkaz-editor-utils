@@ -99,6 +99,36 @@ void MultiEditManager::addInputLabel(CCLabelBMFont* label, int property) {
     m_inputLabels[property] = label;
 }
 
+CCTextInputNode* MultiEditManager::getInput(int property) {
+    if (m_inputs.find(property) == m_inputs.end()) return nullptr;
+    return m_inputs[property];
+}
+
+Slider* MultiEditManager::getSlider(int property) {
+    if (m_sliders.find(property) == m_sliders.end()) return nullptr;
+    return m_sliders[property];
+}
+
+std::vector<CCMenuItem*> MultiEditManager::getButtons(int property) {
+    if (m_buttons.find(property) == m_buttons.end()) return {};
+    return m_buttons[property];
+}
+
+CCScale9Sprite* MultiEditManager::getInputBG(int property) {
+    if (m_inputBGs.find(property) == m_inputBGs.end()) return nullptr;
+    return m_inputBGs[property];
+}
+
+CCLabelBMFont* MultiEditManager::getInputLabel(int property) {
+    if (m_inputLabels.find(property) == m_inputLabels.end()) return nullptr;
+    return m_inputLabels[property];
+}
+
+CCMenuItemSpriteExtra* MultiEditManager::getMixedButton(int property) {
+    if (m_mixedButtons.find(property) == m_mixedButtons.end()) return nullptr;
+    return m_mixedButtons[property];
+}
+
 void MultiEditManager::setupMixed() {
     if (m_hasSetupMixed) return;
     m_hasSetupMixed = true;

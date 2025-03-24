@@ -54,6 +54,13 @@ public:
     std::map<int, CCLabelBMFont*>& getInputLabels() { return m_inputLabels; }
     std::map<int, CCMenuItemSpriteExtra*>& getMixedButtons() { return m_mixedButtons; }
 
+    CCTextInputNode* getInput(int property);
+    Slider* getSlider(int property);
+    std::vector<CCMenuItem*> getButtons(int property);
+    CCScale9Sprite* getInputBG(int property);
+    CCLabelBMFont* getInputLabel(int property);
+    CCMenuItemSpriteExtra* getMixedButton(int property);
+
     void setInputParentNode(CCNode* node) { m_inputParentNode = node; }
     void setButtonOffset(CCPoint offset) { m_buttonOffset = offset; }
 

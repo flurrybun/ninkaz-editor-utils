@@ -416,3 +416,23 @@ class $modify(CollisionBlockPopup) {
         return true;
     }
 };
+
+// special case for move triggers because move/mod x/y doesn't use rob's group and page system
+
+#include <Geode/modify/SetupMoveCommandPopup.hpp>
+
+class $modify(SetupMoveCommandPopup) {
+    $override
+    void valueDidChange(int property, float newValue) {
+        SetupMoveCommandPopup::valueDidChange(property, newValue);
+        if (property != 100 && property != 394) return;
+
+        auto mem = getMultiEditManager(this);
+        bool isVisible = newValue == 0;
+
+        if (auto btn = mem->getMixedButton(28)) btn->setVisible(isVisible);
+        if (auto btn = mem->getMixedButton(29)) btn->setVisible(isVisible);
+        if (auto btn = mem->getMixedButton(143)) btn->setVisible(isVisible);
+        if (auto btn = mem->getMixedButton(144)) btn->setVisible(isVisible);
+    }
+};
