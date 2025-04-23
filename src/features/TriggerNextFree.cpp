@@ -35,7 +35,11 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
         }
 
         auto plusSpr = CCSprite::createWithSpriteFrameName("GJ_plus2Btn_001.png");
-        plusSpr->setScale(scale);
+        if (typeinfo_cast<SetupAreaMoveTriggerPopup*>(this)) {
+            plusSpr->setScale(0.8);
+        } else {
+            plusSpr->setScale(scale);
+        }
 
         auto plusBtn = CCMenuItemSpriteExtra::create(plusSpr, this, menu_selector(TNFSetupTriggerPopup::onNextFree));
         plusBtn->setTag(property);
@@ -45,12 +49,16 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
         if (auto arr = typeinfo_cast<CCArray*>(m_groupContainers->objectAtIndex(group))) arr->addObject(plusBtn);
         if (auto arr = typeinfo_cast<CCArray*>(m_pageContainers->objectAtIndex(page))) arr->addObject(plusBtn);
 
-        constexpr float GAP = 3;
-        float labelX = -(plusBtn->getScaledContentWidth() + GAP) / 2;
-        float btnX = (labelNode->getScaledContentWidth() + GAP) / 2;
+        if (typeinfo_cast<SetupAreaMoveTriggerPopup*>(this)) {
+            plusBtn->setPosition({145, position.y - m_buttonMenu->getPositionY()});
+        } else {
+            constexpr float GAP = 3;
+            float labelX = -(plusBtn->getScaledContentWidth() + GAP) / 2;
+            float btnX = (labelNode->getScaledContentWidth() + GAP) / 2;
 
-        plusBtn->setPosition(position - m_buttonMenu->getPosition() + ccp(btnX, 33 * scale));
-        labelNode->setPositionX(position.x + labelX);
+            plusBtn->setPosition(position - m_buttonMenu->getPosition() + ccp(btnX, 33 * scale));
+            labelNode->setPositionX(position.x + labelX);
+        }
 
         m_buttonMenu->addChild(plusBtn);
         ret->addObject(plusBtn);
