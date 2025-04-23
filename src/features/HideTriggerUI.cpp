@@ -1,4 +1,5 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
+#include <Geode/modify/CreateParticlePopup.hpp>
 #include <Geode/modify/CCKeyboardDispatcher.hpp>
 #include "multi-edit/MultiEditManager.hpp"
 #include "multi-edit/Trigger.hpp"
@@ -6,9 +7,95 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+void runOpacity(CCNode* node, bool isHidden) {
+    if (!node) return;
+
+    auto protocol = typeinfo_cast<CCRGBAProtocol*>(node);
+    if (!protocol) return;
+
+    GLubyte opacity = 255;
+
+    if (!node->getUserObject("opacity"_spr)) {
+        node->setUserObject("opacity"_spr, CCInteger::create(protocol->getOpacity()));
+    }
+
+    if (isHidden) {
+        opacity = 0;
+    } else {
+        if (auto opacityObj = typeinfo_cast<CCInteger*>(node->getUserObject("opacity"_spr))) {
+            opacity = opacityObj->getValue();
+        }
+    }
+
+    if (opacity == protocol->getOpacity()) return;
+    node->runAction(CCFadeTo::create(0.15, opacity));
+}
+
+void recursiveOpacity(CCNode* node, bool isHidden, CCArray* nodesToIgnore) {
+    if (!node) return;
+    if (nodesToIgnore->containsObject(node)) return;
+
+    bool shouldRecurse = true;
+
+    if (auto nodeSprite = typeinfo_cast<CCSprite*>(node)) {
+        runOpacity(nodeSprite, isHidden);
+    } else if (auto nodeSlider = typeinfo_cast<Slider*>(node)) {
+        shouldRecurse = false;
+
+        runOpacity(nodeSlider->m_groove, isHidden);
+        runOpacity(nodeSlider->m_sliderBar, isHidden);
+        runOpacity(nodeSlider->getThumb(), isHidden);
+    } else if (auto nodeInput = typeinfo_cast<CCTextInputNode*>(node)) {
+        shouldRecurse = false;
+
+        runOpacity(nodeInput->m_placeholderLabel, isHidden);
+    } else if (auto nodeBG = typeinfo_cast<CCScale9Sprite*>(node)) {
+        shouldRecurse = false;
+
+        runOpacity(nodeBG, isHidden);
+
+        for (auto child : CCArrayExt<CCNode>(node->getChildren())) {
+            if (child == nodeBG->_scale9Image) continue;
+            recursiveOpacity(child, isHidden, nodesToIgnore);
+        }
+    } else if (auto nodePPL = typeinfo_cast<ParticlePreviewLayer*>(node)) {
+        shouldRecurse = false;
+
+        runOpacity(nodePPL, isHidden);
+        nodePPL->m_particleSystem->setVisible(!isHidden);
+    } else {
+        if (!shouldRecurse) {
+            runOpacity(node, isHidden);
+        }
+    }
+
+    if (shouldRecurse && node->getChildrenCount() > 0) {
+        for (auto child : CCArrayExt<CCNode>(node->getChildren())) {
+            recursiveOpacity(child, isHidden, nodesToIgnore);
+        }
+    }
+}
+
+void hideOrShowUI(bool isHidden, FLAlertLayer* popup, Slider* slider) {
+    GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
+    int property = MultiEditManager::getProperty(slider).unwrapOr(-99);
+
+    CCArray* nodesToIgnore = CCArray::create();
+
+    if (auto node = mem->getSlider(property)) nodesToIgnore->addObject(node);
+    if (auto node = mem->getInput(property)) nodesToIgnore->addObject(node);
+    if (auto node = mem->getInputLabel(property)) nodesToIgnore->addObject(node);
+    if (auto node = mem->getInputBG(property)) nodesToIgnore->addObject(node);
+    nodesToIgnore->addObject(popup->m_mainLayer->getChildByType<CCScale9Sprite*>(0));
+
+    recursiveOpacity(popup, isHidden, nodesToIgnore);
+
+    runOpacity(popup, isHidden);
+    runOpacity(popup->m_mainLayer->getChildByType<CCScale9Sprite*>(0), isHidden);
+}
+
 class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
-        MultiEditManager* multiEditManager;
         bool isHideMode = false;
         Slider* currentSlider = nullptr;
     };
@@ -19,7 +106,6 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         if (!Trigger::isTriggerPopup(this)) return true;
 
         GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
-        m_fields->multiEditManager = mem;
 
         auto hideBtn = MultiEditManager::createSideMenuButton("hide-btn.png"_spr, this, menu_selector(HUISetupTriggerPopup::toggleHideMode));
         hideBtn->setID("hide-btn"_spr);
@@ -29,6 +115,10 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         }
 
         mem->addSideMenuButton(hideBtn);
+
+        // TODO: ONLY SHOW HIDE UI BTN WHEN THERE ARE SLIDERS IN MEM
+
+        hideOrShowUI(false, this, nullptr);
 
         return true;
     }
@@ -41,91 +131,84 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     void sliderBegan(Slider* slider) {
         m_fields->currentSlider = slider;
         if (!m_fields->isHideMode) return;
-        hideOrShowUI(true);
+
+        hideOrShowUI(true, this, slider);
     }
 
     $override
     void sliderEnded(Slider* slider) {
         m_fields->currentSlider = nullptr;
         if (!m_fields->isHideMode) return;
-        hideOrShowUI(false);
+
+        hideOrShowUI(false, this, slider);
+    }
+};
+
+class $modify(HUICreateParticlePopup, CreateParticlePopup) {
+    struct Fields {
+        bool isHideMode = false;
+        bool isHidden = false;
+        Slider* currentSlider = nullptr;
+    };
+
+    $override
+    bool init(ParticleGameObject* obj, CCArray* objs, gd::string str) {
+        if (!CreateParticlePopup::init(obj, objs, str)) return false;
+
+        GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
+
+        auto hideBtn = MultiEditManager::createSideMenuButton("hide-btn.png"_spr, this, menu_selector(HUICreateParticlePopup::toggleHideMode));
+        hideBtn->setID("hide-btn"_spr);
+
+        mem->addSideMenuButton(hideBtn);
+
+        return true;
     }
 
-    void hideOrShowUI(bool isHidden) {
-        Slider* slider = m_fields->currentSlider;
-        int sliderProperty = MultiEditManager::getProperty(slider).unwrapOr(-99);
-    
-        auto& inputBGs = m_fields->multiEditManager->getInputBGs();
-        auto& inputLabels = m_fields->multiEditManager->getInputLabels();
-        
-        auto runOpacity = [isHidden](CCNode* node, GLubyte defaultOpacity = 255) {
-            node->runAction(CCFadeTo::create(0.15, isHidden ? 0 : defaultOpacity));
-        };
+    void updateParticles() {
+        if (m_targetObject) {
+            gd::string str = GameToolbox::saveParticleToString(m_particle);
+            m_targetObject->setParticleString(str);
+            m_targetObject->updateParticle();
 
-        runOpacity(this, 150);
-
-        CCArray* nodes = CCArray::create();
-
-        nodes->addObjectsFromArray(this->getChildren());
-        nodes->addObjectsFromArray(m_mainLayer->getChildren());
-        nodes->addObjectsFromArray(m_buttonMenu->getChildren());
-        nodes->addObjectsFromArray(m_fields->multiEditManager->getSideMenuButtons());
-        
-        nodes->removeObject(m_mainLayer);
-        nodes->removeObject(m_buttonMenu);
-        if (inputBGs.contains(sliderProperty)) nodes->removeObject(inputBGs[sliderProperty]);
-        if (inputLabels.contains(sliderProperty)) nodes->removeObject(inputLabels[sliderProperty]);
-
-        // using a traditional for loop so we can iterate over the array while modifying it
-
-        for (size_t i = 0; i < nodes->count(); i++) {
-            CCNode* node = typeinfo_cast<CCNode*>(nodes->objectAtIndex(i));
-            if (!node) continue;
-
-            if (GEODE_UNWRAP_EITHER(property, err, MultiEditManager::getProperty(node))) {
-                if (property == sliderProperty) continue;
-            } else {
-                if (node->getTag() == sliderProperty) continue;
-            }
-
-            // im sorry this is a total mess
-
-            if (auto nodeSlider = typeinfo_cast<Slider*>(node)) {
-                if (nodeSlider->getThumb()->getPositionX() != 9999) {
-                    runOpacity(nodeSlider->m_groove);
-                    runOpacity(nodeSlider->m_sliderBar);
-                    runOpacity(nodeSlider->getThumb());
-                } else {
-                    runOpacity(nodeSlider->m_groove, 100);
-                }
-            } else if (auto nodeInput = typeinfo_cast<CCTextInputNode*>(node)) {
-                runOpacity(nodeInput->m_placeholderLabel);
-            } else if (auto nodeBG = typeinfo_cast<CCScale9Sprite*>(node); nodeBG && nodeBG->getTag() != 1) {
-                runOpacity(nodeBG, 100);
-            } else if (auto nodeBtn = typeinfo_cast<CCMenuItemSpriteExtra*>(node)) {
-                auto spr = nodeBtn->getNormalImage();
-
-                if (nodeBtn == m_easingRateButton) {
-                    runOpacity(spr, 100);
-                    runOpacity(spr->getChildByType<CCLabelBMFont>(0));
-                } else if (auto btnSpr = typeinfo_cast<ButtonSprite*>(spr)) {
-                    if (auto spr = btnSpr->m_label) runOpacity(spr);
-                    if (auto spr = btnSpr->m_BGSprite) runOpacity(spr);
-                    if (auto spr = btnSpr->m_subSprite) runOpacity(spr);
-                    if (auto spr = btnSpr->m_subBGSprite) runOpacity(spr);
-                } else if (auto subSpr = spr->getChildByType<CCSprite>(0)) {
-                    runOpacity(spr);
-                    runOpacity(subSpr);
-                } else {
-                    runOpacity(spr);
-                }
-            } else if (auto nodeToggler = typeinfo_cast<CCMenuItemToggler*>(node)) {
-                nodes->addObject(nodeToggler->m_onButton);
-                nodes->addObject(nodeToggler->m_offButton);
-            } else {
-                runOpacity(node);
-            }
+            return;
         }
+
+        for (auto targetObject : CCArrayExt<ParticleGameObject>(m_targetObjects)) {
+            gd::string str = GameToolbox::saveParticleToString(m_particle);
+            targetObject->setParticleString(str);
+            targetObject->updateParticle();
+        }
+    }
+
+    void toggleHideMode(CCObject* sender) {
+        m_fields->isHideMode = !m_fields->isHideMode;
+    }
+
+    $override
+    void sliderBegan(Slider* slider) {
+        m_fields->currentSlider = slider;
+        if (!m_fields->isHideMode) return;
+
+        hideOrShowUI(true, this, slider);
+        m_fields->isHidden = true;
+        updateParticles();
+    }
+
+    $override
+    void sliderEnded(Slider* slider) {
+        m_fields->currentSlider = nullptr;
+        if (!m_fields->isHideMode) return;
+
+        hideOrShowUI(false, this, slider);
+        m_fields->isHidden = false;
+    }
+
+    $override
+    void updateParticleValueForType(float p0, gjParticleValue p1, CCParticleSystemQuad* p2) {
+        CreateParticlePopup::updateParticleValueForType(p0, p1, p2);
+
+        if (m_fields->isHidden) updateParticles();
     }
 };
 
@@ -135,11 +218,14 @@ class $modify(CCKeyboardDispatcher) {
         if (key != KEY_LeftShift && key != KEY_RightShift) return true;
         if (isKeyRepeat) return true;
 
-        auto popup = Trigger::getTriggerPopup();
-        if (!popup) return true;
-        if (!Trigger::isTriggerPopup(popup)) return true;
+        if (auto popup = Trigger::getTriggerPopup()) {
+            hideOrShowUI(isKeyDown, popup, static_cast<HUISetupTriggerPopup*>(popup)->m_fields->currentSlider);
+        } else if (auto popup = Trigger::getParticlePopup()) {
+            hideOrShowUI(isKeyDown, popup, static_cast<HUICreateParticlePopup*>(popup)->m_fields->currentSlider);
 
-        static_cast<HUISetupTriggerPopup*>(popup)->hideOrShowUI(isKeyDown);
+            static_cast<HUICreateParticlePopup*>(popup)->m_fields->isHidden = isKeyDown;
+            if (isKeyDown) static_cast<HUICreateParticlePopup*>(popup)->updateParticles();
+        }
 
         return true;
     }
