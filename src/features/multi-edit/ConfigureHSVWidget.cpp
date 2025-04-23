@@ -97,7 +97,6 @@ class $modify(HSVWidgetPopup) {
         // layer above widget
         m_buttonMenu->setZOrder(2);
 
-        mem->setupSideMenu();
         mem->setupMixed();
 
         return true;

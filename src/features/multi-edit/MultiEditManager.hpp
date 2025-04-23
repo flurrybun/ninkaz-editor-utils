@@ -9,7 +9,7 @@ private:
     static MultiEditManager* s_instance;
 
     FLAlertLayer* m_popup;
-    CCMenu* m_sideMenu;
+    std::vector<CCMenuItem*> m_sideButtons;
     CCArrayExt<GameObject*> m_gameObjects;
     Ref<Notification> m_mixedNotification;
     bool m_isMixedEnabled = false;
@@ -36,9 +36,7 @@ private:
 
 public:
 
-    void setupSideMenu();
     void addSideMenuButton(CCMenuItem* button);
-    CCArray* getSideMenuButtons() { return m_sideMenu->getChildren(); }
 
     void addInput(CCTextInputNode* input, int property);
     void addSlider(Slider* slider, int property);

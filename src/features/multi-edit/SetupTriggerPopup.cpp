@@ -36,7 +36,6 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
             textChanged(m_fields->multiEditManager->getInputs()[property]);
         });
 
-        mem->setupSideMenu();
 
         return true;
     }
@@ -410,7 +409,6 @@ class $modify(CollisionBlockPopup) {
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 80);
 
-        mem->setupSideMenu();
         mem->setupMixed();
 
         return true;

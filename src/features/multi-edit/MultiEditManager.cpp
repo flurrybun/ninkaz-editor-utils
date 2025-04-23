@@ -40,38 +40,26 @@ CCMenuItemSpriteExtra* MultiEditManager::createMixedButton(int property) {
     return btn;
 }
 
-void MultiEditManager::setupSideMenu() {
+void MultiEditManager::addSideMenuButton(CCMenuItem* button) {
+    // would it be easier to just add the button to a menu with an axis layout? absolutely.
+    // is this what i originally did? of course.
+    // however, you see, after several hours i just could not get touch priority to work properly
+    // using handleTouchPriority(m_popup) breaks pulse and particle triggers
+    // so whatever i'll just do it this way
+
     CCSize winSize = CCDirector::sharedDirector()->getWinSize();
     CCSize popupSize = m_popup->m_mainLayer->getChildByType<CCScale9Sprite>(0)->getContentSize();
 
-    auto menu = CCMenu::create();
-    menu->setID("trigger-menu"_spr);
-    menu->setAnchorPoint({0, 0});
-    menu->setPosition(winSize / 2 + ccp(popupSize.width / 2, -popupSize.height / 2) + ccp(5, 0));
-    menu->setLayout(ColumnLayout::create()
-        ->setAxisAlignment(AxisAlignment::Start)
-        ->setGap(5)
+    button->setPosition(
+        winSize / 2
+        + ccp(popupSize.width / 2, -popupSize.height / 2)
+        + button->getContentSize() / 2
+        + ccp(5, 35 * m_sideButtons.size())
+        - m_popup->m_buttonMenu->getPosition()
     );
-    menu->getLayout()->ignoreInvisibleChildren(true);
-    menu->setZOrder(1000);
-    m_sideMenu = menu;
 
-    bool showMultiEdit = m_gameObjects.size() > 1;
-
-    auto multiEditBtn = createSideMenuButton("multi-edit-btn.png"_spr, this, menu_selector(MultiEditManager::onToggleMixed));
-    multiEditBtn->setID("multi-edit-btn"_spr);
-    multiEditBtn->setVisible(showMultiEdit);
-
-    menu->addChild(multiEditBtn);
-    menu->updateLayout();
-
-    m_popup->m_mainLayer->addChild(menu);
-    handleTouchPriority(m_popup);
-}
-
-void MultiEditManager::addSideMenuButton(CCMenuItem* button) {
-    m_sideMenu->addChild(button);
-    m_sideMenu->updateLayout();
+    m_sideButtons.push_back(button);
+    m_popup->m_buttonMenu->addChild(button);
 }
 
 void MultiEditManager::addInput(CCTextInputNode* input, int property) {
@@ -134,6 +122,11 @@ void MultiEditManager::setupMixed() {
     m_hasSetupMixed = true;
 
     if (m_gameObjects.size() <= 1) return;
+
+    auto multiEditBtn = createSideMenuButton("multi-edit-btn.png"_spr, this, menu_selector(MultiEditManager::onToggleMixed));
+    multiEditBtn->setID("multi-edit-btn"_spr);
+
+    addSideMenuButton(multiEditBtn);
 
     for (auto const& [property, input] : m_inputs) {
         bool isMixed = false;

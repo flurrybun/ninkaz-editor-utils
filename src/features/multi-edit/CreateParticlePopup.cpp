@@ -78,7 +78,6 @@ class $modify(MECreateParticlePopup, CreateParticlePopup) {
             updateSliderForType(static_cast<gjParticleValue>(property));
         });
 
-        mem->setupSideMenu();
         mem->setupMixed();
 
         return true;
