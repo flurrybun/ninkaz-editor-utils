@@ -35,9 +35,15 @@ def get_paragraph_colors(hex1: str, hex2: str, steps: int) -> list:
 
     for i in range(steps):
         ratio = (i + 1) / (steps + 1)
-        hue = hsv1[0] + (hsv2[0] - hsv1[0]) * ratio
-        # sat = hsv1[1] + (hsv2[1] - hsv1[1]) * ratio
-        # val = hsv1[2] + (hsv2[2] - hsv1[2]) * ratio
+
+        hue_diff = hsv2[0] - hsv1[0]
+        if abs(hue_diff) > 0.5:
+            if hue_diff > 0: hue_diff -= 1
+            else: hue_diff += 1
+
+        hue = hsv1[0] + hue_diff * ratio
+        hue %= 1
+
         sat = 0.3
         val = 1
         colors.append(hsv_to_hex((hue, sat, val)))
