@@ -296,7 +296,7 @@ short Trigger::getPropertyDecimalPlaces(GameObject* object, short property) {
         292, 293, 298, 299, 361, 362, 300, 301, 334, 335, 558, 559, 359, 360, 561, 562, 357, 358,
         316, 317, 318, 319, 322, 323, 320, 321, 324, 325, 326, 327, 330, 331, 332, 333, 566, 567,
         568, 569, 300, 301, 557, 288, 243, 249, 263, 264, 282, 467, 473, 470, 437, 438, 554, 555,
-        213, 454};
+        213, 454, 406, 434, 421, 422, 423, 598};
 
     if (std::find(std::begin(fourDecimalPlaces), std::end(fourDecimalPlaces), property)
         != std::end(fourDecimalPlaces)) return 4;
