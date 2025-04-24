@@ -131,6 +131,17 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
         return;
     }
 
+    if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
+        // these properties aren't supported by SetupTriggerPopup::updateValue
+        if (property == 72) {
+            trigger->m_followXMod = newValue;
+            return;
+        } else if (property == 73) {
+            trigger->m_followYMod = newValue;
+            return;
+        }
+    }
+
     auto popup = getTriggerPopup();
 
     // move trigger x/y is stored so 1 block is 30, but in the trigger menu it's 10
