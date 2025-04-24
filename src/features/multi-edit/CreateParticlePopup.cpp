@@ -7,12 +7,9 @@ using namespace geode::prelude;
 CCScale9Sprite* getBGForInput(CCTextInputNode* input) {
     if (!input || !input->getParent()) return nullptr;
 
-    auto parent = input->getParent();
-    CCPoint bgPosition = input->getPosition();
-
-    for (auto child : CCArrayExt<CCNode*>(parent->getChildren())) {
+    for (auto child : CCArrayExt<CCNode*>(input->getParent()->getChildren())) {
         if (auto bg = typeinfo_cast<CCScale9Sprite*>(child)) {
-            if (bg->getPosition() == bgPosition) return bg;
+            if (bg->getPosition() == input->getPosition()) return bg;
         }
     }
 
@@ -22,12 +19,12 @@ CCScale9Sprite* getBGForInput(CCTextInputNode* input) {
 CCLabelBMFont* getLabelForInput(CCTextInputNode* input) {
     if (!input || !input->getParent()) return nullptr;
 
-    auto parent = input->getParent();
-    CCPoint bgPosition = input->getPosition() - ccp(20, 0); // todo: find exact position
-
-    for (auto child : CCArrayExt<CCNode*>(parent->getChildren())) {
+    for (auto child : CCArrayExt<CCNode*>(input->getParent()->getChildren())) {
         if (auto bg = typeinfo_cast<CCLabelBMFont*>(child)) {
-            if (bg->getPosition() == bgPosition) return bg;
+            if (bg->getPositionY() != input->getPositionY()) continue;
+
+            if (bg->getPositionX() == input->getPositionX() - 30.2f) return bg;
+            if (bg->getPositionX() == input->getPositionX() - 32.2f) return bg;
         }
     }
 
@@ -53,13 +50,8 @@ class $modify(MECreateParticlePopup, CreateParticlePopup) {
                 input->setMaxLabelWidth(40);
                 mem->addInput(input, key);
 
-                if (auto bg = getBGForInput(input)) {
-                    mem->addInputBG(bg, key);
-                }
-
-                if (auto label = getLabelForInput(input)) {
-                    mem->addInputLabel(label, key);
-                }
+                if (auto bg = getBGForInput(input)) mem->addInputBG(bg, key);
+                if (auto label = getLabelForInput(input)) mem->addInputLabel(label, key);
             }
         }
 
