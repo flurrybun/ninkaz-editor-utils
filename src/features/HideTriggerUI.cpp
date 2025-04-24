@@ -115,10 +115,10 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         }
 
         Loader::get()->queueInMainThread([mem, hideBtn]() {
-            mem->addSideMenuButton(hideBtn);
+            if (mem->getSliders().size() > 0) {
+                mem->addSideMenuButton(hideBtn);
+            }
         });
-
-        // TODO: ONLY SHOW HIDE UI BTN WHEN THERE ARE SLIDERS IN MEM
 
         hideOrShowUI(false, this, nullptr);
 
