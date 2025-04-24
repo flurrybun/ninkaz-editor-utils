@@ -12,10 +12,18 @@ If multiple **different types of triggers** are selected, common properties like
 
 Located in the delete menu. Filter objects not only by group and color, but also **scale, HSV, Z order, and Z layer**.
 
+### Advanced Paste State
+
+Pasting state now opens a menu that allows you to **change which properties are pasted**. You can also paste additional properties such as **object id, position, rotation, and scale**.
+
 ### Distribute Groups
 
 Located in the editor pause menu. Evenly distribute a **set of groups** between the selected objects.
 
+### Multi-Edit HSV
+
+The same multi-edit system for triggers also works for **HSV adjustments**. Mixed state is also handled much better, so for instance, if two objects have **different hues**, you can still change their brightnesses **at once**.
+
 ### Hide Trigger UI
 
-While in a trigger popup, hold **shift** to hide the trigger UI, or enable the **Hide UI** button and move a slider.
+While in a trigger popup, **hold shift** to hide the trigger UI. For mobile users, enable the **Hide UI** button and move a slider to hide everything except that slider.
