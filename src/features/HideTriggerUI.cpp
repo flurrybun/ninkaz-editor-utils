@@ -114,7 +114,9 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
             hideBtn->toggleWithCallback(true);
         }
 
-        mem->addSideMenuButton(hideBtn);
+        Loader::get()->queueInMainThread([mem, hideBtn]() {
+            mem->addSideMenuButton(hideBtn);
+        });
 
         // TODO: ONLY SHOW HIDE UI BTN WHEN THERE ARE SLIDERS IN MEM
 
@@ -160,7 +162,9 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         auto hideBtn = MultiEditManager::createSideMenuButton("hide-btn.png"_spr, this, menu_selector(HUICreateParticlePopup::toggleHideMode));
         hideBtn->setID("hide-btn"_spr);
 
-        mem->addSideMenuButton(hideBtn);
+        Loader::get()->queueInMainThread([mem, hideBtn]() {
+            mem->addSideMenuButton(hideBtn);
+        });
 
         return true;
     }
