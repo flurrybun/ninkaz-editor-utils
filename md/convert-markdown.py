@@ -53,8 +53,8 @@ def get_paragraph_colors(hex1: str, hex2: str, steps: int) -> list:
 def convert_markdown(filename: str):
     header_color = initial_color
 
-    old_file = open(f'{os.path.dirname(__file__)}\\{filename}', 'r')
-    new_file = open(f'{os.path.dirname(__file__)}\\..\\{filename}', 'w')
+    old_file = open(f'{os.path.dirname(__file__)}{os.sep}{filename}', 'r')
+    new_file = open(f'{os.path.dirname(__file__)}{os.sep}..{os.sep}{filename}', 'w')
 
     lines = old_file.readlines()
 
