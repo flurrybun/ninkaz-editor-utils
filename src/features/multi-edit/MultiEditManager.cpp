@@ -387,9 +387,32 @@ class $modify(CCTextInputNode) {
     }
 };
 
-/* right click on input to enter mixed input mode (windows only) */
+/* right click on input to enter mixed input mode (windows/macos only) */
 
-#ifdef GEODE_IS_WINDOWS
+void onRightClick() {
+    GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
+
+    CCPoint mousePosition = getMousePos();
+    auto& inputNodes = mem->getInputs();
+
+    for (auto const& [key, input] : inputNodes) {
+        if (!input->isVisible()) continue;
+
+        auto parent = input->getParent();
+        if (parent && !parent->isVisible()) continue;
+
+        CCPoint inputPosition = input->m_textField->convertToWorldSpace({0, 0});
+        CCSize inputSize = input->m_textField->getContentSize();
+        CCRect inputRect = CCRect(inputPosition, inputSize);
+
+        if (inputRect.containsPoint(mousePosition)) {
+            mem->onMixed(input);
+            return;
+        }
+    }
+}
+
+#if defined(GEODE_IS_WINDOWS)
 #include <Geode/modify/CCEGLView.hpp>
 
 class $modify(CCEGLViewTrigger, CCEGLView) {
@@ -399,26 +422,22 @@ class $modify(CCEGLViewTrigger, CCEGLView) {
         if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
         if (action != GLFW_RELEASE) return;
 
-        GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
-
-        CCPoint mousePosition = getMousePos();
-        auto& inputNodes = mem->getInputs();
-
-        for (auto const& [key, input] : inputNodes) {
-            if (!input->isVisible()) continue;
-
-            auto parent = input->getParent();
-            if (parent && !parent->isVisible()) continue;
-
-            CCPoint inputPosition = input->m_textField->convertToWorldSpace({0, 0});
-            CCSize inputSize = input->m_textField->getContentSize();
-            CCRect inputRect = CCRect(inputPosition, inputSize);
-
-            if (inputRect.containsPoint(mousePosition)) {
-                mem->onMixed(input);
-                return;
-            }
-        }
+        onRightClick();
     }
 };
+#elif defined(GEODE_IS_MACOS)
+#include <objc/message.h>
+
+void rightMouseUpHook(void* self, SEL sel, void* event) {
+    queueInMainThread([] {
+        onRightClick();
+    });
+    reinterpret_cast<void(*)(void*, SEL, void*)>(objc_msgSend)(self, sel, event);
+}
+
+$execute {
+    if (auto hook = ObjcHook::create("EAGLView", "rightMouseUp:", &rightMouseUpHook)) {
+		(void)Mod::get()->claimHook(hook.unwrap());
+    }
+}
 #endif
