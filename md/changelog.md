@@ -1,3 +1,10 @@
+### 1.3.1 (5/1/2025)
+
+- Added **iOS Support**
+- Added MacOS support for **right clicking on inputs** to open multi-edit mode
+- Fixed crash when **opening Advanced Paste State menu** (!!!!)
+- Fixed crash with multi-edit mode when there are **no valid objects**
+
 ### 1.3.0 (4/24/2025)
 
 - Added **Advanced Paste State**
@@ -11,7 +18,7 @@ Additionally, multi-edit mode and hide UI were rewritten from scratch. You won't
 
 ### 1.2.1 (2/16/2025)
 
-- Added ability to **right click on a trigger input** to enter multi-edit mode (Windows only)
+- Added ability to **right click on an input** to enter multi-edit mode (Windows only)
 - Added **next free button** to target & center group controls
 - Fixed crashes caused by entering an **invalid string** into a number input
 
