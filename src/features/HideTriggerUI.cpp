@@ -1,6 +1,5 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/CreateParticlePopup.hpp>
-#include <Geode/modify/CCKeyboardDispatcher.hpp>
 #include "multi-edit/MultiEditManager.hpp"
 #include "multi-edit/Trigger.hpp"
 
@@ -216,6 +215,9 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
     }
 };
 
+#ifdef GEODE_IS_DESKTOP
+#include <Geode/modify/CCKeyboardDispatcher.hpp>
+
 class $modify(CCKeyboardDispatcher) {
     bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat) {
         if (!CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat)) return false;
@@ -234,3 +236,5 @@ class $modify(CCKeyboardDispatcher) {
         return true;
     }
 };
+
+#endif // GEODE_IS_DESKTOP
