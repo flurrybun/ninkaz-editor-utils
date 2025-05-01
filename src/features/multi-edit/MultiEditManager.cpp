@@ -387,7 +387,7 @@ class $modify(CCTextInputNode) {
     }
 };
 
-/* right click on input to enter mixed input mode (windows/macos only) */
+/* right click on input to enter mixed input mode */
 
 void onRightClick() {
     GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
@@ -436,8 +436,8 @@ void rightMouseUpHook(void* self, SEL sel, void* event) {
 }
 
 $execute {
-    if (auto hook = ObjcHook::create("EAGLView", "rightMouseUp:", &rightMouseUpHook)) {
-		(void)Mod::get()->claimHook(hook.unwrap());
+    if (auto hook = ObjcHook::create("EAGLView", "rightMouseUp:", &rightMouseUpHook, tulip::hook::HookMetadata())) {
+        (void)Mod::get()->claimHook(hook.unwrap());
     }
 }
 #endif
