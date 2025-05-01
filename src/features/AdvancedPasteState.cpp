@@ -206,7 +206,7 @@ void PasteStatePopup::onPreset(CCObject* sender) {
         if (preset == Preset::Default) isOn = i < 5;
         else if (preset == Preset::All) isOn = true;
         else if (preset == Preset::None) isOn = false;
-        else isOn = customProperties[i];
+        else isOn = (i < customProperties.size()) ? customProperties[i] : false;
 
         m_togglers[i]->toggle(isOn);
         m_properties[i] = isOn;
