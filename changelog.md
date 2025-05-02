@@ -1,8 +1,8 @@
 ### <c-8BC81A>1.3.1 (5/1/2025)</c>
 
 - Added <c-E7FFB2>**iOS Support**</c>
-- Added MacOS support for <c-EBFFB2>**right clicking on inputs**</c> to open multi-edit mode
-- Fixed crash when <c-EFFFB2>**opening Advanced Paste State menu**</c> (!!!!)
+- Added MacOS support for <c-EBFFB2>**right clicking on inputs**</c> to open multi-edit mode <c-9CA0AF>(thank you [hiimjasmine00](user:7466002)!)</c>
+- Fixed crash when <c-EFFFB2>**opening Advanced Paste State menu**</c>
 - Fixed crash with multi-edit mode when there are <c-F3FFB2>**no valid objects**</c>
 
 ### <c-B6C81A>1.3.0 (4/24/2025)</c>

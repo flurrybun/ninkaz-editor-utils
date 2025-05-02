@@ -1,8 +1,8 @@
 ### 1.3.1 (5/1/2025)
 
 - Added **iOS Support**
-- Added MacOS support for **right clicking on inputs** to open multi-edit mode
-- Fixed crash when **opening Advanced Paste State menu** (!!!!)
+- Added MacOS support for **right clicking on inputs** to open multi-edit mode <c-9CA0AF>(thank you [hiimjasmine00](user:7466002)!)</c>
+- Fixed crash when **opening Advanced Paste State menu**
 - Fixed crash with multi-edit mode when there are **no valid objects**
 
 ### 1.3.0 (4/24/2025)
