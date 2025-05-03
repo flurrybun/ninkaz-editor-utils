@@ -44,6 +44,9 @@ bool PasteStatePopup::setup() {
     setTitle("Paste State");
     m_closeBtn->removeFromParent();
 
+    addQuickPasteButton();
+    EditorUI::get()->m_pasteStateBtn->setVisible(false);
+
     // TOGGLERS PANEL
 
     auto togglerBG = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
@@ -140,6 +143,33 @@ bool PasteStatePopup::setup() {
     return true;
 }
 
+void PasteStatePopup::onClose(CCObject* sender) {
+    EditorUI::get()->m_pasteStateBtn->setVisible(true);
+    Popup::onClose(sender);
+}
+
+void PasteStatePopup::addQuickPasteButton() {
+    auto pasteStateBtn = EditorUI::get()->m_pasteStateBtn;
+
+    auto quickPasteSpr = CCSprite::createWithSpriteFrameName("paste-default-btn.png"_spr);
+    auto quickPasteBtn = CCMenuItemSpriteExtra::create(
+        quickPasteSpr, this, menu_selector(PasteStatePopup::onQuickPaste)
+    );
+
+    m_buttonMenu->addChild(quickPasteBtn);
+
+    float worldScale = pasteStateBtn->getScale()
+        * pasteStateBtn->getParent()->getScale()
+        * EditorUI::get()->getScale()
+        * LevelEditorLayer::get()->getScale();
+
+    CCPoint worldPosition = pasteStateBtn->convertToWorldSpace(pasteStateBtn->getNormalImage()->getPosition());
+    CCPoint quickPasteWorldPosition = m_buttonMenu->convertToWorldSpace(quickPasteBtn->getPosition());
+
+    quickPasteSpr->setScale(worldScale);
+    quickPasteBtn->setPosition(worldPosition - quickPasteWorldPosition);
+}
+
 CCMenu* PasteStatePopup::createToggler(const char* name, Property property) {
     auto menu = CCMenu::create();
     menu->setContentWidth(270);
@@ -166,7 +196,7 @@ CCMenu* PasteStatePopup::createToggler(const char* name, Property property) {
 
         const char* infoStr = property == ObjectID ? objectIDInfo : extraInfo;
 
-        auto infoBtn = InfoAlertButton::create("Info", infoStr, 0.75);
+        auto infoBtn = InfoAlertButton::create("Help", infoStr, 0.75);
         menu->addChild(infoBtn);
     }
 
@@ -230,6 +260,11 @@ void PasteStatePopup::setHighlightedPreset(Preset preset) {
 
 void PasteStatePopup::onCancel(CCObject* sender) {
     onClose(sender);
+}
+
+void PasteStatePopup::onQuickPaste(CCObject* sender) {
+    onPreset(m_presetButtons[Preset::Default]);
+    onPaste(sender);
 }
 
 void PasteStatePopup::onPaste(CCObject* sender) {

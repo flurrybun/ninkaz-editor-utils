@@ -22,13 +22,16 @@ protected:
     std::array<CCMenuItemSpriteExtra*, 4> m_presetButtons;
 
     bool setup() override;
+    void onClose(CCObject* sender) override;
 
+    void addQuickPasteButton();
     CCMenu* createToggler(const char* name, Property property);
     
     void onToggler(CCObject* sender);
     void onPreset(CCObject* sender);
     void setHighlightedPreset(Preset preset);
     void onCancel(CCObject* sender);
+    void onQuickPaste(CCObject* sender);
     void onPaste(CCObject* sender);
     void pasteObjectState(GameObject* src, GameObject* dest);
     void replaceObjectIDs(CCArrayExt<GameObject*>& objects, int newID);
