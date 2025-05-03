@@ -567,10 +567,9 @@ void MixedInputPopup::onApply(CCObject* sender) {
     }
 
     if (m_callback) {
-        if (newProperties.size() > 1 && 
-            std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
+        if (newProperties.size() > 1 && std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
             m_callback(newProperties.front());
-        } else if (!newProperties.empty()) {
+        } else if (newProperties.size() == 1) {
             m_callback(newProperties.front());
         } else {
             m_callback(std::nullopt);
