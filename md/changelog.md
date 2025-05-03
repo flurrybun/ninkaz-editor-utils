@@ -1,7 +1,14 @@
+### 1.3.2 (5/3/2025)
+
+- Added **button to quickly paste default state** in the Advanced Paste State menu
+- Added setting to **disable Advanced Paste State**
+- Fixed multi-edit mode being **completely broken** <c-9CA0AF>(my bad yall)</c>
+- Fixed **guides not appearing** when using a slider in particle triggers
+
 ### 1.3.1 (5/1/2025)
 
-- Added **iOS Support**
-- Added MacOS support for **right clicking on inputs** to open multi-edit mode <c-9CA0AF>(thank you [hiimjasmine00](user:7466002)!)</c>
+- Added **iOS support**
+- Added Mac support for **right clicking on inputs** to open multi-edit mode <c-9CA0AF>(thank you [hiimjasmine00](user:7466002)!)</c>
 - Fixed crash when **opening Advanced Paste State menu**
 - Fixed crash with multi-edit mode when there are **no valid objects**
 
