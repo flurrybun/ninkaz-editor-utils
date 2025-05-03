@@ -25,6 +25,10 @@ class $modify(APSLevelEditorLayer, LevelEditorLayer) {
 class $modify(APSEditorUI, EditorUI) {
     $override
     void onPasteState(CCObject* sender) {
+        if (!Mod::get()->getSettingValue<bool>("enable-aps")) {
+            return EditorUI::onPasteState(sender);
+        }
+
         auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
         if (btn->getOpacity() != 255) return;
 

@@ -25,5 +25,13 @@
                 "resources/delete-filter/*.png"
             ]
         }
+    },
+    "settings": {
+        "enable-aps": {
+            "type": "bool",
+            "name": "Enable Advanced Paste State",
+            "description": "Shows a menu to change options when pasting object state. When disabled, the Paste State button works the same as in the vanilla editor.",
+            "default": true
+        }
     }
 }
