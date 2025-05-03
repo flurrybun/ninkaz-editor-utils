@@ -190,6 +190,8 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
 
     $override
     void sliderBegan(Slider* slider) {
+        CreateParticlePopup::sliderBegan(slider);
+
         m_fields->currentSlider = slider;
         if (!m_fields->isHideMode) return;
 
@@ -200,6 +202,8 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
 
     $override
     void sliderEnded(Slider* slider) {
+        CreateParticlePopup::sliderEnded(slider);
+
         m_fields->currentSlider = nullptr;
         if (!m_fields->isHideMode) return;
 
