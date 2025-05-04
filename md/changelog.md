@@ -1,6 +1,11 @@
+### 1.3.3 (5/4/2025)
+
+- Fixed Android crash when **using a slider in particle triggers** <c-9CA0AF>(thank you again [hiimjasmine00](user:7466002)!)</c>
+- Fixed overlapping inputs causing **multiple multi-edit popups** to appear
+
 ### 1.3.2 (5/3/2025)
 
-- Added **button to quickly paste default state** in the Advanced Paste State menu
+- Added button to **quickly paste default state** in the Advanced Paste State menu
 - Added setting to **disable Advanced Paste State**
 - Fixed multi-edit mode being **completely broken** <c-9CA0AF>(my bad yall)</c>
 - Fixed **guides not appearing** when using a slider in particle triggers
