@@ -228,6 +228,8 @@ void MultiEditManager::onMixed(CCObject* sender) {
         return;
     }
 
+    if (CCScene::get()->getChildByType<MixedInputPopup>(0)) return;
+
     GEODE_UNWRAP_OR_ELSE(property, err, getProperty(static_cast<CCNode*>(sender))) return;
 
     auto callback = [sender, property, this](std::optional<float> value) {
