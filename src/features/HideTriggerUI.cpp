@@ -146,15 +146,49 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
 };
 
 class $modify(HUICreateParticlePopup, CreateParticlePopup) {
+    #ifdef GEODE_IS_ANDROID
+    struct Fields : SliderDelegate {
+        bool isHideMode = false;
+        bool isHidden = false;
+        Slider* currentSlider = nullptr;
+        HUICreateParticlePopup* popup = nullptr;
+
+        void sliderBegan(Slider* slider) override {
+            popup->CreateParticlePopup::sliderBegan(slider);
+
+            currentSlider = slider;
+            if (!isHideMode) return;
+
+            hideOrShowUI(true, popup, slider);
+            isHidden = true;
+            popup->updateParticles();
+        }
+
+        void sliderEnded(Slider* slider) override {
+            popup->CreateParticlePopup::sliderEnded(slider);
+
+            currentSlider = nullptr;
+            if (!isHideMode) return;
+
+            hideOrShowUI(false, popup, slider);
+            isHidden = false;
+        }
+    };
+    #else
     struct Fields {
         bool isHideMode = false;
         bool isHidden = false;
         Slider* currentSlider = nullptr;
     };
+    #endif
 
     $override
     bool init(ParticleGameObject* obj, CCArray* objs, gd::string str) {
         if (!CreateParticlePopup::init(obj, objs, str)) return false;
+
+        #ifdef GEODE_IS_ANDROID
+        m_fields->popup = this;
+        #endif
 
         GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
 
@@ -188,6 +222,15 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         m_fields->isHideMode = !m_fields->isHideMode;
     }
 
+    #ifdef GEODE_IS_ANDROID
+    $override
+    void createParticleSlider(gjParticleValue value, int page, bool centerLabel, CCPoint position, CCArray* displayNodes) {
+        CreateParticlePopup::createParticleSlider(value, page, centerLabel, position, displayNodes);
+
+        auto slider = static_cast<Slider*>(static_cast<CCDictionary*>(m_sliderDicts->objectAtIndex(page))->objectForKey(static_cast<int>(value)));
+        if (slider) slider->m_delegate = m_fields.self();
+    }
+    #else
     $override
     void sliderBegan(Slider* slider) {
         CreateParticlePopup::sliderBegan(slider);
@@ -210,6 +253,7 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         hideOrShowUI(false, this, slider);
         m_fields->isHidden = false;
     }
+    #endif
 
     $override
     void updateParticleValueForType(float p0, gjParticleValue p1, CCParticleSystemQuad* p2) {
