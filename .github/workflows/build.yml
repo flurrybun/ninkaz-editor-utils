@@ -41,6 +41,8 @@ jobs:
               with:
                   bindings: geode-sdk/bindings
                   bindings-ref: main
+                  export-pdb: true
+                  export-symbols: true
                   combine: true
                   target: ${{ matrix.config.target }}
 
