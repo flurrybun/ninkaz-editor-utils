@@ -1,5 +1,6 @@
 #include "AdvancedFilter.hpp"
 #include "../misc/StringUtils.hpp"
+#include "../misc/SpriteColor.hpp"
 
 void AFEditorUI::selectObjects(CCArray* objects, bool dontFilter) {
     if (dontFilter) {
@@ -60,31 +61,8 @@ bool AFEditorUI::shouldFilterObject(GameObject* object) {
 
     // filter by color
 
-    GJSpriteColor* baseColor = object->m_baseColor;
-    GJSpriteColor* detailColor = object->m_detailColor;
-
-    // for objects that have a detail color only, that color is stored in m_baseColor, NOT m_detailColor
-    // m_customSpriteColor is only true if an object has a detail color only
-
-    if (object->m_customSpriteColor) {
-        baseColor = nullptr;
-        detailColor = object->m_baseColor;
-    }
-
-    // in 2.2 you can change whether a single color sprite is base or detail, so we account for that here
-
-    if (!object->m_detailColor) {
-        switch (object->m_customColorType) {
-            case 1: // base
-                baseColor = object->m_baseColor;
-                detailColor = nullptr;
-                break;
-            case 2: // detail
-                baseColor = nullptr;
-                detailColor = object->m_baseColor;
-                break;
-        }
-    }
+    GJSpriteColor* baseColor = nk::getBaseSpriteColor(object);
+    GJSpriteColor* detailColor = nk::getDetailSpriteColor(object);
 
     auto checkColor = [](GJSpriteColor* color, int colorID, hsvValue& hsv, bool isBoth) {
         if (!color) {

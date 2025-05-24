@@ -3,6 +3,7 @@
 #include <Geode/modify/CustomizeObjectLayer.hpp>
 #include <Geode/modify/HSVLiveOverlay.hpp>
 #include "MultiEditManager.hpp"
+#include "../../misc/SpriteColor.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -40,7 +41,21 @@ class $modify(HSVWidgetPopup) {
     bool init(ccHSVValue hsv, HSVWidgetDelegate* delegate, gd::string title) {
         if (!HSVWidgetPopup::init(hsv, delegate, title)) return false;
 
-        auto mem = MultiEditManager::create(this, EditorUI::get()->m_selectedObjects);
+        bool isBase = title == "Base HSV";
+
+        CCArrayExt<GameObject*> objects;
+
+        for (auto object : CCArrayExt<GameObject*>(EditorUI::get()->m_selectedObjects)) {
+            GJSpriteColor* color = isBase ? nk::getBaseSpriteColor(object) : nk::getDetailSpriteColor(object);
+
+            if (color) {
+                log::info("adding obj: {}", object->m_objectID);
+                objects.push_back(object);
+            }
+        }
+
+        // auto mem = MultiEditManager::create(this, EditorUI::get()->m_selectedObjects);
+        auto mem = MultiEditManager::create(this, objects.inner());
         m_fields->multiEditManager = mem;
 
         mem->setCallback([this, mem, hsv](int property, std::optional<float> value) {
@@ -286,16 +301,7 @@ class $modify(ConfigureHSVWidget) {
         if (obj) return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
 
         CCArrayExt<GameObject*> objects = objs;
-
-        ccHSVValue multiHSV;
-
-        if (auto obj = typeinfo_cast<GameObject*>(objects[0])) {
-            GJSpriteColor* color = obj->getRelativeSpriteColor(baseOrDetail);
-            if (color) multiHSV = color->m_hsv;
-        }
-
-        multiHSV.absoluteSaturation = true;
-        multiHSV.absoluteBrightness = true;
+        ccHSVValue multiHSV = ConfigureHSVWidget::getHSV(objects[0], nullptr, baseOrDetail);
 
         for (auto object : objects) {
             auto hsv = ConfigureHSVWidget::getHSV(object, nullptr, baseOrDetail);
