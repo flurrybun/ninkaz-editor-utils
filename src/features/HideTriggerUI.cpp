@@ -47,7 +47,7 @@ void recursiveOpacity(CCNode* node, bool isHidden, CCArray* nodesToIgnore) {
     } else if (auto nodeInput = typeinfo_cast<CCTextInputNode*>(node)) {
         shouldRecurse = false;
 
-        runOpacity(nodeInput->m_placeholderLabel, isHidden);
+        runOpacity(nodeInput->m_textLabel, isHidden);
     } else if (auto nodeBG = typeinfo_cast<CCScale9Sprite*>(node)) {
         shouldRecurse = false;
 
