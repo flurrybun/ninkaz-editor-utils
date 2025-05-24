@@ -29,8 +29,7 @@ class $modify(APSEditorUI, EditorUI) {
             return EditorUI::onPasteState(sender);
         }
 
-        auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
-        if (btn->getOpacity() != 255) return;
+        if (m_pasteStateBtn->getOpacity() != 255) return;
 
         auto popup = PasteStatePopup::create();
         popup->m_noElasticity = true;
