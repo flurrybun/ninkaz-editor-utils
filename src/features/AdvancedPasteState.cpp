@@ -3,6 +3,8 @@
 #include <Geode/modify/LevelEditorLayer.hpp>
 #include <Geode/modify/EditorUI.hpp>
 
+static bool s_isPasteStatePopupOpen = false;
+
 class $modify(APSLevelEditorLayer, LevelEditorLayer) {
     struct Fields {
         int m_copyStateObjectID = 1;
@@ -30,11 +32,13 @@ class $modify(APSEditorUI, EditorUI) {
         }
 
         if (m_pasteStateBtn->getOpacity() != 255) return;
+        if (s_isPasteStatePopupOpen) return;
 
         auto popup = PasteStatePopup::create();
         popup->m_noElasticity = true;
 
         popup->show();
+        s_isPasteStatePopupOpen = true;
     };
 };
 
@@ -144,6 +148,8 @@ bool PasteStatePopup::setup() {
 
 void PasteStatePopup::onClose(CCObject* sender) {
     EditorUI::get()->m_pasteStateBtn->setVisible(true);
+    s_isPasteStatePopupOpen = false;
+
     Popup::onClose(sender);
 }
 
