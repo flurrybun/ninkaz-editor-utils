@@ -1,5 +1,6 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/EditTriggersPopup.hpp>
+#include <Geode/modify/EditorUI.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -15,12 +16,6 @@ class $modify(SetupTriggerPopup) {
 
         return SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum);
     }
-
-    // $override
-    // CCArray* createValueControlAdvanced(int p0, gd::string p1, CCPoint p2, float p3, bool p4, InputValueType p5, int p6, bool p7, float p8, float p9, int p10, int p11, GJInputStyle p12, int p13, bool p14) {
-    //     log::info("createValueControlAdvanced: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}", p0, p1, p2, p3, p4, (int)p5, p6, p7, p8, p9, p10, p11, (int)p12, p13, p14);
-    //     return SetupTriggerPopup::createValueControlAdvanced(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);
-    // }
 };
 
 class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
@@ -55,5 +50,69 @@ class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
         m_disableTextDelegate = false;
 
         return true;
+    }
+};
+
+class $modify(EditorUI) {
+    $override
+    void editObject(CCObject* sender) {
+        if (!editButtonUsable()) return;
+
+        auto firstObject = typeinfo_cast<EffectGameObject*>(m_selectedObjects->firstObject());
+
+        if (m_selectedObject || !firstObject) {
+            EditorUI::editObject(sender);
+            return;
+        }
+
+        for (auto object : CCArrayExt<GameObject*>(m_selectedObjects)) {
+            if (object->m_objectID != firstObject->m_objectID) {
+                EditorUI::editObject(sender);
+                return;
+            }
+        }
+
+        auto obj = typeinfo_cast<EffectGameObject*>(m_selectedObject);
+        auto objs = m_selectedObjects;
+
+        switch (firstObject->m_objectID) {
+            case 1595:
+                SetupTouchTogglePopup::create(obj, objs)->show();
+                break;
+            case 1611:
+                SetupCountTriggerPopup::create(obj, objs)->show();
+                break;
+            case 1811:
+                SetupInstantCountPopup::create(typeinfo_cast<CountTriggerGameObject*>(obj), objs)->show();
+                break;
+            case 1912:
+                SetupRandTriggerPopup::create(obj, objs)->show();
+                break;
+
+            // crashes as is. i'll fix it later maybe
+            // case 2068:
+            //     SetupRandAdvTriggerPopup::create(typeinfo_cast<RandTriggerGameObject*>(obj), objs)->show();
+            //     break;
+
+            // sequence trigger popup doesn't even have an array of objects as a parameter lol
+            // case 3607:
+            //     SetupSequenceTriggerPopup::create(obj, objs)->show();
+            //     break;
+
+            case 1913:
+                SetupZoomTriggerPopup::create(obj, objs)->show();
+                break;
+            case 1916:
+                SetupCameraOffsetTrigger::create(typeinfo_cast<CameraTriggerGameObject*>(obj), objs)->show();
+                break;
+            case 2062:
+                SetupCameraEdgePopup::create(typeinfo_cast<CameraTriggerGameObject*>(obj), objs)->show();
+                break;
+            case 1812:
+                SetupObjectTogglePopup::create(obj, objs, false)->show();
+                break;
+            default:
+                EditorUI::editObject(sender);
+        }
     }
 };

@@ -62,6 +62,11 @@ void MultiEditManager::addSideMenuButton(CCMenuItem* button) {
     m_popup->m_buttonMenu->addChild(button);
 }
 
+void MultiEditManager::setGameObjects(CCArray* gameObjects) {
+    m_gameObjects.inner()->removeAllObjects();
+    if (gameObjects) m_gameObjects.inner()->addObjectsFromArray(gameObjects);
+}
+
 void MultiEditManager::addInput(CCTextInputNode* input, int property) {
     input->setUserObject("property"_spr, CCInteger::create(property));
     m_inputs[property] = input;

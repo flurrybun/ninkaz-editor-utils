@@ -38,6 +38,7 @@ public:
 
     void addSideMenuButton(CCMenuItem* button);
 
+    void setGameObjects(CCArray* gameObjects);
     void addInput(CCTextInputNode* input, int property);
     void addSlider(Slider* slider, int property);
     void addButton(CCMenuItem* button, int property);
@@ -45,6 +46,7 @@ public:
     void addInputLabel(CCLabelBMFont* label, int property);
 
     bool isMixedEnabled() { return m_isMixedEnabled; }
+    CCArrayExt<GameObject*>& getGameObjects() { return m_gameObjects; }
     std::map<int, Ref<CCTextInputNode>>& getInputs() { return m_inputs; }
     std::map<int, Slider*>& getSliders() { return m_sliders; }
     std::map<int, std::vector<CCMenuItem*>>& getButtons() { return m_buttons; }

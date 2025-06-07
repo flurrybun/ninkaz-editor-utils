@@ -337,8 +337,8 @@ class $modify(GJFollowCommandLayer) {
 #include <Geode/modify/SetupCollisionTriggerPopup.hpp>
 
 class $modify(SetupCollisionTriggerPopup) {
-    bool init(EffectGameObject* p0, CCArray* p1) {
-        if (!SetupCollisionTriggerPopup::init(p0, p1)) return false;
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupCollisionTriggerPopup::init(obj, objs)) return false;
 
         auto mem = getMultiEditManager(this);
 
@@ -408,6 +408,282 @@ class $modify(CollisionBlockPopup) {
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
         mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 80);
+
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupTouchTogglePopup.hpp>
+
+class $modify(SetupTouchTogglePopup) {
+    bool init(EffectGameObject* obj, CCArray* fakeObjs) {
+        if (!SetupTouchTogglePopup::init(obj, fakeObjs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        // for some reason, this trigger popup and this trigger popup alone sets
+        // m_gameObjects to nullptr, so we have to work around it
+
+        auto objs = EditorUI::get()->m_selectedObjects;
+        mem->setGameObjects(objs);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+
+            if (property == 51) {
+                for (auto obj : mem->getGameObjects()) {
+                    LevelEditorLayer::updateObjectLabel(obj);
+                }
+            }
+        });
+
+        if (objs && objs->count() > 0) {
+            if (auto firstObj = typeinfo_cast<EffectGameObject*>(objs->firstObject())) {
+                m_groupIDInput->setString(std::to_string(firstObj->m_targetGroupID).c_str());
+            }
+        }
+
+        mem->addInput(m_groupIDInput, 51);
+        m_groupIDInput->setMaxLabelWidth(40);
+
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
+
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
+
+        mem->setupMixed();
+
+        return true;
+    }
+
+    $override
+    void onTargetIDArrow(CCObject* sender) {
+        SetupTouchTogglePopup::onTargetIDArrow(sender);
+
+        auto mem = getMultiEditManager(this);
+        auto objs = mem->getGameObjects();
+
+        for (auto obj : objs) {
+            if (auto trigger = typeinfo_cast<EffectGameObject*>(obj)) {
+                trigger->m_targetGroupID = m_groupID;
+                LevelEditorLayer::updateObjectLabel(trigger);
+            }
+        }
+    }
+};
+
+#include <Geode/modify/SetupCountTriggerPopup.hpp>
+
+class $modify(SetupCountTriggerPopup) {
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupCountTriggerPopup::init(obj, objs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+        });
+
+        mem->addInput(m_itemIDInput, 80);
+        mem->addInput(m_targetCountInput, 77);
+        mem->addInput(m_targetIDInput, 51);
+        m_itemIDInput->setMaxLabelWidth(40);
+        m_targetCountInput->setMaxLabelWidth(40);
+        m_targetIDInput->setMaxLabelWidth(40);
+
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
+
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 77);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 77);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
+
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupInstantCountPopup.hpp>
+
+class $modify(SetupInstantCountPopup) {
+    bool init(CountTriggerGameObject* obj, CCArray* objs) {
+        if (!SetupInstantCountPopup::init(obj, objs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+        });
+
+        mem->addInput(m_itemIDInput, 80);
+        mem->addInput(m_targetCountInput, 77);
+        mem->addInput(m_targetIDInput, 51);
+        m_itemIDInput->setMaxLabelWidth(40);
+        m_targetCountInput->setMaxLabelWidth(40);
+        m_targetIDInput->setMaxLabelWidth(40);
+
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
+
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 77);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 77);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
+
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupRandTriggerPopup.hpp>
+
+class $modify(SetupRandTriggerPopup) {
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupRandTriggerPopup::init(obj, objs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+
+            if (property == 10) {
+                MultiEditManager::setSliderValue(m_chanceSlider, value.value(), 0, 100);
+            }
+        });
+
+        mem->addInput(m_groupID1Input, 51);
+        mem->addInput(m_groupID2Input, 71);
+        mem->addInput(m_chanceInput, 10);
+        m_groupID1Input->setMaxLabelWidth(40);
+        m_groupID2Input->setMaxLabelWidth(40);
+        m_chanceInput->setMaxLabelWidth(50);
+
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 71);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 10);
+
+        mem->addSlider(m_chanceSlider, 10);
+        m_chanceSlider->m_delegate = this;
+
+        mem->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 10);
+
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 71);
+        mem->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 71);
+
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupCameraOffsetTrigger.hpp>
+
+class $modify(SetupCameraOffsetTrigger) {
+    bool init(CameraTriggerGameObject* obj, CCArray* objs) {
+        if (!SetupCameraOffsetTrigger::init(obj, objs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+
+            if (property == 10) {
+                MultiEditManager::setSliderValue(m_moveTimeSlider, value.value(), 0, 10);
+            } else if (property == 28) {
+                MultiEditManager::setSliderValue(m_offsetXSlider, value.value(), -100, 100);
+            } else if (property == 29) {
+                MultiEditManager::setSliderValue(m_offsetYSlider, value.value(), -100, 100);
+            }
+        });
+
+        mem->addInput(m_moveTimeInput, 10);
+        mem->addInput(m_offsetXInput, 28);
+        mem->addInput(m_offsetYInput, 29);
+
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 10);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 28);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 29);
+
+        m_moveTimeInput->setMaxLabelWidth(50);
+        m_offsetXInput->setMaxLabelWidth(50);
+        m_offsetYInput->setMaxLabelWidth(50);
+
+        mem->addSlider(m_moveTimeSlider, 10);
+        mem->addSlider(m_offsetXSlider, 28);
+        mem->addSlider(m_offsetYSlider, 29);
+
+        m_moveTimeSlider->m_delegate = this;
+        m_offsetXSlider->m_delegate = this;
+        m_offsetYSlider->m_delegate = this;
+
+        mem->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
+        mem->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 28);
+        mem->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 29);
+
+        mem->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupCameraEdgePopup.hpp>
+
+class $modify(SetupCameraEdgePopup) {
+    bool init(CameraTriggerGameObject* obj, CCArray* objs) {
+        if (!SetupCameraEdgePopup::init(obj, objs)) return false;
+
+        auto mem = getMultiEditManager(this);
+
+        mem->setCallback([this, mem](int property, std::optional<float> value) {
+            if (!value.has_value()) return;
+
+            CCTextInputNode* input = mem->getInputs()[property];
+            if (!input) return;
+
+            mem->setInputValue(input, value.value());
+        });
+
+        mem->addInput(m_targetIDInput, 51);
+        m_targetIDInput->setMaxLabelWidth(40);
+        mem->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
 
         mem->setupMixed();
 

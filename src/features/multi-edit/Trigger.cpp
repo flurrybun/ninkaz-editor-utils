@@ -176,18 +176,18 @@ bool Trigger::hasProperty(GameObject* object, short property) {
     // the following properties were generated via a script that goes through
     // m_inputNodes and finds the tags of each input
 
-    // some early triggers don't use m_inputNodes and had to be added manually
+    // some triggers don't use this system and had to be added manually
 
     switch (object->m_objectID) {
-        case 899: return in({10, 23}); // doesn't use m_inputNodes
+        case 899: return in({10, 23}); // added manually
         case 901: return in({28, 29, 143, 144, 395, 71, 396, 10, 51});
         case 1616: return in({51});
-        case 1006: return in({50, 51, 45, 46, 47}); // doesn't use m_inputNodes
-        case 1007: return in({10, 51}); // doesn't use m_inputNodes
+        case 1006: return in({50, 51, 45, 46, 47}); // added manually
+        case 1007: return in({10, 51}); // added manually
         case 1049: return in({51});
         case 1268: return in({51, 63, 556}); //removed: -1, -2
         case 2067: return in({150, 151, 10, 71, 51});
-        case 1347: return in({10, 72, 73, 51, 71}); // doesn't use m_inputNodes
+        case 1347: return in({10, 72, 73, 51, 71}); // added manually
         case 3033: return in({76, 51, 71, 520, 521, 545, 522, 523, 546});
         case 1346: return in({68, 69, 401, 402, 10, 403, 51, 71, 516, 518, 517, 519});
         case 3016: return in({51, 71, 365, 340, 363, 364, 292, 293, 298, 299, 308, 309, 366, 361, 362});
@@ -208,6 +208,9 @@ bool Trigger::hasProperty(GameObject* object, short property) {
         case 3029: return in({});
         case 3030: return in({});
         case 3031: return in({});
+        case 1595: return in({51}); // added manually
+        case 1611: return in({80, 77, 51}); // added manually
+        case 1811: return in({80, 77, 51}); // added manually
         case 1817: return in({80, 77, 449});
         case 3614: return in({467, 473, 80, 470, 51});
         case 3615: return in({80, 51, 473});
@@ -215,13 +218,17 @@ bool Trigger::hasProperty(GameObject* object, short property) {
         case 3619: return in({80, 95, 479, 51});
         case 3620: return in({80, 95, 479, 483, 51, 71, 484});
         case 3641: return in({80});
+        case 1912: return in({51, 71, 10}); // added manually
+        case 2068: return in({}); // added manually
         case 3607: return in({437, 438}); // removed: -1, -2
         case 3608: return in({51, 71, 547, 548, 549, 550, 552, 553, 554, 555});
         case 3618: return in({51});
         case 1913: return in({371, 10});
         case 1914: return in({71, 213, 454, 10});
+        case 1916: return in({10, 28, 29}); // added manually
         case 2901: return in({28, 29});
         case 2015: return in({68, 10});
+        case 2062: return in({51}); // added manually
         case 2925: return in({});
         case 2016: return in({371, 28, 29, 506});
         case 2900: return in({582, 583, 173});
