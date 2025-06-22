@@ -32,7 +32,6 @@ bool Trigger::isTriggerPopup(SetupTriggerPopup* popup) {
         return popup->m_gameObject || popup->m_gameObjects;
     }
     if (typeinfo_cast<SetupObjectOptions2Popup*>(popup)) return false;
-    if (typeinfo_cast<SetupRotatePopup*>(popup)) return false;
     if (typeinfo_cast<EditGameObjectPopup*>(popup)) return false;
     if (typeinfo_cast<GJOptionsLayer*>(popup)) return false;
     if (typeinfo_cast<UIOptionsLayer*>(popup)) return false;
@@ -72,6 +71,10 @@ float Trigger::getProperty(GameObject* object, short property) {
         if (!particle) return 0;
 
         return getParticleValue(particle, property);
+    }
+
+    if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
+        if (property == 97) return ego->m_rotationSpeed;
     }
 
     if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
@@ -131,6 +134,13 @@ void Trigger::setProperty(GameObject* object, short property, float newValue) {
         return;
     }
 
+    if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
+        if (property == 97) {
+            ego->m_rotationSpeed = newValue;
+            return;
+        }
+    }
+
     if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
         // these properties aren't supported by SetupTriggerPopup::updateValue
         if (property == 72) {
@@ -167,6 +177,10 @@ bool Trigger::hasProperty(GameObject* object, short property) {
 
     if (typeinfo_cast<ParticleGameObject*>(object)) {
         return true;
+    }
+
+    if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
+        if (property == 97) return true;
     }
 
     auto in = [property](const std::vector<short>& vec) {
