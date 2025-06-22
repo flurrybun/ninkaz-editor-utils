@@ -93,6 +93,21 @@ void hideOrShowUI(bool isHidden, FLAlertLayer* popup, Slider* slider) {
     runOpacity(popup->m_mainLayer->getChildByType<CCScale9Sprite*>(0), isHidden);
 }
 
+bool isHideUIKeyPressed() {
+    std::string keyString = Mod::get()->getSettingValue<std::string>("hide-ui-key");
+
+    if (keyString == "CTRL/CMD") {
+        return CCKeyboardDispatcher::get()->getControlKeyPressed()
+            || CCKeyboardDispatcher::get()->getCommandKeyPressed();
+    } else if (keyString == "SHIFT") {
+        return CCKeyboardDispatcher::get()->getShiftKeyPressed();
+    } else if (keyString == "ALT") {
+        return CCKeyboardDispatcher::get()->getAltKeyPressed();
+    }
+
+    return false;
+}
+
 class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         bool isHideMode = false;
@@ -119,9 +134,18 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
             }
         });
 
+        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
         hideOrShowUI(false, this, nullptr);
 
         return true;
+    }
+
+    void updateHideMode(float dt) {
+        bool isHideMode = isHideUIKeyPressed();
+        if (isHideMode == m_fields->isHideMode) return;
+
+        m_fields->isHideMode = isHideMode;
+        hideOrShowUI(isHideMode, this, m_fields->currentSlider);
     }
 
     void toggleHideMode(CCObject* sender) {
@@ -199,6 +223,9 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             mem->addSideMenuButton(hideBtn);
         });
 
+        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
+        hideOrShowUI(false, this, nullptr);
+
         return true;
     }
 
@@ -216,6 +243,15 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             targetObject->setParticleString(str);
             targetObject->updateParticle();
         }
+    }
+
+    void updateHideMode(float dt) {
+        bool isHideMode = isHideUIKeyPressed();
+        if (isHideMode == m_fields->isHideMode) return;
+
+        m_fields->isHideMode = isHideMode;
+        hideOrShowUI(isHideMode, this, m_fields->currentSlider);
+        updateParticles();
     }
 
     void toggleHideMode(CCObject* sender) {
@@ -262,27 +298,3 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         if (m_fields->isHidden) updateParticles();
     }
 };
-
-#ifdef GEODE_IS_DESKTOP
-#include <Geode/modify/CCKeyboardDispatcher.hpp>
-
-class $modify(CCKeyboardDispatcher) {
-    bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat) {
-        if (!CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat)) return false;
-        if (key != KEY_LeftShift && key != KEY_RightShift) return true;
-        if (isKeyRepeat) return true;
-
-        if (auto popup = Trigger::getTriggerPopup()) {
-            hideOrShowUI(isKeyDown, popup, static_cast<HUISetupTriggerPopup*>(popup)->m_fields->currentSlider);
-        } else if (auto popup = Trigger::getParticlePopup()) {
-            hideOrShowUI(isKeyDown, popup, static_cast<HUICreateParticlePopup*>(popup)->m_fields->currentSlider);
-
-            static_cast<HUICreateParticlePopup*>(popup)->m_fields->isHidden = isKeyDown;
-            if (isKeyDown) static_cast<HUICreateParticlePopup*>(popup)->updateParticles();
-        }
-
-        return true;
-    }
-};
-
-#endif // GEODE_IS_DESKTOP

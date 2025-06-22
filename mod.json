@@ -33,6 +33,14 @@
             "name": "Enable Advanced Paste State",
             "description": "Shows a menu to change options when pasting object state. When disabled, the Paste State button works the same as in the vanilla editor.",
             "default": true
+        },
+        "hide-ui-key": {
+            "type": "string",
+            "name": "Hide UI Key",
+            "description": "The key used to hide the trigger UI. Useful for AZERTY keyboard layouts, which use shift for the number keys.",
+            "one-of": ["CTRL/CMD", "ALT", "SHIFT"],
+            "default": "SHIFT",
+            "platforms": ["desktop"]
         }
     }
 }
