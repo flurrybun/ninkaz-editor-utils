@@ -134,7 +134,9 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
             }
         });
 
+        #ifdef GEODE_IS_DESKTOP
         schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
+        #endif
         hideOrShowUI(false, this, nullptr);
 
         return true;
@@ -223,7 +225,9 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             mem->addSideMenuButton(hideBtn);
         });
 
+        #ifdef GEODE_IS_DESKTOP
         schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
+        #endif
         hideOrShowUI(false, this, nullptr);
 
         return true;
