@@ -1,3 +1,12 @@
+### 1.4.0 (6/29/2025)
+
+- Added **Saw Rotation Preview**
+- Added fix for vanilla gd bug where touch, count, instant count, random, camera zoom, camera offset, camera edge, and on death trigger menus **only support one trigger**
+- Added setting to **change the hide trigger UI key**, since AZERTY keyboard layouts use shift for number keys
+- Bumped Geode version to support **JIT-less iOS**
+- Fixed multi-edit HSV **incorrectly showing mixed state** when there is none
+- Fixed crash when using BetterEdit's **Paste State keybind**
+
 ### 1.3.3 (5/4/2025)
 
 - Fixed Android crash when **using a slider in particle triggers** <c-9CA0AF>(thank you again [hiimjasmine00](user:7466002)!)</c>

@@ -1,12 +1,12 @@
 {
-    "geode": "4.4.0",
+    "geode": "4.6.2",
     "gd": {
         "win": "2.2074",
         "android": "2.2074",
         "mac": "2.2074",
         "ios": "2.2074"
     },
-    "version": "v1.3.3",
+    "version": "v1.4.0",
     "id": "ninkaz.editor_utils",
     "name": "NinKaz's Editor Utils",
     "developer": "NinKaz",
@@ -16,7 +16,7 @@
     },
     "tags": ["editor", "enhancement", "utility", "interface", "offline"],
     "dependencies": {
-        "geode.node-ids": ">=v1.17.0"
+        "geode.node-ids": ">=v1.21.1"
     },
     "resources": {
         "spritesheets": {

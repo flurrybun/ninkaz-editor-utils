@@ -27,3 +27,7 @@ The same multi-edit system for triggers also works for **HSV adjustments**. Mixe
 ### Hide Trigger UI
 
 While in a trigger popup, **hold shift** to hide the trigger UI. For mobile users, enable the **Hide UI** button and move a slider to hide everything except that slider.
+
+### Saw Rotation Preview
+
+Shows a **preview object** when adjusting the rotation speed of a sawblade.

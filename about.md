@@ -27,3 +27,7 @@ The same multi-edit system for triggers also works for <c-FFC8B2>**HSV adjustmen
 ### <c-C82A1A>Hide Trigger UI</c>
 
 While in a trigger popup, <c-FFB3B2>**hold shift**</c> to hide the trigger UI. For mobile users, enable the <c-FFB2B8>**Hide UI**</c> button and move a slider to hide everything except that slider.
+
+### <c-C81A35>Saw Rotation Preview</c>
+
+Shows a <c-FFB2C7>**preview object**</c> when adjusting the rotation speed of a sawblade.
