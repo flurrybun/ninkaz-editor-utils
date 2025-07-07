@@ -61,12 +61,16 @@ class $modify(LevelEditorLayer) {
         // the following is my best attempt at replicating that behavior (yes, i am very proud of this part)
 
         for (const auto& object : CCArrayExt<GameObject*>(m_objects)) {
+            if (auto glowSprite = object->m_glowSprite) {
+                glowSprite->setVisible(!object->m_hasNoGlow);
+            }
+
             std::optional<ccColor3B> specialGlowColor = getSpecialGlowColor(object);
 
             // id 143 is for breakable blocks, which are a unique case
             if (object->m_objectID != 143 &&
-                !specialGlowColor.has_value() &&
-                !object->m_glowUsesLighterBG
+                !object->m_glowUsesLighterBG &&
+                !specialGlowColor.has_value()
             ) continue;
             if (object->m_isSelected) continue;
 
