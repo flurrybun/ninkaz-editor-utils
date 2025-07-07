@@ -6,14 +6,14 @@
 using namespace geode::prelude;
 
 class $modify(GameObject) {
-    struct Fields {
-        bool hasAddedGlow = false;
-    };
-
     $override
     void addGlow(gd::string objectFrameName) {
-        if (m_fields->hasAddedGlow) return;
-        m_fields->hasAddedGlow = true;
+        if (!LevelEditorLayer::get()) {
+            GameObject::addGlow(objectFrameName);
+            return;
+        }
+
+        if (GameManager::get()->m_performanceMode) return;
 
         bool prevEE = m_editorEnabled;
         m_editorEnabled = false;
