@@ -1,5 +1,4 @@
 #include <Geode/modify/GameObject.hpp>
-#include <Geode/modify/EnhancedGameObject.hpp>
 #include <Geode/modify/LevelEditorLayer.hpp>
 
 #include <Geode/Geode.hpp>
@@ -56,43 +55,79 @@ class $modify(LevelEditorLayer) {
     void updateVisibility(float dt) {
         LevelEditorLayer::updateVisibility(dt);
 
-        // some objects like orbs, ice spikes, and certain saws don't inherit their glow color from the object color
-        // instead, they use a custom color set in PlayLayer::updateVisibility
-        // the following is my best attempt at replicating that behavior (yes, i am very proud of this part)
+        ccColor3B lbgColor = {};
+        if (ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1007]) {
+            lbgColor = lbgAction->m_color;
+        }
+
+        float screenRight = CCDirector::get()->getScreenRight();
+        float playerX = screenRight * 0.5 - 75;
 
         for (const auto& object : CCArrayExt<GameObject*>(m_objects)) {
-            if (auto glowSprite = object->m_glowSprite) {
-                glowSprite->setVisible(!object->m_hasNoGlow);
-            }
-
-            std::optional<ccColor3B> specialGlowColor = getSpecialGlowColor(object);
-
-            // id 143 is for breakable blocks, which are a unique case
-            if (object->m_objectID != 143 &&
-                !object->m_glowUsesLighterBG &&
-                !specialGlowColor.has_value()
-            ) continue;
-            if (object->m_isSelected) continue;
-
-            ccColor3B glowColor = {};
-
-            if (specialGlowColor.has_value()) {
-                glowColor = specialGlowColor.value();
-            } else if (object->m_glowCopiesLBG) {
-                if (ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1007]) {
-                    glowColor = lbgAction->m_color;
-                }
-            } else {
-                glowColor = m_lighterBGColor;
-            }
-
-            bool prevCCG = object->m_cantColorGlow;
-            object->m_cantColorGlow = false;
-
-            object->setGlowColor(glowColor);
-
-            object->m_cantColorGlow = prevCCG;
+            updateCustomGlowColor(object);
+            updateFadingBlock(object, playerX, screenRight, lbgColor);
         }
+    }
+
+    void updateCustomGlowColor(GameObject* object) {
+        // some objects like orbs, ice spikes, and certain saws don't inherit their glow color from the object color
+        // instead, they use a custom color updated per frame in PlayLayer::updateVisibility
+
+        if (auto glowSprite = object->m_glowSprite) {
+            glowSprite->setVisible(!object->m_hasNoGlow);
+        }
+
+        if (object->m_isSelected) return;
+
+        std::optional<ccColor3B> specialGlowColor = getSpecialGlowColor(object);
+
+        // id 143 is for breakable blocks, which are a special case
+        if (object->m_objectID != 143 &&
+            !object->m_glowUsesLighterBG &&
+            !specialGlowColor.has_value()
+        ) return;
+
+        ccColor3B glowColor = {};
+
+        if (specialGlowColor.has_value()) {
+            glowColor = specialGlowColor.value();
+        } else if (object->m_glowCopiesLBG) {
+            if (ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1007]) {
+                glowColor = lbgAction->m_color;
+            }
+        } else {
+            glowColor = m_lighterBGColor;
+        }
+
+        bool prevCCG = object->m_cantColorGlow;
+        object->m_cantColorGlow = false;
+
+        object->setGlowColor(glowColor);
+
+        object->m_cantColorGlow = prevCCG;
+    }
+
+    void updateFadingBlock(GameObject* object, float playerX, float screenRight, ccColor3B lbgColor) {
+        if (!object->m_isFadingBlock || !m_previewMode) return;
+
+        if (object->m_isSelected) {
+            object->setOpacity(255);
+            return;
+        }
+
+        // updateInvisibleBlock uses m_cameraPosition2 to get the camera's position,
+        // which isn't updated properly in the editor
+
+        CCPoint prevECP = m_gameState.m_cameraPosition2;
+        m_gameState.m_cameraPosition2 = -m_objectLayer->getPosition() / m_objectLayer->getScale();
+
+        // what the fuck are these params rob
+
+        reinterpret_cast<PlayLayer*>(GJBaseGameLayer::get())->updateInvisibleBlock(
+            object, playerX + 110, playerX, screenRight - (playerX + 110) - 90, playerX - 30, lbgColor
+        );
+
+        m_gameState.m_cameraPosition2 = prevECP;
     }
 
     std::optional<ccColor3B> getSpecialGlowColor(GameObject* object) {
