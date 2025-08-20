@@ -55,9 +55,16 @@ class $modify(LevelEditorLayer) {
     void updateVisibility(float dt) {
         LevelEditorLayer::updateVisibility(dt);
 
-        ccColor3B lbgColor = {};
-        if (ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1007]) {
-            lbgColor = lbgAction->m_color;
+        ccColor3B bgColor = {};
+        ccColor3B lbgColor = {255, 255, 255};
+
+        if (ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1000]) {
+            bgColor = lbgAction->m_color;
+        }
+
+        if (bgColor.r + bgColor.g + bgColor.b < 150) {
+            ColorActionSprite* lbgAction = m_effectManager->m_colorActionSpriteVector[1007];
+            if (lbgAction) lbgColor = lbgAction->m_color;
         }
 
         float screenRight = CCDirector::get()->getScreenRight();
@@ -65,7 +72,9 @@ class $modify(LevelEditorLayer) {
 
         for (const auto& object : CCArrayExt<GameObject*>(m_objects)) {
             updateCustomGlowColor(object);
-            updateFadingBlock(object, playerX, screenRight, lbgColor);
+            updateFadingBlock(
+                object, playerX + 110, playerX, screenRight - (playerX + 110) - 90, playerX - 30, lbgColor
+            );
         }
     }
 
@@ -107,7 +116,10 @@ class $modify(LevelEditorLayer) {
         object->m_cantColorGlow = prevCCG;
     }
 
-    void updateFadingBlock(GameObject* object, float playerX, float screenRight, ccColor3B lbgColor) {
+    void updateFadingBlock(
+        GameObject* object, float rightFadeBound, float leftFadeBound,
+        float leftFadeWidth, float rightFadeWidth, const ccColor3B& lbgColor
+    ) {
         if (!object->m_isFadingBlock || !m_previewMode) return;
 
         if (object->m_isSelected) {
@@ -115,19 +127,81 @@ class $modify(LevelEditorLayer) {
             return;
         }
 
-        // updateInvisibleBlock uses m_cameraPosition2 to get the camera's position,
-        // which isn't updated properly in the editor
+        // i have to decomp PlayLayer::updateInvisibleBlock because it's inlined in android64 of all platforms 😭
+        // tested it and this decomp is like 99.999% accurate
 
-        CCPoint prevECP = m_gameState.m_cameraPosition2;
-        m_gameState.m_cameraPosition2 = -m_objectLayer->getPosition() / m_objectLayer->getScale();
+        float objX = object->getRealPosition().x;
 
-        // what the fuck are these params rob
+        if (objX <= m_cameraUnzoomedX) objX += object->m_fadeMargin;
+        else objX -= object->m_fadeMargin;
 
-        reinterpret_cast<PlayLayer*>(GJBaseGameLayer::get())->updateInvisibleBlock(
-            object, playerX + 110, playerX, screenRight - (playerX + 110) - 90, playerX - 30, lbgColor
+        // compute fade near edges of screen:
+
+        // normally m_gameState.m_cameraPosition2.x
+        float cameraX = -m_objectLayer->getPositionX() / m_objectLayer->getScale();
+        float cameraCenterX = m_halfCameraWidth + cameraX;
+
+        float fadeFactor;
+
+        if (objX <= cameraCenterX) {
+            fadeFactor = 0.014285714f * (m_halfCameraWidth - (cameraCenterX - objX));
+        } else {
+            fadeFactor = 0.02f * (m_halfCameraWidth - (objX - cameraCenterX));
+        }
+
+        float cameraFade = std::clamp(fadeFactor, 0.f, 1.f) * 255.f;
+
+        // compute fade near center of screen:
+
+        float distance;
+        float divisor;
+
+        if (objX <= cameraX + rightFadeBound) {
+            distance = (cameraX + leftFadeBound) - objX;
+            divisor = leftFadeWidth;
+        } else {
+            distance = objX - cameraX - rightFadeBound;
+            divisor = rightFadeWidth;
+        }
+
+        if (divisor <= 1.f) divisor = 1.f;
+
+        float ratio = std::clamp(distance / divisor, 0.f, 1.f);
+        float playerFade = (ratio * 0.95f + 0.05f) * 255.f;
+
+        // set final opacity based on both fades:
+
+        object->setOpacity(std::min(cameraFade, playerFade));
+
+        // set glow opacity and color:
+
+        if (object->m_glowSprite) {
+            float glowFade = (ratio * 0.85f + 0.15f) * 255.f;
+            glowFade = std::min(cameraFade, glowFade);
+
+            object->m_glowSprite->setOpacity(glowFade * object->m_opacityMod);
+        }
+
+        float opacity = object->getOpacity() / 255.f;
+
+        if (opacity > 0.8f) {
+            float ratio = (1.0f - (opacity - 0.8f) / 0.2f) * 0.3f + 0.7f;
+            object->setGlowColor(getMixedColor(lbgColor, m_lighterBGColor, ratio));
+        } else {
+            object->setGlowColor(m_lighterBGColor);
+        }
+    }
+
+    ccColor3B getMixedColor(const ccColor3B& color1, const ccColor3B& color2, float ratio) {
+        int r = color1.r * (1 - ratio) + color2.r * ratio;
+        int g = color1.g * (1 - ratio) + color2.g * ratio;
+        int b = color1.b * (1 - ratio) + color2.b * ratio;
+
+        return ccc3(
+            std::clamp(r, 0, 255),
+            std::clamp(g, 0, 255),
+            std::clamp(b, 0, 255)
         );
-
-        m_gameState.m_cameraPosition2 = prevECP;
     }
 
     std::optional<ccColor3B> getSpecialGlowColor(GameObject* object) {
