@@ -40,12 +40,14 @@ class $modify(LevelEditorLayer) {
         LevelEditorLayer::updateVisibility(dt);
 
         for (const auto& [portal, back] : m_fields->portalBacks) {
+            bool isLinkedOrangeTeleport = portal->m_objectID == 749;
+
             back->setPosition(portal->getPosition());
             back->setRotationX(portal->getRotationX());
             back->setRotationY(portal->getRotationY());
             back->setScaleX(portal->getScaleX());
             back->setScaleY(portal->getScaleY());
-            back->setFlipX(portal->isFlipX());
+            back->setFlipX(isLinkedOrangeTeleport ? !portal->isFlipX() : portal->isFlipX());
             back->setFlipY(portal->isFlipY());
 
             back->setVisible(portal->isVisible());
