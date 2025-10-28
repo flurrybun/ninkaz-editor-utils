@@ -14,6 +14,8 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
     struct Fields {
         CCSprite* m_previewObject;
         CCLayerColor* m_controlCover;
+        CCTextInputNode* m_input;
+        Slider* m_slider;
 
         float m_defaultRotationSpeed;
     };
@@ -22,11 +24,13 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
     bool init(EnhancedGameObject* obj, CCArray* objs) {
         if (!SetupRotatePopup::init(obj, objs)) return false;
 
+        CCSize winCenter = CCDirector::get()->getWinSize() / 2;
+
         // PREVIEW OBJECT BACKGROUND
 
         auto previewBG = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
         previewBG->setOpacity(50);
-        previewBG->setPosition({205, 140});
+        previewBG->setPosition(winCenter + ccp(-80, -20));
         previewBG->setContentSize({80, 80});
         m_mainLayer->addChild(previewBG);
 
@@ -42,14 +46,6 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
         if (auto obj = typeinfo_cast<EnhancedGameObject*>(previewObjs->firstObject())) {
             m_fields->m_defaultRotationSpeed = obj->m_rotationAngle;
             if (rand() % 2 == 0) m_fields->m_defaultRotationSpeed *= -1;
-
-            // if (auto baseColor = obj->m_baseColor) {
-            //     baseColor->m_colorID = 1011;
-            // }
-
-            // if (auto detailColor = obj->m_detailColor; detailColor && detailColor->m_defaultColorID == 1005) {
-            //     detailColor->m_colorID = 1011;
-            // }
 
             normalizeSpriteColor(obj->m_baseColor);
             normalizeSpriteColor(obj->m_detailColor);
@@ -78,6 +74,12 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
         for (const auto& node : CCArrayExt<CCNode>(rotationControls)) {
             node->setPosition(node->getPosition() + inputOffset);
             node->setVisible(true);
+
+            if (auto input = typeinfo_cast<CCTextInputNode*>(node)) {
+                m_fields->m_input = input;
+            } else if (auto slider = typeinfo_cast<Slider*>(node)) {
+                m_fields->m_slider = slider;
+            }
         }
 
         m_groupContainers->removeObjectAtIndex(2);
@@ -85,7 +87,7 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
         // OVERLAY OVER CONTROLS WHEN ROTATION WHEN DISABLED
 
         auto controlCover = CCLayerColor::create(ccc4(153, 85, 51, 150), 170, 63);
-        controlCover->setPosition({252, 111});
+        controlCover->setPosition(winCenter + ccp(-32, -49));
         controlCover->setZOrder(21);
         m_mainLayer->addChild(controlCover);
         m_fields->m_controlCover = controlCover;
@@ -132,9 +134,15 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
             toggler->toggle(key == sender->getTag());
         }
 
-        m_fields->m_controlCover->setVisible(
-            !getToggler(RotateAction::Custom)->isToggled()
-        );
+        bool enableInput = getToggler(RotateAction::Custom)->isToggled();
+
+        m_fields->m_controlCover->setVisible(!enableInput);
+        m_fields->m_input->setTouchEnabled(enableInput);
+        m_fields->m_slider->m_touchLogic->setEnabled(enableInput);
+        m_fields->m_slider->m_enabled = enableInput;
+
+        // unfocus input
+        m_fields->m_input->onClickTrackNode(false);
 
         if (!sender || sender->getTag() == static_cast<int>(RotateAction::Custom)) return;
         GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
