@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MultiEditContext.hpp"
+
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
@@ -11,7 +13,7 @@ struct MixedInputSettings {
     RoundingType rounding;
 };
 
-class MixedInputPopup : public Popup<const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&> {
+class MixedInputPopup : public Popup<MultiEditContext*, int> {
 protected:
     enum Operator {
         Add, Subtract, Multiply, Divide, Equal
@@ -21,14 +23,14 @@ protected:
         None, Up, Down, Left, Right
     };
     
+    MultiEditContext* m_context;
     CCArrayExt<GameObject*> m_objects;
-    std::function<void (std::optional<float>)> m_callback;
-    short m_property;
+    int m_property;
     Operator m_operator;
     float m_modifierValue;
     float m_initialValue;
-    short m_decimalPlaces;
-    bool m_canBeNegative;
+    int m_decimalPlaces;
+    PropertyBounds m_propertyBounds = {0, 0};
     RoundingType m_rounding;
     DirectionType m_direction;
 
@@ -52,7 +54,7 @@ protected:
             : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), objects(obj) {}
     };
 
-    bool setup(const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&) override;
+    bool setup(MultiEditContext*, int) override;
 
     CCMenu* createTopRow();
     CCMenu* createBottomRow();
@@ -68,5 +70,5 @@ protected:
     float roundValue(float);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
-    static MixedInputPopup* create(const CCArrayExt<GameObject*>&, const short, const std::function<void (std::optional<float>)>&);
+    static MixedInputPopup* create(MultiEditContext*, int);
 };

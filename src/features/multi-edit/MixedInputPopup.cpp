@@ -1,6 +1,6 @@
 #include "MixedInputPopup.hpp"
 #include "MixedInputSettingsPopup.hpp"
-#include "Trigger.hpp"
+#include "MultiEditContext.hpp"
 #include "../../misc/StringUtils.hpp"
 
 #include <Geode/Geode.hpp>
@@ -8,28 +8,31 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(const CCArrayExt<GameObject*>& objects, const short property, const std::function<void (std::optional<float>)>& callback) {
+bool MixedInputPopup::setup(MultiEditContext* context, int property) {
+    if (!context) return false;
+    
+    m_context = context;
+    m_property = property;
+    
     std::vector<float> propertyValues;
     
-    for (auto object : objects) {
-        if (Trigger::hasProperty(object, property)) {
+    for (auto object : context->getGameObjects()) {
+        if (context->hasProperty(object, property)) {
             m_objects.push_back(object);
-            propertyValues.push_back(Trigger::getProperty(object, property));
+            propertyValues.push_back(context->getProperty(object, property));
         }
     }
 
-    std::sort(m_objects.begin(), m_objects.end(), [property](GameObject* a, GameObject* b) {
-        float aValue = Trigger::getProperty(a, property);
-        float bValue = Trigger::getProperty(b, property);
+    std::sort(m_objects.begin(), m_objects.end(), [context, property](GameObject* a, GameObject* b) {
+        float aValue = context->getProperty(a, property);
+        float bValue = context->getProperty(b, property);
 
         return aValue < bValue;
     });
 
-    m_property = property;
-    m_callback = callback;
     m_operator = Operator::Equal;
-    m_decimalPlaces = Trigger::getPropertyDecimalPlaces(m_objects[0], property);
-    m_canBeNegative = Trigger::canPropertyBeNegative(property);
+    m_decimalPlaces = context->getPropertyDecimalPlaces(property);
+    m_propertyBounds = context->getPropertyBounds(property);
 
     m_modifierValue = 0;
     m_initialValue = 0;
@@ -537,15 +540,20 @@ void MixedInputPopup::onSettings(CCObject* sender) {
 }
 
 void MixedInputPopup::onApply(CCObject* sender) {
+    if (!m_context) {
+        onClose(sender);
+        return;
+    }
+
     std::vector<float> newProperties;
     
     if (m_direction == DirectionType::None) {
         for (auto& object : m_objects) {
-            auto property = Trigger::getProperty(object, m_property);
+            auto property = m_context->getProperty(object, m_property);
             auto newProperty = applyOperation(property, m_modifierValue, m_operator);
 
             newProperties.push_back(newProperty);
-            Trigger::setProperty(object, m_property, newProperty);
+            m_context->setProperty(object, m_property, newProperty);
         }
     } else {
         size_t count = 0;
@@ -560,20 +568,18 @@ void MixedInputPopup::onApply(CCObject* sender) {
             }
 
             newProperties.push_back(newProperty);
-            Trigger::setProperty(trigger, m_property, newProperty);
+            m_context->setProperty(trigger, m_property, newProperty);
 
             count++;
         }
     }
 
-    if (m_callback) {
-        if (newProperties.size() > 1 && std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
-            m_callback(newProperties.front());
-        } else if (newProperties.size() == 1) {
-            m_callback(newProperties.front());
-        } else {
-            m_callback(std::nullopt);
-        }
+    if (newProperties.size() > 1 && std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
+        m_context->onMixedInputApplied(m_property, newProperties.front());
+    } else if (newProperties.size() == 1) {
+        m_context->onMixedInputApplied(m_property, newProperties.front());
+    } else {
+        m_context->onMixedInputApplied(m_property, std::nullopt);
     }
 
     onClose(sender);
@@ -593,7 +599,7 @@ float MixedInputPopup::applyOperation(float value, float modifier, Operator op, 
         default: result = modifier;
     }
 
-    if (!m_canBeNegative && result < 0) return 0;
+    result = std::clamp(result, m_propertyBounds.min, m_propertyBounds.max);
     if (shouldRound) return roundValue(result);
     return result;
 }
@@ -631,7 +637,7 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
             change = m_modifierValue;
             newProperty = index != 0 ? applyOperation(property, change, m_operator) : property;
         } else {
-            property = Trigger::getProperty(object, m_property);
+            property = m_context->getProperty(object, m_property);
             change = m_modifierValue;
             newProperty = applyOperation(property, change, m_operator);
         }
@@ -662,9 +668,9 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     return calcVector;
 }
 
-MixedInputPopup* MixedInputPopup::create(const CCArrayExt<GameObject*>& objects, const short property, const std::function<void (std::optional<float>)>& callback) {
+MixedInputPopup* MixedInputPopup::create(MultiEditContext* context, int property) {
     auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, objects, property, callback)) {
+    if (ret && ret->initAnchored(380.f, 280.f, context, property)) {
         ret->autorelease();
         return ret;
     }

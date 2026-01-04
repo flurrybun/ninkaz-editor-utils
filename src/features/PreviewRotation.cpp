@@ -1,5 +1,5 @@
 #include <Geode/modify/SetupRotatePopup.hpp>
-#include "multi-edit/MultiEditManager.hpp"
+#include "multi-edit/MultiEditContext.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -145,10 +145,12 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
         m_fields->m_input->onClickTrackNode(false);
 
         if (!sender || sender->getTag() == static_cast<int>(RotateAction::Custom)) return;
-        GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
-        if (!mem->getMixedButtons()[97]) return;
 
-        mem->removeMixed(97, 0);
+        auto ctx = MultiEditContext::get(this);
+
+        if (ctx && ctx->getMixedButton(97)) {
+            ctx->onMixedInputApplied(97, 0);
+        }
     }
 
     RotateAction getInitialAction() {

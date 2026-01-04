@@ -2,117 +2,241 @@
 #include <Geode/modify/ConfigureHSVWidget.hpp>
 #include <Geode/modify/CustomizeObjectLayer.hpp>
 #include <Geode/modify/HSVLiveOverlay.hpp>
-#include "MultiEditManager.hpp"
+#include "MultiEditContext.hpp"
 #include "../../misc/SpriteColor.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+enum class HSVType {
+    Hue = 0,
+    Saturation = 1,
+    Value = 2
+};
+
+enum class HSVProperty {
+    BaseHue = 0,
+    BaseSaturation = 1,
+    BaseValue = 2,
+    DetailHue = 3,
+    DetailSaturation = 4,
+    DetailValue = 5
+};
+
 const float MIXED_VALUE = std::numeric_limits<float>::quiet_NaN();
-const int HUE = 2000, SATURATION = 2001, VALUE = 2002;
 
 // value == MIXED_VALUE always returns false!!
 bool isMixed(float value) {
     return std::isnan(value);
 }
 
-void setSliderValue(ConfigureHSVWidget* widget, int hsvType, float value) {
+HSVType hsvPropertyToType(HSVProperty property) {
+    switch (property) {
+        case HSVProperty::BaseHue:
+        case HSVProperty::DetailHue:
+            return HSVType::Hue;
+        case HSVProperty::BaseSaturation:
+        case HSVProperty::DetailSaturation:
+            return HSVType::Saturation;
+        case HSVProperty::BaseValue:
+        case HSVProperty::DetailValue:
+            return HSVType::Value;
+    }
+}
+
+bool isDetail(HSVProperty property) {
+    return property == HSVProperty::DetailHue ||
+        property == HSVProperty::DetailSaturation ||
+        property == HSVProperty::DetailValue;
+}
+
+void setHSVSliderValue(ConfigureHSVWidget* widget, HSVType hsvType, float value) {
     switch (hsvType) {
-        case HUE:
-            MultiEditManager::setSliderValue(widget->m_hueSlider, value, -180, 180);
+        case HSVType::Hue:
+            MultiEditContext::setSliderValue(widget->m_hueSlider, value, -180, 180);
+
             break;
-        case SATURATION:
-            if (widget->m_hsv.absoluteSaturation) MultiEditManager::setSliderValue(widget->m_saturationSlider, value, -1, 1);
-            else MultiEditManager::setSliderValue(widget->m_saturationSlider, value, 0, 2);
+        case HSVType::Saturation:
+            if (widget->m_hsv.absoluteSaturation) {
+                MultiEditContext::setSliderValue(widget->m_saturationSlider, value, -1, 1);
+            } else {
+                MultiEditContext::setSliderValue(widget->m_saturationSlider, value, 0, 2);
+            }
+
             break;
-        case VALUE:
-            if (widget->m_hsv.absoluteBrightness) MultiEditManager::setSliderValue(widget->m_brightnessSlider, value, -1, 1);
-            else MultiEditManager::setSliderValue(widget->m_brightnessSlider, value, 0, 2);
+        case HSVType::Value:
+            if (widget->m_hsv.absoluteBrightness) {
+                MultiEditContext::setSliderValue(widget->m_brightnessSlider, value, -1, 1);
+            } else {
+                MultiEditContext::setSliderValue(widget->m_brightnessSlider, value, 0, 2);
+            }
+
             break;
     }
 }
 
-class $modify(HSVWidgetPopup) {
-    struct Fields {
-        Ref<MultiEditManager> multiEditManager;
+class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
+    struct Fields : MultiEditContext {
+        ConfigureHSVWidget* widget;
+        bool isBase;
+
+        void init(HSVWidgetPopup* popup) {
+            widget = popup->m_widget;
+            registerSelf(popup, popup, popup->m_widget);
+
+            m_buttonOffset = popup->m_widget->getPosition();
+        }
+
+        float getProperty(GameObject* object, int intProperty) override {
+            HSVProperty property = static_cast<HSVProperty>(intProperty);
+            HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
+
+            GJSpriteColor* color = object->getRelativeSpriteColor(isDetail(property) ? 2 : 1);
+            // GJSpriteColor* color = isDetail(property)
+            //     ? nk::getDetailSpriteColor(object)
+            //     : nk::getBaseSpriteColor(object);
+            if (!color) return 0;
+
+            switch (type) {
+                case HSVType::Hue: return color->m_hsv.h;
+                case HSVType::Saturation: return color->m_hsv.s;
+                case HSVType::Value: return color->m_hsv.v;
+            }
+            return 0;
+        }
+
+        void setProperty(GameObject* object, int intProperty, float value) override {
+            HSVProperty property = static_cast<HSVProperty>(intProperty);
+            HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
+
+            GJSpriteColor* color = object->getRelativeSpriteColor(isDetail(property) ? 2 : 1);
+            // GJSpriteColor* color = isDetail(property)
+            //     ? nk::getDetailSpriteColor(object)
+            //     : nk::getBaseSpriteColor(object);
+            if (!color) return;
+
+            switch (type) {
+                case HSVType::Hue:
+                    while (value > 180) value -= 360;
+                    while (value < -180) value += 360;
+                    color->m_hsv.h = value;
+                    break;
+                case HSVType::Saturation:
+                    color->m_hsv.s = value;
+                    break;
+                case HSVType::Value:
+                    color->m_hsv.v = value;
+                    break;
+            }
+        }
+
+        bool hasProperty(GameObject* object, int intProperty) override {
+            HSVProperty property = static_cast<HSVProperty>(intProperty);
+
+            if (isDetail(property)) {
+                return nk::getDetailSpriteColor(object) != nullptr;
+            } else {
+                return nk::getBaseSpriteColor(object) != nullptr;
+            }
+        }
+
+        int getPropertyDecimalPlaces(int intProperty) override {
+            HSVProperty property = static_cast<HSVProperty>(intProperty);
+            HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
+
+            switch (type) {
+                case HSVType::Hue:
+                    return 0;
+                case HSVType::Saturation:
+                case HSVType::Value:
+                    return 2;
+            }
+        }
+
+        PropertyBounds getPropertyBounds(int intProperty) override {
+            return PropertyBounds::negInfToInf();
+        }
+
+        void onMixedInputApplied(int intProperty, std::optional<float> value) override {
+            HSVProperty property = static_cast<HSVProperty>(intProperty);
+            HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
+
+            switch (type) {
+                case HSVType::Hue:
+                    widget->m_hsv.h = value.value_or(MIXED_VALUE);
+                    break;
+                case HSVType::Saturation:
+                    widget->m_hsv.s = value.value_or(MIXED_VALUE);
+                    break;
+                case HSVType::Value:
+                    widget->m_hsv.v = value.value_or(MIXED_VALUE);
+                    break;
+            }
+
+            updateMixedUI(intProperty, value);
+
+            if (value) {
+                setHSVSliderValue(widget, type, *value);
+                widget->updateLabels();
+            }
+        }
+
+        CCArray* getObjectArray() override {
+            CCArray* objects = CCArray::create();
+            
+            for (auto object : CCArrayExt<GameObject*>(EditorUI::get()->m_selectedObjects)) {
+                GJSpriteColor* color = isBase ? nk::getBaseSpriteColor(object) : nk::getDetailSpriteColor(object);
+
+                if (color) {
+                    objects->addObject(object);
+                }
+            }
+            
+            return objects;
+        }
     };
 
     $override
     bool init(ccHSVValue hsv, HSVWidgetDelegate* delegate, gd::string title) {
         if (!HSVWidgetPopup::init(hsv, delegate, title)) return false;
+        
+        m_fields->init(this);
+        m_fields->isBase = title == "Base HSV";
 
-        bool isBase = title == "Base HSV";
-
-        CCArrayExt<GameObject*> objects;
-
-        for (auto object : CCArrayExt<GameObject*>(EditorUI::get()->m_selectedObjects)) {
-            GJSpriteColor* color = isBase ? nk::getBaseSpriteColor(object) : nk::getDetailSpriteColor(object);
-
-            if (color) {
-                log::info("adding obj: {}", object->m_objectID);
-                objects.push_back(object);
-            }
-        }
-
-        // auto mem = MultiEditManager::create(this, EditorUI::get()->m_selectedObjects);
-        auto mem = MultiEditManager::create(this, objects.inner());
-        m_fields->multiEditManager = mem;
-
-        mem->setCallback([this, mem, hsv](int property, std::optional<float> value) {
-            if (property > VALUE) property -= 3;
-
-            switch (property) {
-                case HUE:
-                    m_widget->m_hsv.h = value.value_or(MIXED_VALUE);
-                    break;
-                case SATURATION:
-                    m_widget->m_hsv.s = value.value_or(MIXED_VALUE);
-                    break;
-                case VALUE:
-                    m_widget->m_hsv.v = value.value_or(MIXED_VALUE);
-                    break;
-            }
-
-            if (value.has_value()) {
-                setSliderValue(m_widget, property, value.value());
-                m_widget->updateLabels();
-            }
-        });
-
-        int baseOrDetailOffset = title == "Base HSV" ? 0 : 3;
+        int offset = m_fields->isBase ? 0 : 3;
+        int hue = static_cast<int>(HSVProperty::BaseHue) + offset;
+        int saturation = static_cast<int>(HSVProperty::BaseSaturation) + offset;
+        int value = static_cast<int>(HSVProperty::BaseValue) + offset;
 
         if (auto input = m_widget->getChildByType<CCTextInputNode*>(0)) {
             input->setMaxLabelWidth(30);
-            mem->addInput(input, HUE + baseOrDetailOffset);
+            m_fields->addInput(input, hue);
         }
         if (auto input = m_widget->getChildByType<CCTextInputNode*>(1)) {
             input->setMaxLabelWidth(30);
-            mem->addInput(input, SATURATION + baseOrDetailOffset);
+            m_fields->addInput(input, saturation);
         }
         if (auto input = m_widget->getChildByType<CCTextInputNode*>(2)) {
             input->setMaxLabelWidth(30);
-            mem->addInput(input, VALUE + baseOrDetailOffset);
+            m_fields->addInput(input, value);
         }
 
-        mem->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(1), HUE + baseOrDetailOffset);
-        mem->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(2), SATURATION + baseOrDetailOffset);
-        mem->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(3), VALUE + baseOrDetailOffset);
+        m_fields->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(1), hue);
+        m_fields->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(2), saturation);
+        m_fields->addInputBG(m_widget->getChildByType<CCScale9Sprite*>(3), value);
 
-        mem->addSlider(m_widget->m_hueSlider, HUE + baseOrDetailOffset);
-        mem->addSlider(m_widget->m_saturationSlider, SATURATION + baseOrDetailOffset);
-        mem->addSlider(m_widget->m_brightnessSlider, VALUE + baseOrDetailOffset);
+        m_fields->addSlider(m_widget->m_hueSlider, hue);
+        m_fields->addSlider(m_widget->m_saturationSlider, saturation);
+        m_fields->addSlider(m_widget->m_brightnessSlider, value);
 
         CCMenu* buttonMenu = m_widget->getChildByType<CCMenu*>(0);
-        mem->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(0), SATURATION + baseOrDetailOffset);
-        mem->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(1), VALUE + baseOrDetailOffset);
-
-        mem->setInputParentNode(m_widget);
-        mem->setButtonOffset(m_widget->getPosition());
+        m_fields->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(0), saturation);
+        m_fields->addButton(buttonMenu->getChildByType<CCMenuItemToggler*>(1), value);
 
         // layer above widget
         m_buttonMenu->setZOrder(2);
 
-        mem->setupMixed();
+        m_fields->setupMixed();
 
         return true;
     }
@@ -165,13 +289,18 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
     }
 
     void setupMixedSliders() {
-        int hsvTypes[] = {HUE, SATURATION, VALUE};
-        Slider* sliders[] = {m_widget->m_hueSlider, m_widget->m_saturationSlider, m_widget->m_brightnessSlider};
+        std::array<HSVType, 3> hsvTypes = {
+            HSVType::Hue, HSVType::Saturation, HSVType::Value
+        };
+        std::array<Slider*, 3> sliders = {
+            m_widget->m_hueSlider, m_widget->m_saturationSlider, m_widget->m_brightnessSlider
+        };
+
         CCMenu* widgetButtonMenu = m_widget->getChildByType<CCMenu*>(0);
 
         for (int i = 0; i < 3; i++) {
             Slider* slider = sliders[i];
-            int hsvType = hsvTypes[i];
+            int hsvType = static_cast<int>(hsvTypes[i]);
 
             auto spr = CCSprite::createWithSpriteFrameName("GJ_resetBtn_001.png");
             auto btn = CCMenuItemSpriteExtra::create(
@@ -187,25 +316,25 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
             m_fields->unlinkButtons[hsvType] = btn;
         }
 
-        if (isMixed(m_widget->m_hsv.h)) toggleSlider(HUE, false);
-        if (isMixed(m_widget->m_hsv.s)) toggleSlider(SATURATION, false);
-        if (isMixed(m_widget->m_hsv.v)) toggleSlider(VALUE, false);
+        if (isMixed(m_widget->m_hsv.h)) toggleSlider(HSVType::Hue, false);
+        if (isMixed(m_widget->m_hsv.s)) toggleSlider(HSVType::Saturation, false);
+        if (isMixed(m_widget->m_hsv.v)) toggleSlider(HSVType::Value, false);
     }
 
-    void toggleSlider(int hsvType, bool isEnabled) {
+    void toggleSlider(HSVType hsvType, bool isEnabled) {
         Slider* slider = nullptr;
         CCMenuItemToggler* toggle = nullptr;
         CCMenu* buttonMenu = m_widget->getChildByType<CCMenu*>(0);
 
         switch (hsvType) {
-            case HUE:
+            case HSVType::Hue:
                 slider = m_widget->m_hueSlider;
                 break;
-            case SATURATION:
+            case HSVType::Saturation:
                 slider = m_widget->m_saturationSlider;
                 toggle = buttonMenu->getChildByType<CCMenuItemToggler*>(0);
                 break;
-            case VALUE:
+            case HSVType::Value:
                 slider = m_widget->m_brightnessSlider;
                 toggle = buttonMenu->getChildByType<CCMenuItemToggler*>(1);
                 break;
@@ -213,14 +342,14 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
 
         if (isEnabled) {
             float resetValue = 0;
-            if (hsvType == SATURATION && !m_widget->m_hsv.absoluteSaturation) resetValue = 1;
-            else if (hsvType == VALUE && !m_widget->m_hsv.absoluteBrightness) resetValue = 1;
+            if (hsvType == HSVType::Saturation && !m_widget->m_hsv.absoluteSaturation) resetValue = 1;
+            else if (hsvType == HSVType::Value && !m_widget->m_hsv.absoluteBrightness) resetValue = 1;
 
-            if (hsvType == HUE) m_widget->m_hsv.h = resetValue;
-            else if (hsvType == SATURATION) m_widget->m_hsv.s = resetValue;
-            else if (hsvType == VALUE) m_widget->m_hsv.v = resetValue;
+            if (hsvType == HSVType::Hue) m_widget->m_hsv.h = resetValue;
+            else if (hsvType == HSVType::Saturation) m_widget->m_hsv.s = resetValue;
+            else if (hsvType == HSVType::Value) m_widget->m_hsv.v = resetValue;
 
-            setSliderValue(m_widget, hsvType, resetValue);
+            setHSVSliderValue(m_widget, hsvType, resetValue);
             m_widget->updateLabels();
             hsvChanged(m_widget);
         } else {
@@ -236,12 +365,11 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
             toggle->setOpacity(isEnabled ? 255 : 100);
         }
 
-        m_fields->unlinkButtons[hsvType]->setVisible(!isEnabled);
+        m_fields->unlinkButtons[static_cast<int>(hsvType)]->setVisible(!isEnabled);
     }
 
     void onUnlink(CCObject* sender) {
-        int hsvType = sender->getTag();
-        toggleSlider(hsvType, true);
+        toggleSlider(static_cast<HSVType>(sender->getTag()), true);
     }
 
     $override
@@ -323,17 +451,15 @@ class $modify(ConfigureHSVWidget) {
 
         HSVLiveOverlay* hsvOverlay = EditorUI::get()->m_hsvOverlay;
         if (hsvOverlay) {
-            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HUE, true);
-            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(SATURATION, true);
-            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(VALUE, true);
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HSVType::Hue, true);
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HSVType::Saturation, true);
+            static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HSVType::Value, true);
         } else if (m_addInputs) {
-            GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
-            mem->removeMixed(HUE, 0);
-            mem->removeMixed(HUE + 3, 0);
-            mem->removeMixed(SATURATION, 1);
-            mem->removeMixed(SATURATION + 3, 1);
-            mem->removeMixed(VALUE, 1);
-            mem->removeMixed(VALUE + 3, 1);
+            if (auto ctx = MultiEditContext::get(getParent()->getParent())) {
+                ctx->onMixedInputApplied(static_cast<int>(HSVType::Hue), 0);
+                ctx->onMixedInputApplied(static_cast<int>(HSVType::Saturation), 1);
+                ctx->onMixedInputApplied(static_cast<int>(HSVType::Value), 1);
+            }
         }
 
         // this is a fix for a vanilla bug

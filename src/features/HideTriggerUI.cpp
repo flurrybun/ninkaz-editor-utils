@@ -1,7 +1,6 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/CreateParticlePopup.hpp>
-#include "multi-edit/MultiEditManager.hpp"
-#include "multi-edit/Trigger.hpp"
+#include "multi-edit/MultiEditContext.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -76,15 +75,15 @@ void recursiveOpacity(CCNode* node, bool isHidden, CCArray* nodesToIgnore) {
 }
 
 void hideOrShowUI(bool isHidden, FLAlertLayer* popup, Slider* slider) {
-    GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return;
-    int property = MultiEditManager::getProperty(slider).unwrapOr(-99);
+    auto ctx = MultiEditContext::get(popup);
+    int property = ctx->getPropertyID(slider).value_or(-99);
 
     CCArray* nodesToIgnore = CCArray::create();
 
-    if (auto node = mem->getSlider(property)) nodesToIgnore->addObject(node);
-    if (auto node = mem->getInput(property)) nodesToIgnore->addObject(node);
-    if (auto node = mem->getInputLabel(property)) nodesToIgnore->addObject(node);
-    if (auto node = mem->getInputBG(property)) nodesToIgnore->addObject(node);
+    if (auto node = ctx->getSlider(property)) nodesToIgnore->addObject(node);
+    if (auto node = ctx->getInput(property)) nodesToIgnore->addObject(node);
+    if (auto node = ctx->getInputLabel(property)) nodesToIgnore->addObject(node);
+    if (auto node = ctx->getInputBG(property)) nodesToIgnore->addObject(node);
     nodesToIgnore->addObject(popup->m_mainLayer->getChildByType<CCScale9Sprite*>(0));
 
     recursiveOpacity(popup, isHidden, nodesToIgnore);
@@ -110,32 +109,39 @@ bool isHideUIKeyPressed() {
 
 class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
-        bool isHideMode = false;
-        Slider* currentSlider = nullptr;
+        bool hideUIEnabled = false;
+        bool isHidden = false;
+        Slider* currentSlider;
     };
 
     $override
     bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
         if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum)) return false;
-        if (!Trigger::isTriggerPopup(this)) return true;
+        if (!MultiEditContext::isTriggerPopup(this)) return true;
 
-        GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
+        auto ctx = MultiEditContext::get(this);
+        if (!ctx) return true;
 
-        auto hideBtn = MultiEditManager::createSideMenuButton("hide-btn.png"_spr, this, menu_selector(HUISetupTriggerPopup::toggleHideMode));
-        hideBtn->setID("hide-btn"_spr);
+        queueInMainThread([this, ctx]() {
+            if (ctx->getSliders().size() > 0) {
+                auto hideBtn = MultiEditContext::createSideMenuButton(
+                    "hide-btn.png"_spr, [this](CCObject* sender) {
+                        m_fields->hideUIEnabled = !m_fields->hideUIEnabled;
+                    }
+                );
+                hideBtn->setID("hide-btn"_spr);
+                hideBtn->setTag(1);
 
-        if (typeinfo_cast<SetupShaderEffectPopup*>(this)) {
-            hideBtn->toggleWithCallback(true);
-        }
+                if (typeinfo_cast<SetupShaderEffectPopup*>(this)) {
+                    hideBtn->toggleWithCallback(true);
+                }
 
-        Loader::get()->queueInMainThread([mem, hideBtn]() {
-            if (mem->getSliders().size() > 0) {
-                mem->addSideMenuButton(hideBtn);
+                ctx->addSideMenuButton(hideBtn);
             }
         });
 
         #ifdef GEODE_IS_DESKTOP
-        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
+        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode));
         #endif
         hideOrShowUI(false, this, nullptr);
 
@@ -143,47 +149,44 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     }
 
     void updateHideMode(float dt) {
-        bool isHideMode = isHideUIKeyPressed();
-        if (isHideMode == m_fields->isHideMode) return;
+        bool hide = isHideUIKeyPressed();
+        if (!hide || hide == m_fields->isHidden) return;
 
-        m_fields->isHideMode = isHideMode;
-        hideOrShowUI(isHideMode, this, m_fields->currentSlider);
-    }
-
-    void toggleHideMode(CCObject* sender) {
-        m_fields->isHideMode = !m_fields->isHideMode;
+        hideOrShowUI(hide, this, m_fields->currentSlider);
+        m_fields->isHidden = hide;
     }
 
     $override
     void sliderBegan(Slider* slider) {
         m_fields->currentSlider = slider;
-        if (!m_fields->isHideMode) return;
+        if (!m_fields->hideUIEnabled) return;
 
         hideOrShowUI(true, this, slider);
+        m_fields->isHidden = true;
     }
 
     $override
     void sliderEnded(Slider* slider) {
         m_fields->currentSlider = nullptr;
-        if (!m_fields->isHideMode) return;
+        if (!m_fields->hideUIEnabled) return;
 
         hideOrShowUI(false, this, slider);
+        m_fields->isHidden = false;
     }
 };
 
 class $modify(HUICreateParticlePopup, CreateParticlePopup) {
-    #ifdef GEODE_IS_ANDROID
     struct Fields : SliderDelegate {
-        bool isHideMode = false;
+        bool hideUIEnabled = false;
         bool isHidden = false;
-        Slider* currentSlider = nullptr;
-        HUICreateParticlePopup* popup = nullptr;
+        Slider* currentSlider;
+        HUICreateParticlePopup* popup;
 
         void sliderBegan(Slider* slider) override {
             popup->CreateParticlePopup::sliderBegan(slider);
 
             currentSlider = slider;
-            if (!isHideMode) return;
+            if (!hideUIEnabled) return;
 
             hideOrShowUI(true, popup, slider);
             isHidden = true;
@@ -194,39 +197,34 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             popup->CreateParticlePopup::sliderEnded(slider);
 
             currentSlider = nullptr;
-            if (!isHideMode) return;
+            if (!hideUIEnabled) return;
 
             hideOrShowUI(false, popup, slider);
             isHidden = false;
         }
     };
-    #else
-    struct Fields {
-        bool isHideMode = false;
-        bool isHidden = false;
-        Slider* currentSlider = nullptr;
-    };
-    #endif
 
     $override
     bool init(ParticleGameObject* obj, CCArray* objs, gd::string str) {
         if (!CreateParticlePopup::init(obj, objs, str)) return false;
 
-        #ifdef GEODE_IS_ANDROID
         m_fields->popup = this;
-        #endif
 
-        GEODE_UNWRAP_OR_ELSE(mem, err, MultiEditManager::get()) return true;
+        auto ctx = MultiEditContext::get(this);
+        if (!ctx) return true;
 
-        auto hideBtn = MultiEditManager::createSideMenuButton("hide-btn.png"_spr, this, menu_selector(HUICreateParticlePopup::toggleHideMode));
+        auto hideBtn = MultiEditContext::createSideMenuButton(
+            "hide-btn.png"_spr, [this](CCObject* sender) {
+                m_fields->hideUIEnabled = !m_fields->hideUIEnabled;
+            }
+        );
         hideBtn->setID("hide-btn"_spr);
+        hideBtn->setTag(1);
 
-        Loader::get()->queueInMainThread([mem, hideBtn]() {
-            mem->addSideMenuButton(hideBtn);
-        });
+        ctx->addSideMenuButton(hideBtn);
 
         #ifdef GEODE_IS_DESKTOP
-        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode), 0.05f);
+        schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode));
         #endif
         hideOrShowUI(false, this, nullptr);
 
@@ -250,50 +248,27 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
     }
 
     void updateHideMode(float dt) {
-        bool isHideMode = isHideUIKeyPressed();
-        if (isHideMode == m_fields->isHideMode) return;
+        bool hide = isHideUIKeyPressed();
+        if (hide == m_fields->isHidden) return;
 
-        m_fields->isHideMode = isHideMode;
-        hideOrShowUI(isHideMode, this, m_fields->currentSlider);
+        m_fields->hideUIEnabled = hide;
+        hideOrShowUI(hide, this, m_fields->currentSlider);
         updateParticles();
     }
 
-    void toggleHideMode(CCObject* sender) {
-        m_fields->isHideMode = !m_fields->isHideMode;
-    }
-
-    #ifdef GEODE_IS_ANDROID
     $override
-    void createParticleSlider(gjParticleValue value, int page, bool centerLabel, CCPoint position, CCArray* displayNodes) {
+    void createParticleSlider(
+        gjParticleValue value, int page, bool centerLabel, CCPoint position, CCArray* displayNodes
+    ) {
         CreateParticlePopup::createParticleSlider(value, page, centerLabel, position, displayNodes);
 
-        auto slider = static_cast<Slider*>(static_cast<CCDictionary*>(m_sliderDicts->objectAtIndex(page))->objectForKey(static_cast<int>(value)));
+        auto slider = static_cast<Slider*>(
+            static_cast<CCDictionary*>(
+                m_sliderDicts->objectAtIndex(page)
+            )->objectForKey(static_cast<int>(value))
+        );
         if (slider) slider->m_delegate = m_fields.self();
     }
-    #else
-    $override
-    void sliderBegan(Slider* slider) {
-        CreateParticlePopup::sliderBegan(slider);
-
-        m_fields->currentSlider = slider;
-        if (!m_fields->isHideMode) return;
-
-        hideOrShowUI(true, this, slider);
-        m_fields->isHidden = true;
-        updateParticles();
-    }
-
-    $override
-    void sliderEnded(Slider* slider) {
-        CreateParticlePopup::sliderEnded(slider);
-
-        m_fields->currentSlider = nullptr;
-        if (!m_fields->isHideMode) return;
-
-        hideOrShowUI(false, this, slider);
-        m_fields->isHidden = false;
-    }
-    #endif
 
     $override
     void updateParticleValueForType(float p0, gjParticleValue p1, CCParticleSystemQuad* p2) {
