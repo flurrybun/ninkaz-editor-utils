@@ -66,6 +66,9 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 } else if (property == 73) {
                     trigger->m_followYMod = newValue;
                     return;
+                } else if (property == 50) {
+                    trigger->m_copyColorID = newValue;
+                    return;
                 }
             }
 
@@ -410,11 +413,11 @@ class $modify(ColorSelectPopup) {
 
         ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(0), 10);
         ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(1), 23);
-        // ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(2), 50);
+        ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(2), 50);
 
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 10);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 23);
-        // ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 50);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 50);
 
         m_mainLayer->getChildByType<CCTextInputNode*>(0)->setMaxLabelWidth(50);
         m_mainLayer->getChildByType<CCTextInputNode*>(1)->setMaxLabelWidth(40);
@@ -427,12 +430,23 @@ class $modify(ColorSelectPopup) {
 
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
 
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 23);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 23);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 23);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(8), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(9), 50);
 
         ctx->setupMixed();
 
         return true;
+    }
+
+    void onToggleHSVMode(CCObject* sender) {
+        ColorSelectPopup::onToggleHSVMode(sender);
+
+        auto ctx = getMultiEditContext(this);
+        ctx->onMixedInputApplied(50, 0);
     }
 };
 
@@ -447,13 +461,13 @@ class $modify(SetupPulsePopup) {
         ctx->addInput(m_holdInput, 46);
         ctx->addInput(m_fadeOutInput, 47);
         ctx->addInput(m_idInput, 51);
-        // ctx->addInput(m_colorIDInput, 50);
+        ctx->addInput(m_colorIDInput, 50);
 
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 45);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 46);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 47);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(4), 51);
-        // ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(10), 50);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(10), 50);
 
         nk::fixCCScale9Sprite(m_mainLayer->getChildByType<CCScale9Sprite*>(1));
         nk::fixCCScale9Sprite(m_mainLayer->getChildByType<CCScale9Sprite*>(2));
@@ -466,6 +480,7 @@ class $modify(SetupPulsePopup) {
         m_mainLayer->getChildByType<CCScale9Sprite*>(3)->setOpacity(100);
 
         m_idInput->setMaxLabelWidth(40);
+        m_colorIDInput->setMaxLabelWidth(40);
 
         ctx->addSlider(m_fadeInSlider, 45);
         ctx->addSlider(m_holdSlider, 46);
@@ -481,8 +496,10 @@ class $modify(SetupPulsePopup) {
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 51);
-        // ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(10), 50);
-        // ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(11), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 51);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(10), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(11), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(12), 50);
 
         ctx->setupMixed();
 
@@ -494,6 +511,14 @@ class $modify(SetupPulsePopup) {
 
         auto ctx = getMultiEditContext(this);
         ctx->onMixedInputApplied(51, 0);
+    }
+
+    void onSelectPulseMode(CCObject* sender) {
+        SetupPulsePopup::onSelectPulseMode(sender);
+
+        if (auto btn = getMultiEditContext(this)->getMixedButton(50)) {
+            btn->setVisible(m_pulseMode == 1);
+        }
     }
 };
 
