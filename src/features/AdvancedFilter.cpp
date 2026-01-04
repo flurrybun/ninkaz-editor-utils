@@ -324,6 +324,13 @@ bool AdvFilterPopup::setup() {
     auto okSpr = ButtonSprite::create("OK", 40, true, "goldFont.fnt", "GJ_button_01.png", 30, 0.8);
     auto okBtn = CCMenuItemSpriteExtra::create(okSpr, this, menu_selector(AdvFilterPopup::onClose));
 
+    auto selectAllTop = CCSprite::createWithSpriteFrameName("select-all-btn.png"_spr);
+    auto selectAllSpr = CCScale9Sprite::create("GJ_button_04.png");
+    selectAllTop->setScale(0.9);
+    selectAllSpr->setContentSize({30, 30});
+    selectAllSpr->addChildAtPosition(selectAllTop, Anchor::Center);
+    auto selectAllBtn = CCMenuItemSpriteExtra::create(selectAllSpr, this, menu_selector(AdvFilterPopup::onSelectAll));
+
     auto resetSpr = CCSprite::createWithSpriteFrameName("GJ_resetBtn_001.png");
     auto resetBtn = CCMenuItemSpriteExtra::create(resetSpr, this, menu_selector(AdvFilterPopup::onReset));
     resetBtn->setLayoutOptions(
@@ -333,6 +340,7 @@ bool AdvFilterPopup::setup() {
     m_resetBtn = resetBtn;
 
     bottomMenu->addChild(okBtn);
+    bottomMenu->addChild(selectAllBtn);
     bottomMenu->addChild(resetBtn);
     bottomMenu->updateLayout();
     m_mainLayer->addChildAtPosition(bottomMenu, Anchor::Bottom, {0, 24});
@@ -609,6 +617,21 @@ void AdvFilterPopup::onReset(CCObject* sender) {
     }
 
     onUpdateValue();
+}
+
+void AdvFilterPopup::onSelectAll(CCObject* sender) {
+    CCArray* objects = CCArray::create();
+    objects->addObjectsFromArray(LevelEditorLayer::get()->m_objects);
+
+    auto eui = EditorUI::get();
+    eui->processSelectObjects(objects);
+    eui->updateButtons();
+    eui->deactivateRotationControl();
+    eui->deactivateScaleControl();
+    eui->deactivateTransformControl();
+    eui->updateObjectInfoLabel();
+
+    onClose(nullptr);
 }
 
 AdvFilterPopup* AdvFilterPopup::create() {

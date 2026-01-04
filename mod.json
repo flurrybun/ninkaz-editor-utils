@@ -23,7 +23,8 @@
             "editor-sheet": [
                 "resources/multi-edit/*.png",
                 "resources/delete-filter/*.png",
-                "resources/advanced-paste-state/*.png"
+                "resources/advanced-paste-state/*.png",
+                "resources/advanced-filter/*.png"
             ]
         }
     },

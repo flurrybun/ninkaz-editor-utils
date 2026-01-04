@@ -140,6 +140,7 @@ protected:
     void onToggleColor(CCObject*);
     void onToggleScale(CCObject*);
     void onReset(CCObject*);
+    void onSelectAll(CCObject*);
 public:
     static AdvFilterPopup* create();
 };
