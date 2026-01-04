@@ -3,8 +3,6 @@
 #include <Geode/modify/LevelEditorLayer.hpp>
 #include <Geode/modify/EditorUI.hpp>
 
-static bool s_isPasteStatePopupOpen = false;
-
 class $modify(APSLevelEditorLayer, LevelEditorLayer) {
     struct Fields {
         int m_copyStateObjectID = 1;
@@ -32,16 +30,24 @@ class $modify(APSEditorUI, EditorUI) {
         }
 
         if (m_pasteStateBtn->getOpacity() != 255) return;
-        if (s_isPasteStatePopupOpen) return;
+
+        if (PasteStatePopup::get()) {
+            if (!sender) {
+                // used betteredit paste state keybind while popup is open
+                PasteStatePopup::get()->onQuickPaste(nullptr);
+            }
+
+            return;
+        }
 
         auto popup = PasteStatePopup::create();
         popup->m_noElasticity = true;
 
         popup->show();
-        s_isPasteStatePopupOpen = true;
     };
 };
 
+PasteStatePopup* PasteStatePopup::s_instance = nullptr;
 
 bool PasteStatePopup::setup() {
     setTitle("Paste State");
@@ -148,7 +154,7 @@ bool PasteStatePopup::setup() {
 
 void PasteStatePopup::onClose(CCObject* sender) {
     EditorUI::get()->m_pasteStateBtn->setVisible(true);
-    s_isPasteStatePopupOpen = false;
+    s_instance = nullptr;
 
     Popup::onClose(sender);
 }
@@ -426,8 +432,14 @@ PasteStatePopup* PasteStatePopup::create() {
     auto ret = new PasteStatePopup();
     if (ret && ret->initAnchored(390, 280)) {
         ret->autorelease();
+        s_instance = ret;
+
         return ret;
     }
     CC_SAFE_DELETE(ret);
     return nullptr;
+}
+
+PasteStatePopup* PasteStatePopup::get() {
+    return s_instance;
 }

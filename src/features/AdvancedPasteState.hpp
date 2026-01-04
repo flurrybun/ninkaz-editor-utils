@@ -17,6 +17,7 @@ protected:
         "Position X", "Position Y", "Rotation X", "Rotation Y", "Scale X", "Scale Y"
     };
 
+    static PasteStatePopup* s_instance;
     std::array<bool, 12> m_properties;
     std::array<CCMenuItemToggler*, 12> m_togglers;
     std::array<CCMenuItemSpriteExtra*, 4> m_presetButtons;
@@ -31,10 +32,12 @@ protected:
     void onPreset(CCObject* sender);
     void setHighlightedPreset(Preset preset);
     void onCancel(CCObject* sender);
-    void onQuickPaste(CCObject* sender);
     void onPaste(CCObject* sender);
     void pasteObjectState(GameObject* src, GameObject* dest);
     void replaceObjectIDs(CCArrayExt<GameObject*>& objects, int newID);
 public:
+    void onQuickPaste(CCObject* sender);
+
     static PasteStatePopup* create();
+    static PasteStatePopup* get();
 };
