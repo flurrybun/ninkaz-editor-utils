@@ -274,7 +274,7 @@ void PasteStatePopup::onCancel(CCObject* sender) {
 }
 
 void PasteStatePopup::onQuickPaste(CCObject* sender) {
-    onPreset(m_presetButtons[Preset::Default]);
+    m_properties = { true, true, true, true, true, false, false, false, false, false, false, false };
     onPaste(sender);
 }
 
