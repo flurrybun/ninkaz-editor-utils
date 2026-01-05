@@ -975,3 +975,16 @@ class $modify(SetupMoveCommandPopup) {
         if (auto btn = ctx->getMixedButton(144)) btn->setVisible(isVisible);
     }
 };
+
+// changing the mode in the advanced follow menu creates an entirely new popup for some reason
+// this causes an issue where the advanced follow popup has a higher priority than the multi-edit popup
+
+#include <Geode/modify/SetupAdvFollowPopup.hpp>
+
+class $modify(SetupAdvFollowPopup) {
+    $override
+    void updateMode(int mode) {
+        CCTouchDispatcher::get()->unregisterForcePrio(this);
+        SetupAdvFollowPopup::updateMode(mode);
+    }
+};
