@@ -92,9 +92,6 @@ class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
             HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
 
             GJSpriteColor* color = object->getRelativeSpriteColor(isDetail(property) ? 2 : 1);
-            // GJSpriteColor* color = isDetail(property)
-            //     ? nk::getDetailSpriteColor(object)
-            //     : nk::getBaseSpriteColor(object);
             if (!color) return 0;
 
             switch (type) {
@@ -110,9 +107,6 @@ class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
             HSVType type = hsvPropertyToType(static_cast<HSVProperty>(property));
 
             GJSpriteColor* color = object->getRelativeSpriteColor(isDetail(property) ? 2 : 1);
-            // GJSpriteColor* color = isDetail(property)
-            //     ? nk::getDetailSpriteColor(object)
-            //     : nk::getBaseSpriteColor(object);
             if (!color) return;
 
             switch (type) {

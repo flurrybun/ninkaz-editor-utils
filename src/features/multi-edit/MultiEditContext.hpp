@@ -170,5 +170,6 @@ public:
     static bool isTriggerPopup(SetupTriggerPopup* popup);
 
     static MultiEditContext* get(CCNode* popup);
+    static MultiEditContext* getFromChild(CCNode* child);
     static bool hasContext(CCNode* popup);
 };

@@ -392,8 +392,20 @@ bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
 
 MultiEditContext* MultiEditContext::get(CCNode* popup) {
     if (!popup) return nullptr;
+
     auto it = s_registry.find(popup);
     return it != s_registry.end() ? it->second : nullptr;
+}
+
+MultiEditContext* MultiEditContext::getFromChild(CCNode* child) {
+    while (child) {
+        auto it = s_registry.find(child);
+        if (it != s_registry.end()) return it->second;
+
+        child = child->getParent();
+    }
+
+    return nullptr;
 }
 
 bool MultiEditContext::hasContext(CCNode* popup) {
@@ -407,7 +419,7 @@ class $modify(CCTextInputNode) {
         std::optional<int> property = MultiEditContext::getPropertyID(this);
         if (!property) return CCTextInputNode::ccTouchBegan(touch, event);
 
-        auto ctx = MultiEditContext::get(CCScene::get()->getChildByType<FLAlertLayer>(0));
+        auto ctx = MultiEditContext::getFromChild(this);
         if (!ctx) return CCTextInputNode::ccTouchBegan(touch, event);
 
         if (!ctx->isMixedEnabled()) return CCTextInputNode::ccTouchBegan(touch, event);
@@ -425,10 +437,10 @@ class $modify(CCTextInputNode) {
 /* right click on input to enter mixed input mode */
 
 void onRightClick() {
-    auto* popup = CCScene::get()->getChildByType<FLAlertLayer>(0);
+    auto popup = CCScene::get()->getChildByType<FLAlertLayer>(-1);
     if (!popup) return;
 
-    auto* ctx = MultiEditContext::get(popup);
+    auto ctx = MultiEditContext::get(popup);
     if (!ctx) return;
 
     CCPoint mousePosition = getMousePos();
