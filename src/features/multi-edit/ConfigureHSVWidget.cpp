@@ -449,10 +449,13 @@ class $modify(ConfigureHSVWidget) {
             static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HSVType::Saturation, true);
             static_cast<MEHSVLiveOverlay*>(hsvOverlay)->toggleSlider(HSVType::Value, true);
         } else if (m_addInputs) {
-            if (auto ctx = MultiEditContext::get(getParent()->getParent())) {
-                ctx->onMixedInputApplied(static_cast<int>(HSVType::Hue), 0);
-                ctx->onMixedInputApplied(static_cast<int>(HSVType::Saturation), 1);
-                ctx->onMixedInputApplied(static_cast<int>(HSVType::Value), 1);
+            if (auto ctx = MultiEditContext::getFromChild(this)) {
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::BaseHue), 0);
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::BaseSaturation), 1);
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::BaseValue), 1);
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::DetailHue), 0);
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::DetailSaturation), 1);
+                ctx->onMixedInputApplied(static_cast<int>(HSVProperty::DetailValue), 1);
             }
         }
 
