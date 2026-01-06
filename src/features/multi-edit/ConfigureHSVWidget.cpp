@@ -426,14 +426,15 @@ class $modify(ConfigureHSVWidget) {
         ccHSVValue multiHSV = ConfigureHSVWidget::getHSV(objects[0], nullptr, baseOrDetail);
 
         for (auto object : objects) {
-            auto hsv = ConfigureHSVWidget::getHSV(object, nullptr, baseOrDetail);
+            auto color = baseOrDetail == 1 ? nk::getBaseSpriteColor(object) : nk::getDetailSpriteColor(object);
+            if (!color) continue;
 
-            if (hsv.h != multiHSV.h) multiHSV.h = MIXED_VALUE;
-            if (hsv.s != multiHSV.s) multiHSV.s = MIXED_VALUE;
-            if (hsv.v != multiHSV.v) multiHSV.v = MIXED_VALUE;
+            if (color->m_hsv.h != multiHSV.h) multiHSV.h = MIXED_VALUE;
+            if (color->m_hsv.s != multiHSV.s) multiHSV.s = MIXED_VALUE;
+            if (color->m_hsv.v != multiHSV.v) multiHSV.v = MIXED_VALUE;
 
-            if (hsv.absoluteSaturation == false) multiHSV.absoluteSaturation = false;
-            if (hsv.absoluteBrightness == false) multiHSV.absoluteBrightness = false;
+            if (color->m_hsv.absoluteSaturation == false) multiHSV.absoluteSaturation = false;
+            if (color->m_hsv.absoluteBrightness == false) multiHSV.absoluteBrightness = false;
         }
 
         return multiHSV;
