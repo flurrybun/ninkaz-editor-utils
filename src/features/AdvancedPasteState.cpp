@@ -296,7 +296,12 @@ void PasteStatePopup::onPaste(CCObject* sender) {
 
     if (m_properties[ObjectID]) replaceObjectIDs(destObjects, srcObjectID);
 
-    EditorUI::get()->updateObjectInfoLabel();
+    auto eui = EditorUI::get();
+    eui->updateButtons();
+    eui->deactivateRotationControl();
+    eui->deactivateScaleControl();
+    eui->deactivateTransformControl();
+    eui->updateObjectInfoLabel();
 
     onClose(sender);
 }
@@ -396,7 +401,10 @@ void PasteStatePopup::pasteObjectState(GameObject* src, GameObject* dest) {
     if (m_properties[ScaleX]) dest->updateCustomScaleX(src->getScaleX());
     if (m_properties[ScaleY]) dest->updateCustomScaleY(src->getScaleY());
 
+    dest->updateStartValues();
     LevelEditorLayer::get()->addToSection(dest);
+
+    dest->m_updateParents = true;
 }
 
 void PasteStatePopup::replaceObjectIDs(CCArrayExt<GameObject*>& objects, int newID) {
