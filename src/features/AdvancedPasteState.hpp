@@ -34,7 +34,7 @@ protected:
     void onCancel(CCObject* sender);
     void onPaste(CCObject* sender);
     void pasteObjectState(GameObject* src, GameObject* dest);
-    void replaceObjectIDs(CCArrayExt<GameObject*>& objects, int newID);
+    void replaceObjectIDs(CCArray* objects, int newID);
 public:
     void onQuickPaste(CCObject* sender);
 

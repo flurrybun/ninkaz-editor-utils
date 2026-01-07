@@ -282,15 +282,15 @@ void PasteStatePopup::onPaste(CCObject* sender) {
     GameObject* srcObject = LevelEditorLayer::get()->m_copyStateObject;
     int srcObjectID = static_cast<APSLevelEditorLayer*>(LevelEditorLayer::get())->m_fields->m_copyStateObjectID;
 
-    CCArrayExt<GameObject*> destObjects;
+    CCArray* destObjects = CCArray::create();
 
     if (EditorUI::get()->m_selectedObject) {
-        destObjects.push_back(EditorUI::get()->m_selectedObject);
+        destObjects->addObject(EditorUI::get()->m_selectedObject);
     } else {
-        destObjects.inner()->addObjectsFromArray(EditorUI::get()->m_selectedObjects);
+        destObjects->addObjectsFromArray(EditorUI::get()->m_selectedObjects);
     }
 
-    for (auto destObject : destObjects) {
+    for (auto destObject : CCArrayExt<GameObject*>(destObjects)) {
         pasteObjectState(srcObject, destObject);
     }
 
@@ -407,32 +407,34 @@ void PasteStatePopup::pasteObjectState(GameObject* src, GameObject* dest) {
     dest->m_updateParents = true;
 }
 
-void PasteStatePopup::replaceObjectIDs(CCArrayExt<GameObject*>& objects, int newID) {
+void PasteStatePopup::replaceObjectIDs(CCArray* objects, int newID) {
     const int ORANGE_TELEPORT_PORTAL_ID = 749;
 
     if (newID == ORANGE_TELEPORT_PORTAL_ID) return;
 
     auto eui = EditorUI::get();
+    auto lel = LevelEditorLayer::get();
     eui->onDeleteSelected(nullptr);
     eui->deselectAll();
 
-    for (auto obj : objects) {
+    for (auto obj : CCArrayExt<GameObject*>(objects)) {
         if (obj->m_objectID == ORANGE_TELEPORT_PORTAL_ID) continue;
 
         obj->m_objectID = newID;
     }
 
-    std::string copiedObjects = eui->copyObjects(objects.inner(), false, false);
+    // fudging editor layer to prevent pasted objects from going to the current layer
+
+    short prevLayer = lel->m_currentLayer;
+    lel->m_currentLayer = -1;
+
+    std::string copiedObjects = eui->copyObjects(objects, false, false);
     CCArray* newObjects = eui->pasteObjects(copiedObjects, false, false);
 
-    eui->selectObjects(newObjects, true);
+    lel->m_currentLayer = prevLayer;
 
-    objects.inner()->removeAllObjects();
-
-    if (EditorUI::get()->m_selectedObject) {
-        objects.push_back(EditorUI::get()->m_selectedObject);
-    } else {
-        objects.inner()->addObjectsFromArray(EditorUI::get()->m_selectedObjects);
+    if (newObjects) {
+        eui->selectObjects(newObjects, true);
     }
 }
 
