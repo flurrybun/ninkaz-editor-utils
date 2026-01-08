@@ -4,18 +4,24 @@
 
 #include <Geode/modify/CCTextInputNode.hpp>
 
-void MultiEditContext::registerSelf(FLAlertLayer* self) {
+void MultiEditContext::registerSelf(FLAlertLayer* self, CCMenu* buttonMenu) {
     m_self = self;
     m_alertLayer = self;
     m_inputParent = self->m_mainLayer;
+    if (buttonMenu) m_buttonMenu = buttonMenu;
+    else m_buttonMenu = self->m_buttonMenu;
 
     s_registry[self] = this;
 }
 
-void MultiEditContext::registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent) {
+void MultiEditContext::registerSelf(
+    CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent, CCMenu* buttonMenu
+) {
     m_self = self;
     m_alertLayer = alertLayer;
     m_inputParent = inputParent;
+    if (buttonMenu) m_buttonMenu = buttonMenu;
+    else m_buttonMenu = alertLayer->m_buttonMenu;
 
     s_registry[self] = this;
 }
@@ -61,14 +67,14 @@ void MultiEditContext::updateSideMenuButtons() {
         auto button = m_sideButtons[i];
 
         button->removeFromParent();
-        m_alertLayer->m_buttonMenu->addChild(button);
+        m_buttonMenu->addChild(button);
 
         button->setPosition(
             winSize / 2
             + ccp(popupSize.width / 2, -popupSize.height / 2)
             + button->getContentSize() / 2
             + ccp(5, 35 * i)
-            - m_alertLayer->m_buttonMenu->getPosition()
+            - m_buttonMenu->getPosition()
         );
     }
 }
@@ -95,7 +101,7 @@ void MultiEditContext::makeMixed(int property) {
 
     CCMenuItemSpriteExtra* btn = createMixedButton(property);
 
-    btn->setPosition(input->getPosition() - m_alertLayer->m_buttonMenu->getPosition() + m_buttonOffset);
+    btn->setPosition(input->getPosition() - m_buttonMenu->getPosition() + m_buttonOffset);
     btn->setID("mixed-input-btn"_spr);
     btn->setTag(property);
 
@@ -141,7 +147,7 @@ void MultiEditContext::makeMixed(int property) {
     m_mixedButtons[property] = btn;
 
     input->removeFromParent();
-    m_alertLayer->m_buttonMenu->addChild(btn);
+    m_buttonMenu->addChild(btn);
 
     toggleSlider(property, false);
     toggleButtons(property, false);
@@ -386,7 +392,6 @@ bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
     if (typeinfo_cast<ColorSelectPopup*>(popup)) {
         return popup->m_gameObject || popup->m_gameObjects;
     }
-    if (typeinfo_cast<SetupObjectOptions2Popup*>(popup)) return false;
     if (typeinfo_cast<EditGameObjectPopup*>(popup)) return false;
     if (typeinfo_cast<GJOptionsLayer*>(popup)) return false;
     if (typeinfo_cast<UIOptionsLayer*>(popup)) return false;

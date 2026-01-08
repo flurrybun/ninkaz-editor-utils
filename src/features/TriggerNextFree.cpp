@@ -1,6 +1,7 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/SetupPickupTriggerPopup.hpp>
 #include <Geode/modify/SetupInteractObjectPopup.hpp>
+#include <Geode/modify/SetupObjectOptions2Popup.hpp>
 #include "multi-edit/MultiEditContext.hpp"
 
 #include <Geode/Geode.hpp>
@@ -113,6 +114,18 @@ int getNextFreeControlID() {
     return getNextFreeID(ids);
 }
 
+int getNextFreeMaterialID() {
+    auto objects = LevelEditorLayer::get()->m_objects;
+    auto ids = std::set<short>();
+
+    for (int i = 0; i < objects->count(); i++) {
+        auto object = static_cast<GameObject*>(objects->objectAtIndex(i));
+        ids.insert(object->m_objectMaterial);
+    }
+
+    return getNextFreeID(ids);
+}
+
 bool usesTimerID(EffectGameObject* object) {
     if (auto label = typeinfo_cast<LabelGameObject*>(object)) {
         return label->m_isTimeCounter;
@@ -143,6 +156,21 @@ bool usesBlockID(EffectGameObject* object) {
     }
 }
 
+void setNextFreeButtonPosition(CCLabelBMFont* label, CCMenuItemSpriteExtra* button) {
+    constexpr float GAP = 3;
+
+    button->getNormalImage()->setScale(label->getScale() * 1.5f);
+    button->updateSprite();
+
+    float centerX = label->getPositionX();
+    float labelModX = -(button->getScaledContentWidth() + GAP) / 2;
+    float btnModX = (label->getScaledContentWidth() + GAP) / 2;
+    float btnY = label->getPositionY() + label->getScaledContentHeight() * (0.5f - label->getAnchorPoint().y);
+
+    button->setPosition(ccp(centerX + btnModX, btnY) - button->getParent()->getPosition());
+    label->setPositionX(centerX + labelModX);
+}
+
 class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
     $override
     bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
@@ -154,7 +182,10 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
 
         queueInMainThread([this, ctx]() {
             for (auto [property, input] : ctx->getInputs()) {
-                if (property != 51 && property != 71 && property != 80 && property != 95) continue;
+                if (
+                    property != 51 && property != 71 && property != 80 && property != 95 &&
+                    property != 446 && property != 534
+                ) continue;
 
                 CCLabelBMFont* label = ctx->getInputLabel(property);
                 if (!label) continue;
@@ -170,12 +201,8 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 else if (labelStr == "Center Group ID:") label->setString("Center Group:");
                 else if (labelStr == "TargetPos Group ID:") label->setString("TargetPos Group:");
 
-                bool isAreaTrigger = typeinfo_cast<SetupAreaMoveTriggerPopup*>(this) != nullptr;
-
                 auto plusSpr = CCSprite::createWithSpriteFrameName("GJ_plus2Btn_001.png");
-                plusSpr->setScale(
-                    isAreaTrigger ? 0.8 : (label->getScale() * 1.5f)
-                );
+                plusSpr->setScale(0.8);
 
                 auto plusBtn = CCMenuItemSpriteExtra::create(plusSpr, this, menu_selector(TNFSetupTriggerPopup::onNextFree));
                 plusBtn->setTag(property);
@@ -195,22 +222,17 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                     break;
                 }
 
-                if (isAreaTrigger) {
-                    plusBtn->setPosition({145, input->getPositionY() - m_buttonMenu->getPositionY()});
-                } else {
-                    constexpr float GAP = 3;
-                    float centerX = label->getPositionX();
-                    float labelModX = -(plusBtn->getScaledContentWidth() + GAP) / 2;
-                    float btnModX = (label->getScaledContentWidth() + GAP) / 2;
-                    float btnY = label->getPositionY() + label->getScaledContentHeight() * (0.5f - label->getAnchorPoint().y);
-
-                    plusBtn->setPosition(ccp(centerX + btnModX, btnY) - m_buttonMenu->getPosition());
-                    label->setPositionX(centerX + labelModX);
-                }
-
                 m_buttonMenu->addChild(plusBtn);
                 plusBtn->setVisible(label->isVisible());
                 ctx->addButton(plusBtn, property);
+
+                bool isAreaTrigger = typeinfo_cast<SetupAreaMoveTriggerPopup*>(this) != nullptr;
+
+                if (isAreaTrigger) {
+                    plusBtn->setPosition({145, input->getPositionY() - m_buttonMenu->getPositionY()});
+                } else {
+                    setNextFreeButtonPosition(label, plusBtn);
+                }
             }
         });
 
@@ -254,6 +276,10 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
             } else {
                 nextFree = getNextFreeItemID(false);
             }
+        } else if (property == 446) {
+            nextFree = getNextFreeMaterialID();
+        } else if (property == 534) {
+            nextFree = getNextFreeControlID();
         } else {
             return;
         }
@@ -307,5 +333,20 @@ class $modify(SetupInteractObjectPopup) {
         for (auto button : ctx->getButtonsForProperty(80)) {
             button->setVisible(itemVisible);
         }
+    }
+};
+
+class $modify(SetupObjectOptions2Popup) {
+    bool init(GameObject* object, CCArray* objects) {
+        if (!SetupObjectOptions2Popup::init(object, objects)) return false;
+
+        // ok you can stay but you're on thin ice
+
+        setNextFreeButtonPosition(
+            m_mainLayer->getChildByType<CCLabelBMFont*>(1),
+            m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4)
+        );
+
+        return true;
     }
 };

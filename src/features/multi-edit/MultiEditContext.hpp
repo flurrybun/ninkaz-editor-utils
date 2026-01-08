@@ -35,6 +35,7 @@ private:
     CCNode* m_self;
     FLAlertLayer* m_alertLayer;
     CCNode* m_inputParent;
+    CCMenu* m_buttonMenu;
 
 protected:
     std::vector<CCMenuItem*> m_sideButtons;
@@ -64,8 +65,8 @@ protected:
     /**
      * Register this context in the global registry.
      */
-    void registerSelf(FLAlertLayer* self);
-    void registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent);
+    void registerSelf(FLAlertLayer* self, CCMenu* buttonMenu = nullptr);
+    void registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent, CCMenu* buttonMenu = nullptr);
 
     CCMenuItemSpriteExtra* createMixedButton(int property);
     void updateSideMenuButtons();
