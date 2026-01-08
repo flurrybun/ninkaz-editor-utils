@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Geode/modify/EditorUI.hpp>
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
@@ -18,78 +17,7 @@ struct SavedFilter {
     std::array<float, 8> filterValues;
     std::set<ZLayer> filterZLayers;
     std::array<hsvValue, 3> filterHSVs = {hsvValue(0, 1, 1), hsvValue(0, 1, 1), hsvValue(0, 1, 1)};
-};
-
-template <>
-struct matjson::Serialize<SavedFilter> {
-    static matjson::Value toJson(SavedFilter const& filter) {
-        matjson::Value obj;
-
-        obj["filter-values"] = matjson::Value::array();
-        for (auto value : filter.filterValues) {
-            obj["filter-values"].asArray().unwrap().push_back(value);
-        }
-
-        obj["filter-zlayers"] = matjson::Value::array();
-        for (auto zLayer : filter.filterZLayers) {
-            obj["filter-zlayers"].asArray().unwrap().push_back(static_cast<int>(zLayer));
-        }
-
-        obj["filter-hsvs"] = matjson::Value::array();
-        for (auto hsv : filter.filterHSVs) {
-            std::vector values = {hsv.h, hsv.s, hsv.v};
-            obj["filter-hsvs"].asArray().unwrap().push_back(values);
-        }
-
-        return obj;
-	}
-
-    static Result<SavedFilter> fromJson(matjson::Value const& value) {
-        SavedFilter filter;
-
-        GEODE_UNWRAP_INTO(auto filterValues, value["filter-values"].asArray());
-        for (int i = 0; i < filterValues.size(); i++) {
-            filter.filterValues[i] = GEODE_UNWRAP(filterValues[i].asDouble());
-        }
-
-        GEODE_UNWRAP_INTO(auto filterZLayers, value["filter-zlayers"].asArray());
-        for (auto zLayer : filterZLayers) {
-            filter.filterZLayers.insert(static_cast<ZLayer>(GEODE_UNWRAP(zLayer.asInt())));
-        }
-
-        GEODE_UNWRAP_INTO(auto filterHSVs, value["filter-hsvs"].asArray());
-        for (int i = 0; i < filterHSVs.size(); i++) {
-            auto hsv = GEODE_UNWRAP(filterHSVs[i].asArray());
-
-            float h = GEODE_UNWRAP(hsv[0].asDouble());
-            float s = GEODE_UNWRAP(hsv[1].asDouble());
-            float v = GEODE_UNWRAP(hsv[2].asDouble());
-            filter.filterHSVs[i] = hsvValue(h, s, v);
-        }
-
-        return Ok(filter);
-	}
-};
-
-class $modify(AFEditorUI, EditorUI) {
-    struct Fields {
-        bool isFilterActive = false;
-        std::array<float, 8> filterValues;
-        std::set<ZLayer> filterZLayers;
-        std::array<hsvValue, 3> filterHSVs = {hsvValue(0, 1, 1), hsvValue(0, 1, 1), hsvValue(0, 1, 1)};
-
-        Ref<CCSprite> activeSpr;
-        Ref<CCSprite> inactiveSpr;
-        Ref<CCMenuItemSpriteExtra> filterBtn;
-    };
-    
-    $override void selectObjects(CCArray*, bool);
-    $override bool canSelectObject(GameObject*);
-    bool shouldFilterObject(GameObject*);
-    $override bool init(LevelEditorLayer*);
-    CCSprite* createFilterSprite(bool);
-    void onFilter(CCObject*);
-    void onUpdateFilter();
+    bool isActive;
 };
 
 enum Filter {
@@ -112,7 +40,7 @@ enum ColorType {
 float getFilterValue(Filter filter);
 void setFilterValue(Filter filter, float value);
 std::set<ZLayer>& getFilterZLayers();
-hsvValue getFilterHSV(ColorType colorType);
+hsvValue& getFilterHSV(ColorType colorType);
 void setFilterHSV(ColorType colorType, hsvValue hsv);
 
 std::string getColorName(int);

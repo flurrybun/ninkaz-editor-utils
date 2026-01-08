@@ -1,206 +1,200 @@
+#include <Geode/modify/EditorUI.hpp>
 #include "AdvancedFilter.hpp"
 #include "../misc/StringUtils.hpp"
 #include "../misc/SpriteColor.hpp"
 
-void AFEditorUI::selectObjects(CCArray* objects, bool dontFilter) {
-    if (dontFilter) {
-        EditorUI::selectObjects(objects, dontFilter);
-        return;
-    }
+SavedFilter s_filter;
 
-    auto& filterValues = m_fields->filterValues;
-    auto& filterZLayers = m_fields->filterZLayers;
-    CCArrayExt<GameObject*> objectsToRemove;
-
-    for (auto object : CCArrayExt<GameObject*>(objects)) {
-        if (shouldFilterObject(object)) {
-            objectsToRemove.push_back(object);
-        }
-    }
-
-    for (auto object : objectsToRemove) {
-        objects->removeObject(object);
-    }
-
-    EditorUI::selectObjects(objects, dontFilter);
-}
-
-bool AFEditorUI::canSelectObject(GameObject* object) {
-    // the orig function doesn't use `this`, so the compiler passes garbage data into it. trying to use it results in a crash
-    // https://discord.com/channels/911701438269386882/979402752121765898/1330700928537460818
-
-    AFEditorUI* that = static_cast<AFEditorUI*>(EditorUI::get());
-
-    if (object && that->shouldFilterObject(object)) return false;
-    return EditorUI::canSelectObject(object);
-}
-
-bool AFEditorUI::shouldFilterObject(GameObject* object) {
-    // not sure if this optimization is necessary but it can't hurt
-    if (!m_fields->isFilterActive) return false;
-
-    auto& values = m_fields->filterValues;
-    auto& zLayers = m_fields->filterZLayers;
-    auto& hsvs = m_fields->filterHSVs;
-
-    // filter by group
-
-    if (values[Filter::GROUP] != 0) {
-        if (!object->m_groups || std::find(object->m_groups->begin(), object->m_groups->end(), values[Filter::GROUP]) == object->m_groups->end()) {
-            return true;
-        }
-    }
-
-    // filter by z order & z layer
-
-    int zOrder = object->m_zOrder != 0 ? object->m_zOrder : object->m_defaultZOrder;
-    ZLayer zLayer = object->m_zLayer != ZLayer::Default ? object->m_zLayer : object->m_defaultZLayer;
-
-    if (values[Filter::ZORDER] != 0 && zOrder != values[Filter::ZORDER]) return true;
-    if (!zLayers.empty() && !zLayers.contains(zLayer)) return true;
-
-    // filter by color
-
-    GJSpriteColor* baseColor = nk::getBaseSpriteColor(object);
-    GJSpriteColor* detailColor = nk::getDetailSpriteColor(object);
-
-    auto checkColor = [](GJSpriteColor* color, int colorID, hsvValue& hsv, bool isBoth) {
-        if (!color) {
-            if (colorID == 0 && hsv == hsvValue(0, 1, 1)) return false;
-            return true;
-        }
-
-        int objColorID = color->m_colorID != 0 ? color->m_colorID : color->m_defaultColorID;
-
-        if (colorID != 0 && colorID != objColorID) return true;
-        if (hsv.h != 0 && hsv.h != color->m_hsv.h) return true;
-        if (hsv.s != 1 && hsv.s != color->m_hsv.s) return true;
-        if (hsv.v != 1 && hsv.v != color->m_hsv.v) return true;
-        return false;
+class $modify(AFEditorUI, EditorUI) {
+    struct Fields {
+        Ref<CCSprite> activeSpr;
+        Ref<CCSprite> inactiveSpr;
+        Ref<CCMenuItemSpriteExtra> filterBtn;
     };
 
-    if (checkColor(baseColor, values[Filter::BASECOLOR], hsvs[ColorType::BASE], false)) return true;
-    if (checkColor(detailColor, values[Filter::DETAILCOLOR], hsvs[ColorType::DETAIL], false)) return true;
-    if (checkColor(baseColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true) &&
-        checkColor(detailColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true)) return true;
+    $override
+    bool init(LevelEditorLayer* lel) {
+        if (!EditorUI::init(lel)) return false;
 
-    // filter by scale
+        // modify ui
 
-    // only 2 decimal places are visible to the player but gd can store any value, so we need to account for that
-    const float tolerance = 0.01;
+        auto filterMenu = querySelector("delete-category-menu > delete-filter-menu");
 
-    if (values[Filter::SCALEX] != 0 && std::abs(object->m_scaleX - values[Filter::SCALEX]) > tolerance) return true;
-    if (values[Filter::SCALEY] != 0 && std::abs(object->m_scaleY - values[Filter::SCALEY]) > tolerance) return true;
-    if (values[Filter::SCALE] != 0) {
-        if (std::abs(object->m_scaleX - values[Filter::SCALE]) > tolerance || 
-            std::abs(object->m_scaleY - values[Filter::SCALE]) > tolerance) {
-            return true;
-        }
+        filterMenu->removeChildByID("delete-filter-group-id");
+        filterMenu->removeChildByID("delete-filter-color");
+        filterMenu->removeChildByID("delete-reset-search");
+
+        m_fields->activeSpr = createFilterSprite(true);
+        m_fields->inactiveSpr = createFilterSprite(false);
+        auto btn = CCMenuItemSpriteExtra::create(m_fields->inactiveSpr, this, menu_selector(AFEditorUI::onFilter));
+        btn->setID("delete-filter-advanced"_spr);
+        m_fields->filterBtn = btn;
+
+        filterMenu->insertAfter(btn, filterMenu->getChildByID("delete-find-group-id"));
+        filterMenu->updateLayout();
+
+        // reset group & color filters, since they're now inaccessible
+
+        GameManager::get()->setIntGameVariable("0133", 0);
+        GameManager::get()->setIntGameVariable("0139", 0);
+
+        onUpdateFilter();
+
+        return true;
     }
-
-    return false;
-}
-
-bool AFEditorUI::init(LevelEditorLayer* lel) {
-    if (!EditorUI::init(lel)) return false;
-
-    // modify ui
-
-    auto filterMenu = querySelector("delete-category-menu > delete-filter-menu");
-
-    filterMenu->removeChildByID("delete-filter-group-id");
-    filterMenu->removeChildByID("delete-filter-color");
-    filterMenu->removeChildByID("delete-reset-search");
-
-    m_fields->activeSpr = createFilterSprite(true);
-    m_fields->inactiveSpr = createFilterSprite(false);
-    auto btn = CCMenuItemSpriteExtra::create(m_fields->inactiveSpr, this, menu_selector(AFEditorUI::onFilter));
-    btn->setID("delete-filter-advanced"_spr);
-    m_fields->filterBtn = btn;
-
-    // i made a node ids pr that does this but i have little faith it'll get merged anytime soon,
-    // so i'm just going to do it myself for the time being. no other mod uses this menu, it's fine
-
-    if (auto layout = typeinfo_cast<AxisLayout*>(filterMenu->getLayout())) {
-        layout->setCrossAxisAlignment(AxisAlignment::End);
-    }
-
-    filterMenu->insertAfter(btn, filterMenu->getChildByID("delete-find-group-id"));
-    filterMenu->updateLayout();
-
-    // reset group & color filters, since they're now inaccessible
-    GameManager::get()->setIntGameVariable("0133", 0);
-    GameManager::get()->setIntGameVariable("0139", 0);
-
-    // load saved filter
-
-    auto savedFilter = Mod::get()->getSavedValue<SavedFilter>("adv-filter");
-    m_fields->filterValues = savedFilter.filterValues;
-    m_fields->filterZLayers = savedFilter.filterZLayers;
-    m_fields->filterHSVs = savedFilter.filterHSVs;
-
-    onUpdateFilter();
-
-    return true;
-}
-
-CCSprite* AFEditorUI::createFilterSprite(bool isActive) {
-    auto topSpr = CCSprite::createWithSpriteFrameName("filter-btn.png"_spr);
-    auto bgSpr = CCSprite::create(isActive ? "GJ_button_02.png" : "GJ_button_04.png");
     
-    bgSpr->addChild(topSpr);
-    topSpr->setPosition(bgSpr->getContentSize() / 2);
-    return bgSpr;
-}
+    $override
+    void selectObjects(CCArray* objects, bool dontFilter) {
+        if (dontFilter) {
+            EditorUI::selectObjects(objects, dontFilter);
+            return;
+        }
 
-void AFEditorUI::onFilter(CCObject* sender) {
-    auto popup = AdvFilterPopup::create();
-    popup->m_noElasticity = true;
+        CCArrayExt<GameObject*> objectsToRemove;
 
-    popup->show();
-}
+        for (auto object : CCArrayExt<GameObject*>(objects)) {
+            if (shouldFilterObject(object)) {
+                objectsToRemove.push_back(object);
+            }
+        }
 
-void AFEditorUI::onUpdateFilter() {
-    bool hasFilter = std::any_of(m_fields->filterValues.begin(), m_fields->filterValues.end(), [](float value) {
-        return value != 0;
-    });
+        for (auto object : objectsToRemove) {
+            objects->removeObject(object);
+        }
 
-    hasFilter = hasFilter || !m_fields->filterZLayers.empty();
+        EditorUI::selectObjects(objects, dontFilter);
+    }
 
-    hasFilter = hasFilter || std::any_of(m_fields->filterHSVs.begin(), m_fields->filterHSVs.end(), [](hsvValue hsv) {
-        return hsv != hsvValue(0, 1, 1);
-    });
+    $override
+    bool canSelectObject(GameObject* object) {
+        // the orig function doesn't use `this`, so the compiler passes garbage data into it. trying to use it results in a crash
+        // https://discord.com/channels/911701438269386882/979402752121765898/1330700928537460818
 
-    m_fields->filterBtn->setSprite(hasFilter ? m_fields->activeSpr : m_fields->inactiveSpr);
-    m_fields->isFilterActive = hasFilter;
+        AFEditorUI* that = static_cast<AFEditorUI*>(EditorUI::get());
 
-    SavedFilter filter;
-    filter.filterValues = m_fields->filterValues;
-    filter.filterZLayers = m_fields->filterZLayers;
-    filter.filterHSVs = m_fields->filterHSVs;
+        if (object && that->shouldFilterObject(object)) return false;
+        return EditorUI::canSelectObject(object);
+    }
 
-    Mod::get()->setSavedValue("adv-filter", filter);
-}
+    bool shouldFilterObject(GameObject* object) {
+        if (!s_filter.isActive) return false;
 
+        auto& values = s_filter.filterValues;
+        auto& zLayers = s_filter.filterZLayers;
+        auto& hsvs = s_filter.filterHSVs;
+
+        // filter by group
+
+        if (values[Filter::GROUP] != 0) {
+            if (!object->m_groups || std::find(object->m_groups->begin(), object->m_groups->end(), values[Filter::GROUP]) == object->m_groups->end()) {
+                return true;
+            }
+        }
+
+        // filter by z order & z layer
+
+        int zOrder = object->m_zOrder != 0 ? object->m_zOrder : object->m_defaultZOrder;
+        ZLayer zLayer = object->m_zLayer != ZLayer::Default ? object->m_zLayer : object->m_defaultZLayer;
+
+        if (values[Filter::ZORDER] != 0 && zOrder != values[Filter::ZORDER]) return true;
+        if (!zLayers.empty() && !zLayers.contains(zLayer)) return true;
+
+        // filter by color
+
+        GJSpriteColor* baseColor = nk::getBaseSpriteColor(object);
+        GJSpriteColor* detailColor = nk::getDetailSpriteColor(object);
+
+        auto checkColor = [](GJSpriteColor* color, int colorID, hsvValue& hsv, bool isBoth) {
+            if (!color) {
+                if (colorID == 0 && hsv == hsvValue(0, 1, 1)) return false;
+                return true;
+            }
+
+            int objColorID = color->m_colorID != 0 ? color->m_colorID : color->m_defaultColorID;
+
+            if (colorID != 0 && colorID != objColorID) return true;
+            if (hsv.h != 0 && hsv.h != color->m_hsv.h) return true;
+            if (hsv.s != 1 && hsv.s != color->m_hsv.s) return true;
+            if (hsv.v != 1 && hsv.v != color->m_hsv.v) return true;
+            return false;
+        };
+
+        if (checkColor(baseColor, values[Filter::BASECOLOR], hsvs[ColorType::BASE], false)) return true;
+        if (checkColor(detailColor, values[Filter::DETAILCOLOR], hsvs[ColorType::DETAIL], false)) return true;
+        if (checkColor(baseColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true) &&
+            checkColor(detailColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true)) return true;
+
+        // filter by scale
+
+        // only 2 decimal places are visible to the player but gd can store any value, so we need to account for that
+        const float tolerance = 0.01;
+
+        if (values[Filter::SCALEX] != 0 && std::abs(object->m_scaleX - values[Filter::SCALEX]) > tolerance) return true;
+        if (values[Filter::SCALEY] != 0 && std::abs(object->m_scaleY - values[Filter::SCALEY]) > tolerance) return true;
+        if (values[Filter::SCALE] != 0) {
+            if (std::abs(object->m_scaleX - values[Filter::SCALE]) > tolerance || 
+                std::abs(object->m_scaleY - values[Filter::SCALE]) > tolerance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    CCSprite* createFilterSprite(bool isActive) {
+        auto topSpr = CCSprite::createWithSpriteFrameName("filter-btn.png"_spr);
+        auto bgSpr = CCSprite::create(isActive ? "GJ_button_02.png" : "GJ_button_04.png");
+        
+        bgSpr->addChild(topSpr);
+        topSpr->setPosition(bgSpr->getContentSize() / 2);
+        return bgSpr;
+    }
+
+    void onFilter(CCObject* sender) {
+        auto popup = AdvFilterPopup::create();
+        popup->m_noElasticity = true;
+
+        popup->show();
+    }
+
+    void onUpdateFilter() {
+        auto& values = s_filter.filterValues;
+        auto& zLayers = s_filter.filterZLayers;
+        auto& hsvs = s_filter.filterHSVs;
+
+        bool hasFilter = std::any_of(values.begin(), values.end(), [](float value) {
+            return value != 0;
+        });
+
+        hasFilter = hasFilter || !zLayers.empty();
+
+        hasFilter = hasFilter || std::any_of(hsvs.begin(), hsvs.end(), [](hsvValue hsv) {
+            return hsv != hsvValue(0, 1, 1);
+        });
+
+        m_fields->filterBtn->setSprite(hasFilter ? m_fields->activeSpr : m_fields->inactiveSpr);
+        s_filter.isActive = hasFilter;
+    }
+};
 
 float getFilterValue(Filter filter) {
-    return static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterValues[filter];
+    return s_filter.filterValues[filter];
 }
 
 void setFilterValue(Filter filter, float value) {
-    static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterValues[filter] = value;
+    s_filter.filterValues[filter] = value;
 }
 
 std::set<ZLayer>& getFilterZLayers() {
-    return static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterZLayers;
+    return s_filter.filterZLayers;
 }
 
-hsvValue getFilterHSV(ColorType colorType) {
-    return static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterHSVs[colorType];
+hsvValue& getFilterHSV(ColorType colorType) {
+    return s_filter.filterHSVs[colorType];
 }
 
 void setFilterHSV(ColorType colorType, hsvValue hsv) {
-    static_cast<AFEditorUI*>(EditorUI::get())->m_fields->filterHSVs[colorType] = hsv;
+    s_filter.filterHSVs[colorType] = hsv;
 }
 
 std::string getColorName(int colorID) {
