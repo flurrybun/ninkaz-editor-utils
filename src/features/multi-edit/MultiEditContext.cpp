@@ -111,38 +111,8 @@ void MultiEditContext::makeMixed(int property) {
         btn->setVisible(input->isVisible());
     }
 
-    auto group = ranges::find(CCArrayExt<CCArray*>(m_groups), [input](const auto& group) {
-        return ranges::find(CCArrayExt<CCNode*>(group), [input](CCNode* node) {
-            return node == input;
-        }).has_value();
-    });
-
-    if (group) {
-        static_cast<CCArray*>(*group)->addObject(btn);
-    }
-
-    if (auto particlePopup = typeinfo_cast<CreateParticlePopup*>(m_alertLayer)) {
-        for (size_t i = 0; i < particlePopup->m_inputDicts->count(); i++) {
-            CCDictionary* inputDict = static_cast<CCDictionary*>(particlePopup->m_inputDicts->objectAtIndex(i + 1));
-            if (!inputDict) continue;
-
-            auto dictInput = inputDict->objectForKey(property);
-            if (!dictInput || dictInput != input) continue;
-
-            static_cast<CCArray*>(m_pages->objectAtIndex(i))->addObject(btn);
-            break;
-        }
-    } else {
-        auto page = ranges::find(CCArrayExt<CCArray*>(m_pages), [input](const auto& page) {
-            return ranges::find(CCArrayExt<CCNode*>(page), [input](CCNode* node) {
-                return node == input;
-            }).has_value();
-        });
-
-        if (page) {
-            static_cast<CCArray*>(*page)->addObject(btn);
-        }
-    }
+    addToGroup(btn, input);
+    addToPage(btn, input);
 
     m_mixedButtons[property] = btn;
 
@@ -341,6 +311,46 @@ CCLabelBMFont* MultiEditContext::getInputLabel(int property) {
 CCMenuItemSpriteExtra* MultiEditContext::getMixedButton(int property) {
     if (m_mixedButtons.find(property) == m_mixedButtons.end()) return nullptr;
     return m_mixedButtons[property];
+}
+
+void MultiEditContext::addToGroup(CCNode* node, CCNode* nodeInGroup) {
+    for (size_t i = 0; i < m_groups->count(); i++) {
+        CCArray* group = static_cast<CCArray*>(m_groups->objectAtIndex(i));
+
+        if (group->containsObject(nodeInGroup)) {
+            group->addObject(node);
+            break;
+        }
+    }
+}
+
+void MultiEditContext::addToPage(CCNode* node, CCNode* nodeInPage) {
+    if (auto particlePopup = typeinfo_cast<CreateParticlePopup*>(m_alertLayer)) {
+        for (size_t i = 0; i < particlePopup->m_inputDicts->count(); i++) {
+            CCDictionary* inputDict = static_cast<CCDictionary*>(particlePopup->m_inputDicts->objectAtIndex(i + 1));
+            if (!inputDict) continue;
+
+            int property = MultiEditContext::getPropertyID(nodeInPage).value_or(-1);
+            if (property == -1) continue;
+
+            auto dictInput = inputDict->objectForKey(property);
+            if (!dictInput || dictInput != nodeInPage) continue;
+
+            static_cast<CCArray*>(m_pages->objectAtIndex(i))->addObject(node);
+            break;
+        }
+
+        return;
+    }
+
+    for (size_t i = 0; i < m_pages->count(); i++) {
+        CCArray* page = static_cast<CCArray*>(m_pages->objectAtIndex(i));
+
+        if (page->containsObject(nodeInPage)) {
+            page->addObject(node);
+            break;
+        }
+    }
 }
 
 std::optional<int> MultiEditContext::getPropertyID(CCNode* node) {

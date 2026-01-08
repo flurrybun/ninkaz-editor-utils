@@ -208,19 +208,8 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 plusBtn->setTag(property);
                 plusBtn->setID("next-free-btn"_spr);
 
-                for (const auto& group : CCArrayExt<CCArray>(m_groupContainers)) {
-                    if (group->containsObject(input)) continue;
-
-                    group->addObject(plusBtn);
-                    break;
-                }
-
-                for (const auto& page : CCArrayExt<CCArray>(m_pageContainers)) {
-                    if (!page->containsObject(input)) continue;
-
-                    page->addObject(plusBtn);
-                    break;
-                }
+                ctx->addToGroup(plusBtn, input);
+                ctx->addToPage(plusBtn, input);
 
                 m_buttonMenu->addChild(plusBtn);
                 plusBtn->setVisible(label->isVisible());
@@ -312,27 +301,6 @@ class $modify(SetupInteractObjectPopup) {
         m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4)->removeFromParent();
 
         return true;
-    }
-
-    $override
-    void updateItems() {
-        SetupInteractObjectPopup::updateItems();
-
-        // yet another popup that doesn't use robtop's group and page system
-
-        auto ctx = MultiEditContext::get(this);
-        if (!ctx) return;
-
-        bool groupVisible =  ctx->getInputLabel(51)->isVisible();
-        bool itemVisible = ctx->getInputLabel(80)->isVisible();
-
-        for (auto button : ctx->getButtonsForProperty(51)) {
-            button->setVisible(groupVisible);
-        }
-
-        for (auto button : ctx->getButtonsForProperty(80)) {
-            button->setVisible(itemVisible);
-        }
     }
 };
 

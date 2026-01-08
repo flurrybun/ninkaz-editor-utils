@@ -162,6 +162,9 @@ public:
     void setGroups(CCArray* groups) { m_groups = groups; }
     void setPages(CCArray* pages) { m_pages = pages; }
 
+    void addToGroup(CCNode* node, CCNode* nodeInGroup);
+    void addToPage(CCNode* node, CCNode* nodeInPage);
+
     static std::optional<int> getPropertyID(CCNode* node);
     static void setInputValue(CCTextInputNode* input, float value, int decimalPlaces);
     static void setSliderValue(Slider* slider, float value, float min, float max);
