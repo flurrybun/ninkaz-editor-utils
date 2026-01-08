@@ -547,6 +547,7 @@ class $modify(SetupOpacityPopup) {
         m_fadeTimeSlider->m_delegate = this;
         m_opacitySlider->m_delegate = this;
 
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 10);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 35);
 
@@ -564,7 +565,7 @@ class $modify(SetupOpacityPopup) {
 
 #include <Geode/modify/GJFollowCommandLayer.hpp>
 
-class $modify(MEGJFollowCommandLayer, GJFollowCommandLayer) {
+class $modify(GJFollowCommandLayer) {
     bool init(EffectGameObject* obj, CCArray* objs) {
         if (!GJFollowCommandLayer::init(obj, objs)) return false;
 
@@ -609,6 +610,8 @@ class $modify(MEGJFollowCommandLayer, GJFollowCommandLayer) {
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 72);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 73);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(7), 51);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(8), 71);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
@@ -640,6 +643,10 @@ class $modify(SetupCollisionTriggerPopup) {
         m_blockAInput->setMaxLabelWidth(40);
         m_blockBInput->setMaxLabelWidth(40);
         m_targetIDInput->setMaxLabelWidth(40);
+
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 95);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
@@ -762,6 +769,8 @@ class $modify(MESetupTouchTogglePopup, SetupTouchTogglePopup) {
 
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
 
+        ctx->addInputLabel(this->getChildByType<CCLabelBMFont*>(1), 51);
+
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
 
@@ -804,6 +813,10 @@ class $modify(SetupCountTriggerPopup) {
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
 
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 77);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
+
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 77);
@@ -835,6 +848,10 @@ class $modify(SetupInstantCountPopup) {
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
+
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 77);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
@@ -877,6 +894,8 @@ class $modify(MESetupRandTriggerPopup, SetupRandTriggerPopup) {
         ctx->addSlider(m_chanceSlider, 10);
         m_chanceSlider->m_delegate = this;
 
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 71);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 10);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
@@ -949,6 +968,7 @@ class $modify(SetupCameraEdgePopup) {
         ctx->addInput(m_targetIDInput, 51);
         m_targetIDInput->setMaxLabelWidth(40);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
 
         ctx->setupMixed();
 
