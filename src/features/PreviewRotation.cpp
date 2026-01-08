@@ -1,5 +1,6 @@
 #include <Geode/modify/SetupRotatePopup.hpp>
 #include "multi-edit/MultiEditContext.hpp"
+#include "../misc/SpriteColor.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -47,8 +48,8 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
             m_fields->m_defaultRotationSpeed = obj->m_rotationAngle;
             if (rand() % 2 == 0) m_fields->m_defaultRotationSpeed *= -1;
 
-            normalizeSpriteColor(obj->m_baseColor);
-            normalizeSpriteColor(obj->m_detailColor);
+            nk::normalizeSpriteColor(obj->m_baseColor);
+            nk::normalizeSpriteColor(obj->m_detailColor);
         }
 
         LevelEditorLayer::get()->updateObjectColors(previewObjs);
@@ -240,17 +241,6 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
         }
     
         return mostCommonID;
-    }
-
-    void normalizeSpriteColor(GJSpriteColor* color) {
-        if (!color) return;
-
-        switch (color->m_defaultColorID) {
-            case 1005: // P1
-            case 1006: // P2
-            case 1007: // LBG
-                color->m_colorID = 1011; // set to white
-        }
     }
 
     CCMenuItemToggler* getToggler(RotateAction action) {

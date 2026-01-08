@@ -6,4 +6,5 @@
 namespace nk {
     GJSpriteColor* getBaseSpriteColor(GameObject* object);
     GJSpriteColor* getDetailSpriteColor(GameObject* object);
+    void normalizeSpriteColor(GJSpriteColor* color);
 }

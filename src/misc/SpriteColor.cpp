@@ -41,3 +41,14 @@ GJSpriteColor* nk::getDetailSpriteColor(GameObject* object) {
 
     return detailColor;
 }
+
+void nk::normalizeSpriteColor(GJSpriteColor* color) {
+    if (!color) return;
+
+    switch (color->m_defaultColorID) {
+        case 1005: // P1
+        case 1006: // P2
+        case 1007: // LBG
+            color->m_colorID = 1011; // set to white
+    }
+}

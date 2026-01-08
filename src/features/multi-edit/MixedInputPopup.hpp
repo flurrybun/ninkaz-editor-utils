@@ -59,6 +59,7 @@ protected:
     CCMenu* createTopRow();
     CCMenu* createBottomRow();
     void createScrollLayer(bool);
+    CCSprite* spriteFromObject(GameObject*);
 
     void onOperator(CCObject*);
     void onDirection(CCObject*);

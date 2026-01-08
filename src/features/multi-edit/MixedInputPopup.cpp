@@ -2,6 +2,7 @@
 #include "MixedInputSettingsPopup.hpp"
 #include "MultiEditContext.hpp"
 #include "../../misc/StringUtils.hpp"
+#include "../../misc/SpriteColor.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -369,21 +370,18 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         triggerLayout->setContentWidth(112);
         triggerLayout->setScale(0.7);
 
-        std::map<int, std::pair<CCSpriteFrame*, int>> triggerCounts;
+        std::map<int, std::pair<CCSprite*, int>> triggerCounts;
         for (const auto& trigger : triggers) {
             auto count = triggerCounts[trigger->m_objectID].second;
-            triggerCounts[trigger->m_objectID] = {trigger->displayFrame(), count + 1};
+            triggerCounts[trigger->m_objectID] = {spriteFromObject(trigger), count + 1};
         }
 
         for (const auto& [id, pair] : triggerCounts) {
-            auto [frameName, count] = pair;
-
-            auto spr = CCSprite::createWithSpriteFrame(frameName);
+            auto [spr, count] = pair;
 
             if (count > 1) {
-                auto text = std::to_string(count) + "x";
-
-                auto label = CCLabelBMFont::create(text.c_str(), "bigFont.fnt");
+                auto str = std::to_string(count);
+                auto label = CCLabelBMFont::create(str.c_str(), "bigFont.fnt");
                 label->setPosition({spr->getContentWidth() / 2 + 8, -2});
                 label->setScale(0.6f);
                 label->setAnchorPoint({0.5, 0});
@@ -464,6 +462,23 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
     
     m_mainLayer->addChild(list);
     m_list = list;
+}
+
+CCSprite* MixedInputPopup::spriteFromObject(GameObject* object) {
+    std::string str = fmt::format("1,{},2,0,3,0;", object->m_objectID);
+    CCArray* objects = CCArray::create();
+
+    CCSprite* spr = EditorUI::get()->spriteFromObjectString(str, false, true, 1, objects, nullptr, nullptr);
+
+    if (auto obj = static_cast<GameObject*>(objects->firstObject())) {
+        obj->setZOrder(-1);
+        nk::normalizeSpriteColor(obj->m_baseColor);
+        nk::normalizeSpriteColor(obj->m_detailColor);
+    }
+
+    LevelEditorLayer::get()->updateObjectColors(objects);
+    spr->setContentHeight(30);
+    return spr;
 }
 
 void MixedInputPopup::onOperator(CCObject* sender) {
