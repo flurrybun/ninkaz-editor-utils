@@ -379,16 +379,21 @@ void MixedInputPopup::createScrollLayer(bool isInit) {
         for (const auto& [id, pair] : triggerCounts) {
             auto [spr, count] = pair;
 
+            CCNode* container = CCNode::create();
+            container->setContentSize({30, 30});
+            container->addChildAtPosition(spr, Anchor::Center);
+            spr->setScale(spr->getContentWidth() > 30 ? 30.f / spr->getContentWidth() : 1.f);
+
             if (count > 1) {
                 auto str = std::to_string(count);
                 auto label = CCLabelBMFont::create(str.c_str(), "bigFont.fnt");
-                label->setPosition({spr->getContentWidth() / 2 + 8, -2});
-                label->setScale(0.6f);
+                label->setScale(0.5f);
                 label->setAnchorPoint({0.5, 0});
 
-                spr->addChild(label);
+                container->addChildAtPosition(label, Anchor::BottomRight, {-3, -3});
             }
-            triggerLayout->addChild(spr);
+
+            triggerLayout->addChild(container);
         }
 
         rowMenu->addChild(triggerLayout);
@@ -477,7 +482,6 @@ CCSprite* MixedInputPopup::spriteFromObject(GameObject* object) {
     }
 
     LevelEditorLayer::get()->updateObjectColors(objects);
-    spr->setContentHeight(30);
     return spr;
 }
 
