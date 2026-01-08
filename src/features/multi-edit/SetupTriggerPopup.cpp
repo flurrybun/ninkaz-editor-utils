@@ -548,7 +548,7 @@ class $modify(SetupOpacityPopup) {
         m_opacitySlider->m_delegate = this;
 
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 10);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 35);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 35);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
