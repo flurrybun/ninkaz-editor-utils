@@ -278,26 +278,31 @@ void MultiEditContext::addSideMenuButton(CCMenuItem* button) {
 }
 
 void MultiEditContext::addInput(CCTextInputNode* input, int property) {
+    if (!input) return;
     input->setUserObject("property"_spr, CCInteger::create(property));
     m_inputs[property] = input;
 }
 
 void MultiEditContext::addSlider(Slider* slider, int property) {
+    if (!slider) return;
     slider->setUserObject("property"_spr, CCInteger::create(property));
     m_sliders[property] = slider;
 }
 
 void MultiEditContext::addButton(CCMenuItem* button, int property) {
+    if (!button) return;
     button->setUserObject("property"_spr, CCInteger::create(property));
     m_buttons[property].push_back(button);
 }
 
 void MultiEditContext::addInputBG(CCScale9Sprite* bg, int property) {
+    if (!bg) return;
     bg->setUserObject("property"_spr, CCInteger::create(property));
     m_inputBGs[property] = bg;
 }
 
 void MultiEditContext::addInputLabel(CCLabelBMFont* label, int property) {
+    if (!label) return;
     label->setUserObject("property"_spr, CCInteger::create(property));
     m_inputLabels[property] = label;
 }
