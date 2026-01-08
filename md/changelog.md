@@ -1,7 +1,25 @@
+### 1.5.0 (1/8/2026)
+
+- Added **select all button** to Advanced Filter
+- Added **next free collision block, item, timer, control, and material ID** buttons
+- Added **next free buttons** to trigger menus which previously lacked them, such as alpha and collision
+- Fixed **Saw Rotation Preview** displaying incorrectly on non-16:9 aspect ratios
+- Fixed **HSV sometimes showing as NaN**
+- Fixed **softlock with multi-edit** in advanced follow
+- Fixed multi-edit not setting **several inputs** in advanced follow
+- Fixed multi-edit not setting **copy color ID inputs**
+- Fixed quick paste button **overriding the last used preset**
+- Fixed **objects being unselectable** after pasting position state
+- Fixed **visual errors** after pasting editor layer state
+- Fixed **object editor layer updating** after pasting object ID state
+- Fixed **incorrect label shown** when using the opacity slider with Hide UI enabled in alpha trigger
+
+Additionally, multi-edit was rewritten from scratch yet again because the first rewrite wasn't very good whoops.
+
 ### 1.4.0 (6/29/2025)
 
 - Added **Saw Rotation Preview**
-- Added fix for vanilla gd bug where touch, count, instant count, random, camera zoom, camera offset, camera edge, and on death trigger menus **only support one trigger**
+- Added fix for vanilla bug where touch, count, instant count, random, camera zoom, camera offset, camera edge, and on death trigger menus **only support one trigger**
 - Added setting to **change the hide trigger UI key**, since AZERTY keyboard layouts use shift for number keys
 - Bumped Geode version to support **JIT-less iOS**
 - Fixed multi-edit HSV **incorrectly showing mixed state** when there is none
