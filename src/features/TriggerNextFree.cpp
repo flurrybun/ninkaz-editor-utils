@@ -200,6 +200,8 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 if (labelStr == "Target Group ID:") label->setString("Target Group:");
                 else if (labelStr == "Center Group ID:") label->setString("Center Group:");
                 else if (labelStr == "TargetPos Group ID:") label->setString("TargetPos Group:");
+                else if (labelStr == "Target\nGroup ID") label->setString("Target\nGroup");
+                else if (labelStr == "Follow\nGroup ID") label->setString("Follow\nGroup");
 
                 auto plusSpr = CCSprite::createWithSpriteFrameName("GJ_plus2Btn_001.png");
                 plusSpr->setScale(0.8);
