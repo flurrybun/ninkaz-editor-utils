@@ -224,7 +224,8 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 plusBtn->setVisible(label->isVisible());
                 ctx->addButton(plusBtn, property);
 
-                bool isAreaTrigger = typeinfo_cast<SetupAreaMoveTriggerPopup*>(this) != nullptr;
+                bool isAreaTrigger = typeinfo_cast<SetupAreaMoveTriggerPopup*>(this) != nullptr
+                    && typeinfo_cast<SetupAreaAnimTriggerPopup*>(this) == nullptr;
 
                 if (isAreaTrigger) {
                     plusBtn->setPosition({145, input->getPositionY() - m_buttonMenu->getPositionY()});
