@@ -7,6 +7,16 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+enum class PropertyType {
+    GroupID,
+    ItemID,
+    BlockID,
+    TimerID,
+    ControlID,
+    MaterialID,
+    Other
+};
+
 int getNextFreeID(const std::set<short>& ids) {
     short expected = 0;
 
@@ -182,10 +192,7 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
 
         queueInMainThread([this, ctx]() {
             for (auto [property, input] : ctx->getInputs()) {
-                if (
-                    property != 51 && property != 71 && property != 80 && property != 95 &&
-                    property != 446 && property != 534
-                ) continue;
+                if (getPropertyType(property) == PropertyType::Other) continue;
 
                 CCLabelBMFont* label = ctx->getInputLabel(property);
                 if (!label) continue;
@@ -241,42 +248,76 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
         auto lel = LevelEditorLayer::get();
         int nextFree;
 
+        switch (getPropertyType(property)) {
+            case PropertyType::GroupID:
+                nextFree = getNextFreeGroupID();
+                break;
+            case PropertyType::ItemID:
+                nextFree = getNextFreeItemID(false);
+                break;
+            case PropertyType::TimerID:
+                nextFree = getNextFreeItemID(true);
+                break;
+            case PropertyType::BlockID:
+                nextFree = lel->getNextFreeBlockID(nullptr);
+                break;
+            case PropertyType::ControlID:
+                nextFree = getNextFreeControlID();
+                break;
+            case PropertyType::MaterialID:
+                nextFree = getNextFreeMaterialID();
+                break;
+            case PropertyType::Other:
+                return;
+        }
+
+        input->setString(fmt::format("{}", nextFree).c_str());
+        input->m_delegate->textChanged(input);
+    }
+
+    PropertyType getPropertyType(int property) {
         EffectGameObject* trigger = m_gameObject
             ? static_cast<EffectGameObject*>(m_gameObject)
             : static_cast<EffectGameObject*>(m_gameObjects->firstObject());
-
-        if (property == 51) {
-            bool targetControlID = m_gameObject
-                ? static_cast<EffectGameObject*>(m_gameObject)->m_targetControlID
-                : static_cast<EffectGameObject*>(m_gameObjects->firstObject())->m_targetControlID;
-
-            if (targetControlID) {
-                nextFree = getNextFreeControlID();
-            } else {
-                nextFree = getNextFreeGroupID();
-            }
-        } else if (property == 71) {
-            nextFree = getNextFreeGroupID();
-        } else if (property == 80 || property == 95) {
-            // item id, collision block id, and timer id all use the same property id
-
-            if (usesBlockID(trigger)) {
-                nextFree = lel->getNextFreeBlockID(nullptr);
-            } else if (usesTimerID(trigger)) {
-                nextFree = getNextFreeItemID(true);
-            } else {
-                nextFree = getNextFreeItemID(false);
-            }
-        } else if (property == 446) {
-            nextFree = getNextFreeMaterialID();
-        } else if (property == 534) {
-            nextFree = getNextFreeControlID();
-        } else {
-            return;
+        
+        if (trigger->m_classType != GameObjectClassType::Effect) {
+            trigger = nullptr;
         }
 
-        input->setString(std::to_string(nextFree));
-        input->m_delegate->textChanged(input);
+        switch (property) {
+            case 51:
+                if (trigger && trigger->m_targetControlID) {
+                    return PropertyType::ControlID;
+                } else {
+                    return PropertyType::GroupID;
+                }
+            case 71:
+            case 395:
+            case 516:
+            case 517:
+            case 518:
+            case 519:
+            case 457:
+            case 448:
+                return PropertyType::GroupID;
+            case 80:
+            case 95:
+                if (!trigger) return PropertyType::ItemID;
+
+                if (usesBlockID(trigger)) {
+                    return PropertyType::BlockID;
+                } else if (usesTimerID(trigger)) {
+                    return PropertyType::TimerID;
+                } else {
+                    return PropertyType::ItemID;
+                }
+            case 446:
+                return PropertyType::MaterialID;
+            case 534:
+                return PropertyType::ControlID;
+            default:
+                return PropertyType::Other;
+        }
     }
 };
 
