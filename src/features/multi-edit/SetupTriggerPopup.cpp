@@ -17,22 +17,30 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         float getProperty(GameObject* object, int property) override { 
-            if (property == 97) {
-                if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
-                    return ego->m_rotationSpeed;
-                }
+            if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) {
+                return static_cast<EnhancedGameObject*>(object)->m_rotationSpeed;
             }
 
             // these properties aren't supported by SetupTriggerPopup::getTriggerValue
 
-            if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
-                if (property == 45) return trigger->m_fadeInDuration;
-                if (property == 46) return trigger->m_holdDuration;
-                if (property == 47) return trigger->m_fadeOutDuration;
-                if (property == 50) return trigger->m_copyColorID;
-                if (property == 72) return trigger->m_followXMod;
-                if (property == 73) return trigger->m_followYMod;
-                if (property == 23) return trigger->m_targetColor;
+            if (object->m_classType == GameObjectClassType::Effect) {
+                auto trigger = static_cast<EffectGameObject*>(object);
+
+                switch (property) {
+                    case 45: return trigger->m_fadeInDuration;
+                    case 46: return trigger->m_holdDuration;
+                    case 47: return trigger->m_fadeOutDuration;
+                    case 50: return trigger->m_copyColorID;
+                    case 72: return trigger->m_followXMod;
+                    case 73: return trigger->m_followYMod;
+                    case 23: return trigger->m_targetColor;
+                    case 75: return trigger->m_shakeStrength;
+                    case 84: return trigger->m_shakeInterval;
+                    case 90: return trigger->m_followYSpeed;
+                    case 91: return trigger->m_followYDelay;
+                    case 92: return trigger->m_followYOffset;
+                    case 105: return trigger->m_followYMaxSpeed;
+                }
             }
 
             float value = popup->getTriggerValue(property, object);
@@ -57,18 +65,36 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
             }
 
             // these properties aren't supported by SetupTriggerPopup::updateValue
-            // i'm pretty sure...it's been a while
 
             if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
-                if (property == 72) {
-                    trigger->m_followXMod = newValue;
-                    return;
-                } else if (property == 73) {
-                    trigger->m_followYMod = newValue;
-                    return;
-                } else if (property == 50) {
-                    trigger->m_copyColorID = newValue;
-                    return;
+                switch (property) {
+                    case 50:
+                        trigger->m_copyColorID = newValue;
+                        return;
+                    case 72:
+                        trigger->m_followXMod = newValue;
+                        return;
+                    case 73:
+                        trigger->m_followYMod = newValue;
+                        return;
+                    case 75:
+                        trigger->m_shakeStrength = newValue;
+                        return;
+                    case 84:
+                        trigger->m_shakeInterval = newValue;
+                        return;
+                    case 90:
+                        trigger->m_followYSpeed = newValue;
+                        return;
+                    case 91:
+                        trigger->m_followYDelay = newValue;
+                        return;
+                    case 92:
+                        trigger->m_followYOffset = newValue;
+                        return;
+                    case 105:
+                        trigger->m_followYMaxSpeed = newValue;
+                        return;
                 }
             }
 
@@ -121,7 +147,10 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 1268: return in({51, 63, 556}); //removed: -1, -2
                 case 2067: return in({150, 151, 10, 71, 51});
                 case 1347: return in({10, 72, 73, 51, 71}); // added manually
+                case 1520: return in({10, 75, 84}); // added manually
+                case 1585: return in({51, 76}); // added manually
                 case 3033: return in({76, 51, 71, 520, 521, 545, 522, 523, 546});
+                case 1814: return in({10, 90, 91, 92, 105, 51}); // added manually
                 case 1346: return in({68, 69, 401, 402, 10, 403, 51, 71, 516, 518, 517, 519});
                 case 3016: return in({51, 71, 365, 340, 363, 364, 292, 293, 298, 299, 308, 309, 366, 361, 362, 300, 301, 560, 563, 564, 565, 334, 335, 558, 559, 359, 360, 561, 562, 357, 358, 316, 317, 318, 319, 322, 323, 320, 321, 338, 324, 325, 359, 360, 326, 327, 328, 329, 330, 331, 332, 333});
                 case 3660: return in({51, 566, 567, 568, 569, 300, 301, 560, 563, 564, 565});
@@ -218,18 +247,17 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         int getPropertyDecimalPlaces(int property) override {
-            if (property == 2000 || property == 2003) return 0;
-            if (property >= 2000 && property <= 2005) return 2;
+            // this is by no means comprehensive, i'm sure i'm missing some
 
-            // im sure im missing some obscure properties but oh well
             int fourDecimalPlaces[] = {63, 556};
-            int threeDecimalPlaces[] = {143, 144, 150, 151, 90, 91, 479, 483, 484, 371, 175, 176, 180, 179, 181,
+            int threeDecimalPlaces[] = {143, 144, 150, 151, 90, 479, 483, 484, 371, 175, 176, 180, 179, 181,
                 182, 177, 512, 290, 291, 183, 191};
             int twoDecimalPlaces[] = {10, 35, 45, 46, 47, 402, 68, 72, 73, 75, 84, 520, 521, 545, 522, 523, 546, 
                 292, 293, 298, 299, 361, 362, 300, 301, 334, 335, 558, 559, 359, 360, 561, 562, 357, 358,
                 316, 317, 318, 319, 322, 323, 320, 321, 324, 325, 326, 327, 330, 331, 332, 333, 566, 567,
                 568, 569, 300, 301, 557, 288, 243, 249, 263, 264, 282, 467, 473, 470, 437, 438, 554, 555,
-                213, 454, 406, 434, 421, 422, 423, 598};
+                213, 454, 406, 434, 421, 422, 423, 598, 91};
+            int oneDecimalPlace[] = {105}; // lol
 
             if (std::find(std::begin(fourDecimalPlaces), std::end(fourDecimalPlaces), property)
                 != std::end(fourDecimalPlaces)) return 4;
@@ -237,6 +265,8 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 != std::end(threeDecimalPlaces)) return 3;
             if (std::find(std::begin(twoDecimalPlaces), std::end(twoDecimalPlaces), property)
                 != std::end(twoDecimalPlaces)) return 2;
+            if (std::find(std::begin(oneDecimalPlace), std::end(oneDecimalPlace), property)
+                != std::end(oneDecimalPlace)) return 1;
 
             return 0;
         }
@@ -969,6 +999,120 @@ class $modify(SetupCameraEdgePopup) {
         m_targetIDInput->setMaxLabelWidth(40);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
         ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
+
+        ctx->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupShakePopup.hpp>
+
+class $modify(SetupShakePopup) {
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupShakePopup::init(obj, objs)) return false;
+
+        auto ctx = getMultiEditContext(this);
+
+        ctx->addInput(m_strengthInput, 75);
+        ctx->addInput(m_intervalInput, 84);
+        ctx->addInput(m_durationInput, 10);
+
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 75);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 84);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 10);
+
+        m_strengthInput->setMaxLabelWidth(50);
+        m_intervalInput->setMaxLabelWidth(50);
+        m_durationInput->setMaxLabelWidth(50);
+
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 75);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(5), 84);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 10);
+
+        ctx->addSlider(m_strengthSlider, 75);
+        ctx->addSlider(m_intervalSlider, 84);
+        ctx->addSlider(m_durationSlider, 10);
+
+        m_strengthSlider->m_delegate = this;
+        m_intervalSlider->m_delegate = this;
+        m_durationSlider->m_delegate = this;
+
+        ctx->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/SetupAnimationPopup.hpp>
+
+class $modify(SetupAnimationPopup) {
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupAnimationPopup::init(obj, objs)) return false;
+
+        auto ctx = getMultiEditContext(this);
+
+        ctx->addInput(m_targetIDInput, 51);
+        ctx->addInput(m_animationIDInput, 76);
+
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 76);
+
+        m_targetIDInput->setMaxLabelWidth(40);
+        m_animationIDInput->setMaxLabelWidth(40);
+
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 76);
+
+        ctx->setupMixed();
+
+        return true;
+    }
+};
+
+#include <Geode/modify/GJPFollowCommandLayer.hpp>
+
+class $modify(GJPFollowCommandLayer) {
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!GJPFollowCommandLayer::init(obj, objs)) return false;
+
+        auto ctx = getMultiEditContext(this);
+
+        ctx->addInput(m_moveTimeInput, 10);
+        ctx->addInput(m_speedInput, 90);
+        ctx->addInput(m_delayInput, 91);
+        ctx->addInput(m_offsetInput, 92);
+        ctx->addInput(m_maxSpeedInput, 105);
+        ctx->addInput(m_targetIDInput, 51);
+
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 10);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 90);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 91);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(4), 51);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(5), 92);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(6), 105);
+
+        m_moveTimeInput->setMaxLabelWidth(50);
+        m_speedInput->setMaxLabelWidth(50);
+        m_delayInput->setMaxLabelWidth(50);
+        m_offsetInput->setMaxLabelWidth(40);
+        m_maxSpeedInput->setMaxLabelWidth(40);
+        m_targetIDInput->setMaxLabelWidth(40);
+
+        ctx->addSlider(m_moveTimeSlider, 10);
+        ctx->addSlider(m_speedSlider, 90);
+        ctx->addSlider(m_delaySlider, 91);
+
+        m_moveTimeSlider->m_delegate = this;
+        m_speedSlider->m_delegate = this;
+        m_delaySlider->m_delegate = this;
+
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 90);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 91);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(7), 51);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(8), 92);
+        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(9), 105);
 
         ctx->setupMixed();
 
