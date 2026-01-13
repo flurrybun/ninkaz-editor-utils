@@ -314,6 +314,8 @@ CCMenuItemSpriteExtra* MultiEditContext::getMixedButton(int property) {
 }
 
 void MultiEditContext::addToGroup(CCNode* node, CCNode* nodeInGroup) {
+    if (!m_groups) return;
+
     for (size_t i = 0; i < m_groups->count(); i++) {
         CCArray* group = static_cast<CCArray*>(m_groups->objectAtIndex(i));
 
@@ -325,6 +327,8 @@ void MultiEditContext::addToGroup(CCNode* node, CCNode* nodeInGroup) {
 }
 
 void MultiEditContext::addToPage(CCNode* node, CCNode* nodeInPage) {
+    if (!m_pages) return;
+
     if (auto particlePopup = typeinfo_cast<CreateParticlePopup*>(m_alertLayer)) {
         for (size_t i = 0; i < particlePopup->m_inputDicts->count(); i++) {
             CCDictionary* inputDict = static_cast<CCDictionary*>(particlePopup->m_inputDicts->objectAtIndex(i + 1));
