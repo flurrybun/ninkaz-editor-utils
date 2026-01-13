@@ -1,9 +1,8 @@
 #include <Geode/modify/EditorUI.hpp>
 #include "AdvancedFilter.hpp"
 #include "../misc/StringUtils.hpp"
-#include "../misc/SpriteColor.hpp"
 
-SavedFilter s_filter;
+Filter s_filter;
 
 class $modify(AFEditorUI, EditorUI) {
     struct Fields {
@@ -50,16 +49,11 @@ class $modify(AFEditorUI, EditorUI) {
             return;
         }
 
-        CCArrayExt<GameObject*> objectsToRemove;
-
-        for (auto object : CCArrayExt<GameObject*>(objects)) {
+        for (size_t i = objects->count(); i-- > 0;) {
+            auto object = static_cast<GameObject*>(objects->objectAtIndex(i));
             if (shouldFilterObject(object)) {
-                objectsToRemove.push_back(object);
+                objects->removeObjectAtIndex(i);
             }
-        }
-
-        for (auto object : objectsToRemove) {
-            objects->removeObject(object);
         }
 
         EditorUI::selectObjects(objects, dontFilter);
@@ -77,66 +71,48 @@ class $modify(AFEditorUI, EditorUI) {
     }
 
     bool shouldFilterObject(GameObject* object) {
-        if (!s_filter.isActive) return false;
+        if (s_filter.m_group.isActive()) {
+            bool hasGroup = false;
 
-        auto& values = s_filter.filterValues;
-        auto& zLayers = s_filter.filterZLayers;
-        auto& hsvs = s_filter.filterHSVs;
+            for (short i = 0; i < object->m_groupCount; i++) {
+                short group = object->m_groups->at(i);
 
-        // filter by group
+                if (s_filter.m_group.contains(group)) {
+                    hasGroup = true;
+                    break;
+                }
+            }
 
-        if (values[Filter::GROUP] != 0) {
-            if (!object->m_groups || std::find(object->m_groups->begin(), object->m_groups->end(), values[Filter::GROUP]) == object->m_groups->end()) {
+            if (!hasGroup || object->m_groupCount == 0) {
                 return true;
             }
         }
-
-        // filter by z order & z layer
 
         int zOrder = object->m_zOrder != 0 ? object->m_zOrder : object->m_defaultZOrder;
         ZLayer zLayer = object->m_zLayer != ZLayer::Default ? object->m_zLayer : object->m_defaultZLayer;
 
-        if (values[Filter::ZORDER] != 0 && zOrder != values[Filter::ZORDER]) return true;
-        if (!zLayers.empty() && !zLayers.contains(zLayer)) return true;
+        if (!s_filter.m_zOrder.contains(zOrder)) return true;
+        if (!s_filter.m_zLayer.contains(zLayer)) return true;
 
-        // filter by color
+        if (s_filter.m_color.isActive()) {
+            GJSpriteColor* baseColor = nk::getBaseSpriteColor(object);
+            GJSpriteColor* detailColor = nk::getDetailSpriteColor(object);
 
-        GJSpriteColor* baseColor = nk::getBaseSpriteColor(object);
-        GJSpriteColor* detailColor = nk::getDetailSpriteColor(object);
+            int baseColorID = baseColor ? (baseColor->m_colorID != 0 ? baseColor->m_colorID : baseColor->m_defaultColorID) : 0;
+            int detailColorID = detailColor ? (detailColor->m_colorID != 0 ? detailColor->m_colorID : detailColor->m_defaultColorID) : 0;
 
-        auto checkColor = [](GJSpriteColor* color, int colorID, hsvValue& hsv, bool isBoth) {
-            if (!color) {
-                if (colorID == 0 && hsv == hsvValue(0, 1, 1)) return false;
-                return true;
-            }
+            auto baseHSV = baseColor ? baseColor->m_hsv : std::optional<HSVValue>();
+            auto detailHSV = detailColor ? detailColor->m_hsv : std::optional<HSVValue>();
 
-            int objColorID = color->m_colorID != 0 ? color->m_colorID : color->m_defaultColorID;
-
-            if (colorID != 0 && colorID != objColorID) return true;
-            if (hsv.h != 0 && hsv.h != color->m_hsv.h) return true;
-            if (hsv.s != 1 && hsv.s != color->m_hsv.s) return true;
-            if (hsv.v != 1 && hsv.v != color->m_hsv.v) return true;
-            return false;
-        };
-
-        if (checkColor(baseColor, values[Filter::BASECOLOR], hsvs[ColorType::BASE], false)) return true;
-        if (checkColor(detailColor, values[Filter::DETAILCOLOR], hsvs[ColorType::DETAIL], false)) return true;
-        if (checkColor(baseColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true) &&
-            checkColor(detailColor, values[Filter::COLOR], hsvs[ColorType::BOTH], true)) return true;
-
-        // filter by scale
-
-        // only 2 decimal places are visible to the player but gd can store any value, so we need to account for that
-        const float tolerance = 0.01;
-
-        if (values[Filter::SCALEX] != 0 && std::abs(object->m_scaleX - values[Filter::SCALEX]) > tolerance) return true;
-        if (values[Filter::SCALEY] != 0 && std::abs(object->m_scaleY - values[Filter::SCALEY]) > tolerance) return true;
-        if (values[Filter::SCALE] != 0) {
-            if (std::abs(object->m_scaleX - values[Filter::SCALE]) > tolerance || 
-                std::abs(object->m_scaleY - values[Filter::SCALE]) > tolerance) {
-                return true;
-            }
+            if (!s_filter.m_color.contains(baseColorID, baseHSV, detailColorID, detailHSV)) return true;
         }
+
+        // only 2 decimal places are visible to the player but gd can store any value
+        // a small tolerance is used to account for this
+
+        constexpr float tolerance = 0.01f - std::numeric_limits<float>::epsilon();
+
+        if (!s_filter.m_scale.contains(object->m_scaleX, object->m_scaleY, tolerance)) return true;
 
         return false;
     }
@@ -158,72 +134,112 @@ class $modify(AFEditorUI, EditorUI) {
     }
 
     void onUpdateFilter() {
-        auto& values = s_filter.filterValues;
-        auto& zLayers = s_filter.filterZLayers;
-        auto& hsvs = s_filter.filterHSVs;
-
-        bool hasFilter = std::any_of(values.begin(), values.end(), [](float value) {
-            return value != 0;
-        });
-
-        hasFilter = hasFilter || !zLayers.empty();
-
-        hasFilter = hasFilter || std::any_of(hsvs.begin(), hsvs.end(), [](hsvValue hsv) {
-            return hsv != hsvValue(0, 1, 1);
-        });
-
-        m_fields->filterBtn->setSprite(hasFilter ? m_fields->activeSpr : m_fields->inactiveSpr);
-        s_filter.isActive = hasFilter;
+        m_fields->filterBtn->setSprite(s_filter.isActive() ? m_fields->activeSpr : m_fields->inactiveSpr);
     }
 };
 
-float getFilterValue(Filter filter) {
-    return s_filter.filterValues[filter];
-}
-
-void setFilterValue(Filter filter, float value) {
-    s_filter.filterValues[filter] = value;
-}
-
-std::set<ZLayer>& getFilterZLayers() {
-    return s_filter.filterZLayers;
-}
-
-hsvValue& getFilterHSV(ColorType colorType) {
-    return s_filter.filterHSVs[colorType];
-}
-
-void setFilterHSV(ColorType colorType, hsvValue hsv) {
-    s_filter.filterHSVs[colorType] = hsv;
-}
-
-std::string getColorName(int colorID) {
-    switch (colorID) {
-        case 1000: return "BG";
-        case 1001: return "G1";
-        case 1009: return "G2";
-        case 1013: return "MG";
-        case 1014: return "MG2";
-        case 1002: return "Line";
-        case 1003: return "3DL";
-        case 1004: return "OBJ";
-        case 1005: return "P1";
-        case 1006: return "P2";
-        case 1007: return "LBG";
-        case 1010: return "Black";
-        case 1011: return "White";
-        case 1012: return "Lighter";
-        default: return "?";
+void setFilter(FilterType type, std::string string) {
+    switch (type) {
+        case FilterType::GROUP:
+            s_filter.m_group.set(string);
+            break;
+        case FilterType::COLOR:
+        case FilterType::BASECOLOR:
+            s_filter.m_color.setBaseColor(string);
+            break;
+        case FilterType::DETAILCOLOR:
+            s_filter.m_color.setDetailColor(string);
+            break;
+        case FilterType::SCALE:
+        case FilterType::SCALEX:
+            s_filter.m_scale.setFirst(string);
+            break;
+        case FilterType::SCALEY:
+            s_filter.m_scale.setSecond(string);
+            break;
+        case FilterType::ZORDER:
+            s_filter.m_zOrder.set(string);
+            break;
     }
 }
 
+const std::string& getFilterInput(FilterType type) {
+    switch (type) {
+        case FilterType::GROUP:
+            return s_filter.m_group.getInput();
+        case FilterType::COLOR:
+        case FilterType::BASECOLOR:
+            return s_filter.m_color.getBaseColor().getInput();
+        case FilterType::DETAILCOLOR:
+        return s_filter.m_color.getDetailColor().getInput();
+        case FilterType::SCALE:
+        case FilterType::SCALEX:
+            return s_filter.m_scale.getFirst().getInput();
+        case FilterType::SCALEY:
+            return s_filter.m_scale.getSecond().getInput();
+        case FilterType::ZORDER:
+            return s_filter.m_zOrder.getInput();
+    }
+}
+
+std::optional<float> getSingleValue(FilterType type) {
+    switch (type) {
+        case FilterType::GROUP:
+            return s_filter.m_group.getSingleValue();
+        case FilterType::COLOR:
+        case FilterType::BASECOLOR:
+            return s_filter.m_color.getBaseColor().getSingleValue();
+        case FilterType::DETAILCOLOR:
+            return s_filter.m_color.getDetailColor().getSingleValue();
+        case FilterType::SCALE:
+        case FilterType::SCALEX:
+            return s_filter.m_scale.getFirst().getSingleValue();
+        case FilterType::SCALEY:
+            return s_filter.m_scale.getSecond().getSingleValue();
+        case FilterType::ZORDER:
+            return s_filter.m_zOrder.getSingleValue();
+    }
+}
+
+const FilterValue<int, ColorParser>& getColorFilter(ColorType type) {
+    switch (type) {
+        case ColorType::BOTH:
+        case ColorType::BASE:
+            return s_filter.m_color.getBaseColor();
+        case ColorType::DETAIL:
+            return s_filter.m_color.getDetailColor();
+    }
+}
+
+FilterHSV& getFilterHSV(ColorType type) {
+    switch (type) {
+        case ColorType::BOTH:
+        case ColorType::BASE:
+            return s_filter.m_color.getBaseHSV();
+        case ColorType::DETAIL:
+            return s_filter.m_color.getDetailHSV();
+    }
+}
+
+bool isScale(FilterType type) {
+    return type == FilterType::SCALE || type == FilterType::SCALEX || type == FilterType::SCALEY;
+}
+
+bool isColor(FilterType type) {
+    return type == FilterType::COLOR || type == FilterType::BASECOLOR || type == FilterType::DETAILCOLOR;
+}
+
+bool isSplit(FilterType type) {
+    return type == FilterType::BASECOLOR || type == FilterType::DETAILCOLOR ||
+        type == FilterType::SCALEX || type == FilterType::SCALEY;
+}
 
 bool AdvFilterPopup::setup() {
     setTitle("Advanced Filter");
     m_closeBtn->removeFromParent();
 
     auto infoText = "Create a <cy>delete filter</c> so only objects that <cg>match certain conditions</c> can be deleted.\n"
-        "Scale and color can be <cl>combined or separated</c>. When combined, objects will pass the filter if they match <cp>either condition</c> (base or detail, scale x or y).\n"
+        "Define a <cl>range with a hyphen</c> (1-5) and a <cp>series with commas</c> (1,2,3). These can be combined (1-3,5,10).\n"
         "To also filter objects on selection, enable <cr>select filter</c>.";
 
     auto infoBtn = InfoAlertButton::create("Help", infoText, 1);
@@ -237,14 +253,14 @@ bool AdvFilterPopup::setup() {
 
     // VALUE CONTROLS
 
-    addLine("Group:", "group-controls"_spr, Filter::GROUP, {xLeft, yPositions[0]});
-    addLine("Z Order:", "z-order-controls"_spr, Filter::ZORDER, {xRight, yPositions[0]});
-    addLine("Color:", "color-controls"_spr, Filter::COLOR, {xLeft, yPositions[1]});
-    addLine("Color Base:", "base-color-controls"_spr, Filter::BASECOLOR, {xLeft, yPositions[1]});
-    addLine("Detail:", "detail-color-controls"_spr, Filter::DETAILCOLOR, {xRight, yPositions[1]});
-    addLine("Scale:", "scale-xy-controls"_spr, Filter::SCALE, {xLeft, yPositions[2]});
-    addLine("Scale X:", "scale-x-controls"_spr, Filter::SCALEX, {xLeft, yPositions[2]});
-    addLine("Scale Y:", "scale-y-controls"_spr, Filter::SCALEY, {xRight, yPositions[2]});
+    addLine("Group:", "group-controls"_spr, FilterType::GROUP, {xLeft, yPositions[0]});
+    addLine("Z Order:", "z-order-controls"_spr, FilterType::ZORDER, {xRight, yPositions[0]});
+    addLine("Color:", "color-controls"_spr, FilterType::COLOR, {xLeft, yPositions[1]});
+    addLine("Color Base:", "base-color-controls"_spr, FilterType::BASECOLOR, {xLeft, yPositions[1]});
+    addLine("Detail:", "detail-color-controls"_spr, FilterType::DETAILCOLOR, {xRight, yPositions[1]});
+    addLine("Scale:", "scale-xy-controls"_spr, FilterType::SCALE, {xLeft, yPositions[2]});
+    addLine("Scale X:", "scale-x-controls"_spr, FilterType::SCALEX, {xLeft, yPositions[2]});
+    addLine("Scale Y:", "scale-y-controls"_spr, FilterType::SCALEY, {xRight, yPositions[2]});
 
     auto colorToggler = createToggler("expand-btn.png"_spr, menu_selector(AdvFilterPopup::onToggleColor));
     colorToggler->setID("expand-color-btn"_spr);
@@ -291,6 +307,7 @@ bool AdvFilterPopup::setup() {
 
     ZLayer zLayers[] = {ZLayer::B5, ZLayer::B4, ZLayer::B3, ZLayer::B2, ZLayer::B1, ZLayer::T1, ZLayer::T2, ZLayer::T3, ZLayer::T4};
     std::string zLayerStrings[] = {"B5", "B4", "B3", "B2", "B1", "T1", "T2", "T3", "T4"};
+    auto& values = s_filter.m_zLayer.getValues();
 
     for (int i = 0; i < 9; i++) {
         auto onSpr = ButtonSprite::create(zLayerStrings[i].c_str(), 220, false, "bigFont.fnt", "GJ_button_02.png", 25, 0.3);
@@ -298,7 +315,7 @@ bool AdvFilterPopup::setup() {
         auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(AdvFilterPopup::onZLayer));
 
         btn->setTag(static_cast<int>(zLayers[i]));
-        btn->toggle(getFilterZLayers().contains(zLayers[i]));
+        btn->toggle(values.contains(zLayers[i]));
         zLayerMenu->addChild(btn);
     }
 
@@ -343,13 +360,12 @@ bool AdvFilterPopup::setup() {
 
     onUpdateValue();
 
-    if (getFilterValue(Filter::SCALEX) != 0 || getFilterValue(Filter::SCALEY) != 0) {
+    if (s_filter.m_scale.isSplit()) {
         scaleToggler->toggle(true);
         onToggleScale(nullptr);
     }
 
-    if (getFilterValue(Filter::BASECOLOR) != 0 || getFilterValue(Filter::DETAILCOLOR) != 0 ||
-        getFilterHSV(ColorType::BASE) != hsvValue(0, 1, 1) || getFilterHSV(ColorType::DETAIL) != hsvValue(0, 1, 1)) {
+    if (s_filter.m_color.isSplit()) {
         colorToggler->toggle(true);
         onToggleColor(nullptr);
     }
@@ -357,9 +373,9 @@ bool AdvFilterPopup::setup() {
     return true;
 }
 
-void AdvFilterPopup::addLine(std::string labelText, std::string id, Filter filter, CCPoint position) {
-    bool isDecimal = filter == Filter::SCALE || filter == Filter::SCALEX || filter == Filter::SCALEY;
-
+void AdvFilterPopup::addLine(
+    const std::string& labelText, const std::string& id, FilterType filter, CCPoint position
+) {
     auto menu = CCMenu::create();
     menu->setScale(0.8);
     menu->setContentWidth(220);
@@ -379,22 +395,17 @@ void AdvFilterPopup::addLine(std::string labelText, std::string id, Filter filte
             ->setLength(100)
     );
 
-    float value = getFilterValue(filter);
-    std::string valueStr = value == 0 ? "" : nk::toString(value, 2);
-
-    if (value >= 1000 && (filter == Filter::COLOR || filter == Filter::BASECOLOR || filter == Filter::DETAILCOLOR)) {
-        valueStr = getColorName(std::round(value));
-    }
-
     auto input = TextInput::create(60, "NA");
-    if (filter == Filter::ZORDER) input->setFilter("0123456789-");
-    else if (!isDecimal) input->setFilter("0123456789");
-    else input->setFilter("0123456789.");
-    input->getInputNode()->m_numberInput = true;
-    input->setString(valueStr.c_str());
+
+    if (isColor(filter)) input->setFilter("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz,-");
+    else if (isScale(filter)) input->setFilter("0123456789.,-");
+    else input->setFilter("0123456789,-");
+
+    input->getInputNode()->m_numberInput = !isColor(filter);
+    input->setString(getFilterInput(filter).c_str());
     input->setTag(filter);
     input->setCallback([this, filter](const std::string& string) {
-        setFilterValue(filter, nk::toFloat(string));
+        setFilter(filter, string);
         onUpdateValue();
     });
     input->setLayoutOptions(
@@ -422,14 +433,14 @@ void AdvFilterPopup::addLine(std::string labelText, std::string id, Filter filte
     menu->updateLayout();
     m_mainLayer->addChildAtPosition(menu, Anchor::Center, position);
 
-    if (filter == Filter::SCALEX || filter == Filter::SCALEY) menu->setVisible(false);
-    if (filter == Filter::BASECOLOR || filter == Filter::DETAILCOLOR) menu->setVisible(false);
+    if (isSplit(filter)) menu->setVisible(false);
 
     m_inputs[filter] = input;
     m_controlMenus[filter] = menu;
+    m_arrowButtons[filter] = {decArrowBtn, incArrowBtn};
 }
 
-CCMenuItemToggler* AdvFilterPopup::createToggler(std::string spriteName, SEL_MenuHandler selector) {
+CCMenuItemToggler* AdvFilterPopup::createToggler(const std::string& spriteName, SEL_MenuHandler selector) {
     auto offSpr = CCSprite::create("GJ_button_01.png");
     auto offTop = CCSprite::createWithSpriteFrameName(spriteName.c_str());
     offSpr->addChildAtPosition(offTop, Anchor::Center);
@@ -448,45 +459,58 @@ CCMenuItemToggler* AdvFilterPopup::createToggler(std::string spriteName, SEL_Men
 }
 
 void AdvFilterPopup::onUpdateValue() {
-    // update more color buttons
-
     for (int i = 0; i < 3; i++) {
-        auto hsv = getFilterHSV(static_cast<ColorType>(i));
-        auto btn = m_moreColorBtns[i];
-
-        btn->toggle(hsv != hsvValue(0, 1, 1));
+        auto& hsv = getFilterHSV(static_cast<ColorType>(i));
+        m_moreColorBtns[i]->toggle(hsv.isActive());
     }
 
-    // enable reset button if anything needs to be reset
-    
-    bool enableReset = false;
+    for (int i = 0; i < 8; i++) {
+        FilterType filter = static_cast<FilterType>(i);
+        std::optional<float> value = getSingleValue(filter);
 
-    for (auto row : m_controlMenus) {
-        auto input = row->getChildByType<TextInput>(0);
-        if (input->getString() != "") enableReset = true;
+        bool enabled = value.has_value();
+        if (isColor(filter) && value.value_or(0) >= 1000) enabled = false;
+
+        auto& btns = m_arrowButtons[i];
+
+        btns[0]->setEnabled(enabled);
+        btns[0]->setOpacity(enabled ? 255 : 127);
+        btns[1]->setEnabled(enabled);
+        btns[1]->setOpacity(enabled ? 255 : 127);
     }
 
-    for (auto moreColorBtn : m_moreColorBtns) {
-        if (moreColorBtn->isToggled()) enableReset = true;
-    }
-
-    if (!getFilterZLayers().empty()) enableReset = true;
+    bool enableReset = s_filter.isActive();
 
     m_resetBtn->setEnabled(enableReset);
     m_resetBtn->setOpacity(enableReset ? 255 : 127);
-
-    // update filter button
 
     static_cast<AFEditorUI*>(EditorUI::get())->onUpdateFilter();
 }
 
 void AdvFilterPopup::onInputArrow(CCObject* sender) {
-    Filter filter = static_cast<Filter>(sender->getTag() / 2);
-    bool isIncrement = sender->getTag() % 2 == 1;
-    float newValue = getFilterValue(filter) + (isIncrement ? 1 : -1);
+    FilterType filter = static_cast<FilterType>(sender->getTag() / 2);
 
-    if (filter == Filter::GROUP || filter == Filter::COLOR || filter == Filter::ZORDER) {
-        if (newValue < 0) return;
+    std::optional<float> value = getSingleValue(filter);
+    if (!value.has_value()) return;
+    if (isColor(filter) && *value >= 1000) return;
+
+    bool isIncrement = sender->getTag() % 2 == 1;
+    float newValue = *value + (isIncrement ? 1 : -1);
+
+    switch (filter) {
+        case FilterType::GROUP:
+            newValue = std::clamp(newValue, 0.f, 9999.f);
+            break;
+        case FilterType::COLOR:
+        case FilterType::BASECOLOR:
+        case FilterType::DETAILCOLOR:
+            newValue = std::clamp(newValue, 1.f, 999.f);
+            break;
+        case FilterType::SCALE:
+        case FilterType::SCALEX:
+        case FilterType::SCALEY:
+        case FilterType::ZORDER:
+            break;
     }
 
     std::string string = nk::toString(newValue, 2);
@@ -497,8 +521,8 @@ void AdvFilterPopup::onZLayer(CCObject* sender) {
     ZLayer zLayer = static_cast<ZLayer>(sender->getTag());
     bool isActive = static_cast<CCMenuItemToggler*>(sender)->isToggled();
 
-    if (isActive) getFilterZLayers().erase(zLayer);
-    else getFilterZLayers().insert(zLayer);
+    if (isActive) s_filter.m_zLayer.erase(zLayer);
+    else s_filter.m_zLayer.insert(zLayer);
 
     onUpdateValue();
 }
@@ -509,15 +533,21 @@ void AdvFilterPopup::onMoreColors(CCObject* sender) {
 
     ColorType colorType = static_cast<ColorType>(sender->getTag());
 
-    updateCallback onUpdate = [this, colorType](int colorID, std::string colorName, hsvValue hsv) {
-        Filter filter = static_cast<Filter>(static_cast<int>(colorType) + 1);
+    updateCallback onUpdate = [this, colorType](const std::unordered_set<int>& colors, const HSVInput& hsv) {
+        getFilterHSV(colorType).set(hsv);
 
-        setFilterHSV(colorType, hsv);
+        FilterType filter = static_cast<FilterType>(static_cast<int>(colorType) + 1);
+        auto input = m_inputs[filter];
 
-        if (colorID != 0) {
-            setFilterValue(filter, colorID);
-            m_inputs[filter]->setString(colorName);
+        fmt::memory_buffer mb;
+        for (int color : colors) {
+            auto str = nk::getColorName(color);
+
+            if (mb.size() > 0) fmt::format_to(std::back_inserter(mb), ",{}", str);
+            else fmt::format_to(std::back_inserter(mb), "{}", str);
         }
+
+        input->setString(fmt::to_string(mb), true);
 
         onUpdateValue();
     };
@@ -535,24 +565,21 @@ void AdvFilterPopup::onToggleColor(CCObject* sender) {
     float yOffset = static_cast<AnchorLayoutOptions*>(m_colorToggler->getLayoutOptions())->getOffset().y;
     m_colorToggler->updateAnchoredPosition(Anchor::Center, {xOffset, yOffset});
 
-    m_controlMenus[Filter::COLOR]->setVisible(!m_isToggleColor);
-    m_controlMenus[Filter::BASECOLOR]->setVisible(m_isToggleColor);
-    m_controlMenus[Filter::DETAILCOLOR]->setVisible(m_isToggleColor);
+    m_controlMenus[FilterType::COLOR]->setVisible(!m_isToggleColor);
+    m_controlMenus[FilterType::BASECOLOR]->setVisible(m_isToggleColor);
+    m_controlMenus[FilterType::DETAILCOLOR]->setVisible(m_isToggleColor);
 
     m_moreColorBtns[ColorType::BOTH]->setVisible(!m_isToggleColor);
     m_moreColorBtns[ColorType::BASE]->setVisible(m_isToggleColor);
     m_moreColorBtns[ColorType::DETAIL]->setVisible(m_isToggleColor);
 
-    if (m_isToggleColor) {
-        m_inputs[Filter::COLOR]->setString("", true);
-        setFilterHSV(ColorType::BOTH, {0, 1, 1});
-    } else {
-        m_inputs[Filter::BASECOLOR]->setString("", true);
-        m_inputs[Filter::DETAILCOLOR]->setString("", true);
-        setFilterHSV(ColorType::BASE, {0, 1, 1});
-        setFilterHSV(ColorType::DETAIL, {0, 1, 1});
-    }
+    if (!sender) return;
 
+    m_inputs[FilterType::COLOR]->setString("");
+    m_inputs[FilterType::BASECOLOR]->setString("");
+    m_inputs[FilterType::DETAILCOLOR]->setString("");
+
+    s_filter.m_color.setSplit(m_isToggleColor);
     onUpdateValue();
 }
 
@@ -563,34 +590,22 @@ void AdvFilterPopup::onToggleScale(CCObject* sender) {
     float yOffset = static_cast<AnchorLayoutOptions*>(m_scaleToggler->getLayoutOptions())->getOffset().y;
     m_scaleToggler->updateAnchoredPosition(Anchor::Center, {xOffset, yOffset});
 
-    m_controlMenus[Filter::SCALE]->setVisible(!m_isToggleScale);
-    m_controlMenus[Filter::SCALEX]->setVisible(m_isToggleScale);
-    m_controlMenus[Filter::SCALEY]->setVisible(m_isToggleScale);
+    m_controlMenus[FilterType::SCALE]->setVisible(!m_isToggleScale);
+    m_controlMenus[FilterType::SCALEX]->setVisible(m_isToggleScale);
+    m_controlMenus[FilterType::SCALEY]->setVisible(m_isToggleScale);
 
-    if (m_isToggleScale) {
-        m_inputs[Filter::SCALE]->setString("", true);
-    } else {
-        m_inputs[Filter::SCALEX]->setString("", true);
-        m_inputs[Filter::SCALEY]->setString("", true);
-    }
+    if (!sender) return;
 
+    m_inputs[FilterType::SCALE]->setString("");
+    m_inputs[FilterType::SCALEX]->setString("");
+    m_inputs[FilterType::SCALEY]->setString("");
+
+    s_filter.m_scale.setSplit(m_isToggleScale);
     onUpdateValue();
 }
 
 void AdvFilterPopup::onReset(CCObject* sender) {
-    // resetting values
-
-    for (int i = 0; i < 8; i++) {
-        setFilterValue(static_cast<Filter>(i), 0);
-    }
-
-    for (int i = 0; i < 3; i++) {
-        setFilterHSV(static_cast<ColorType>(i), {0, 1, 1});
-    }
-
-    getFilterZLayers().clear();
-
-    // resetting ui
+    s_filter.reset();
 
     for (auto input : m_inputs) {
         input->setString("");
@@ -645,11 +660,13 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
     else setTitle("Color Special");
     m_closeBtn->removeFromParent();
 
-    Filter filter = static_cast<Filter>(static_cast<int>(colorType) + 1);
+    FilterType filter = static_cast<FilterType>(static_cast<int>(colorType) + 1);
 
     m_colorType = colorType;
     m_callback = callback;
-    m_hsv = getFilterHSV(colorType);
+    m_hsv = getFilterHSV(colorType).getInput();
+
+    auto& colorFilter = getColorFilter(colorType);
 
     // COLOR BUTTONS
 
@@ -665,14 +682,19 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
     );
 
     for (int i = 0; i < colorIDs.size(); i++) {
-        std::string name = getColorName(colorIDs[i]);
-        auto spr = ButtonSprite::create(name.c_str(), 40, true, "bigFont.fnt", "GJ_button_04.png", 30, 0.4);
-        auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreColorsPopup::onColor));
+        std::string name = nk::getColorName(colorIDs[i]);
 
-        if (colorIDs[i] == getFilterValue(filter)) spr->updateBGImage("GJ_button_02.png");
+        auto offSpr = ButtonSprite::create(name.c_str(), 40, true, "bigFont.fnt", "GJ_button_04.png", 30, 0.4);
+        auto onSpr = ButtonSprite::create(name.c_str(), 40, true, "bigFont.fnt", "GJ_button_02.png", 30, 0.4);
+        auto btn = CCMenuItemToggler::create(offSpr, onSpr, this, menu_selector(MoreColorsPopup::onColor));
 
-        m_colorButtonSprites[i] = spr;
         btn->setTag(colorIDs[i]);
+
+        if (colorFilter.hasSingleValue(colorIDs[i])) {
+            btn->toggle(true);
+            m_selectedColors.insert(colorIDs[i]);
+        }
+
         colorMenu->addChild(btn);
     }
 
@@ -703,21 +725,18 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
         );
 
         bool isDecimal = i != 0;
-        float value = i == 0 ? m_hsv.h : i == 1 ? m_hsv.s : m_hsv.v;
-        std::string valueStr = nk::toString(value, 2);
-        if (i == 0 && value == 0) valueStr = "";
-        if (i != 0 && value == 1) valueStr = "";
+        std::string str = i == 0 ? m_hsv.h : i == 1 ? m_hsv.s : m_hsv.v;
 
         auto input = TextInput::create(60, "NA");
-        if (isDecimal) input->setFilter("0123456789.-");
-        else input->setFilter("0123456789-");
+        if (isDecimal) input->setFilter("0123456789.,-");
+        else input->setFilter("0123456789,-");
         input->getInputNode()->m_numberInput = true;
-        input->setString(valueStr.c_str());
+        input->setString(str.c_str());
         input->setTag(i);
         input->setCallback([this, i](const std::string& string) {
-            if (i == 0) m_hsv.h = nk::toFloat(string);
-            else if (i == 1) m_hsv.s = nk::toFloat(string);
-            else m_hsv.v = nk::toFloat(string);
+            if (i == 0) m_hsv.h = string;
+            else if (i == 1) m_hsv.s = string;
+            else m_hsv.v = string;
 
             onUpdateValue();
         });
@@ -740,20 +759,16 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
 
 void MoreColorsPopup::onColor(CCObject* sender) {
     int colorID = sender->getTag();
-    m_selectedColorID = colorID;
+    bool enabled = !static_cast<CCMenuItemToggler*>(sender)->isToggled();
 
-    for (auto spr : m_colorButtonSprites) {
-        spr->updateBGImage("GJ_button_04.png");
-    }
-
-    auto spr = static_cast<CCNode*>(sender)->getChildByType<ButtonSprite>(0);
-    spr->updateBGImage("GJ_button_02.png");
+    if (enabled) m_selectedColors.insert(colorID);
+    else m_selectedColors.erase(colorID);
 
     onUpdateValue();
 }
 
 void MoreColorsPopup::onUpdateValue() {
-    m_callback(m_selectedColorID, getColorName(m_selectedColorID), m_hsv);
+    m_callback(m_selectedColors, m_hsv);
 }
 
 MoreColorsPopup* MoreColorsPopup::create(ColorType colorType, updateCallback callback) {
