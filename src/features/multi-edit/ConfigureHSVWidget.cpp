@@ -422,12 +422,19 @@ class $modify(ConfigureHSVWidget) {
     static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
         if (obj) return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
 
-        CCArrayExt<GameObject*> objects = objs;
-        ccHSVValue multiHSV = ConfigureHSVWidget::getHSV(objects[0], nullptr, baseOrDetail);
+        ccHSVValue multiHSV;
+        bool first = true;
 
-        for (auto object : objects) {
-            auto color = baseOrDetail == 1 ? nk::getBaseSpriteColor(object) : nk::getDetailSpriteColor(object);
+        for (auto object : CCArrayExt<GameObject*>(objs)) {
+            GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
             if (!color) continue;
+
+            if (first) {
+                multiHSV = color->m_hsv;
+                first = false;
+
+                continue;
+            }
 
             if (color->m_hsv.h != multiHSV.h) multiHSV.h = MIXED_VALUE;
             if (color->m_hsv.s != multiHSV.s) multiHSV.s = MIXED_VALUE;
