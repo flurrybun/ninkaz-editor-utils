@@ -94,7 +94,7 @@ public:
     }
 
     std::optional<T> getSingleValue() const {
-        if (m_ranges.size() != 0) return 0;
+        if (m_ranges.size() == 0) return 0;
         if (m_ranges.size() != 1) return std::nullopt;
 
         const auto& [min, max] = m_ranges[0];
