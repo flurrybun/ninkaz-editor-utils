@@ -1,10 +1,20 @@
+### 1.5.1 (1/14/2026)
+
+- Added **ranges and series** to Advanced Filter
+- Fixed **crash when using multi-edit** with HSV
+- Fixed **HSV sometimes showing as NaN**
+- Fixed multi-edit not working in **shake, animate, and follow player Y triggers**
+- Fixed next free button **overlapping buttons** in edit area trigger
+- Fixed next free button **not showing** in some inputs
+- Fixed labels being **too long** in follow trigger
+
 ### 1.5.0 (1/8/2026)
 
 - Added **select all button** to Advanced Filter
 - Added **next free collision block, item, timer, control, and material ID** buttons
 - Added **next free buttons** to trigger menus which previously lacked them, such as alpha and collision
 - Fixed **Saw Rotation Preview** displaying incorrectly on non-16:9 aspect ratios
-- Fixed **HSV sometimes showing as NaN**
+- Fixed **Hide UI button** not working on desktop
 - Fixed **softlock with multi-edit** in advanced follow
 - Fixed multi-edit not setting **several inputs** in advanced follow
 - Fixed multi-edit not setting **copy color ID inputs**
