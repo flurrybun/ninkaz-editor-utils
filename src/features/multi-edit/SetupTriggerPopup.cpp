@@ -57,19 +57,23 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         void setProperty(GameObject* object, int property, float newValue) override {
-            if (property == 97) {
-                if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
-                    ego->m_rotationSpeed = newValue;
-                    return;
-                }
+            if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) {
+                static_cast<EnhancedGameObject*>(object)->m_rotationSpeed = newValue;
+                return;
             }
 
             // these properties aren't supported by SetupTriggerPopup::updateValue
 
-            if (auto trigger = typeinfo_cast<EffectGameObject*>(object)) {
+            if (object->m_classType == GameObjectClassType::Effect) {
+                auto trigger = static_cast<EffectGameObject*>(object);
+
                 switch (property) {
                     case 50:
                         trigger->m_copyColorID = newValue;
+                        return;
+                    case 23:
+                        trigger->m_targetColor = newValue;
+                        LevelEditorLayer::get()->updateObjectLabel(object);
                         return;
                     case 72:
                         trigger->m_followXMod = newValue;
