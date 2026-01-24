@@ -150,9 +150,9 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
 
     void updateHideMode(float dt) {
         bool hide = isHideUIKeyPressed();
-        if (!hide || hide == m_fields->isHidden) return;
+        if (m_fields->currentSlider || hide == m_fields->isHidden) return;
 
-        hideOrShowUI(hide, this, m_fields->currentSlider);
+        hideOrShowUI(hide, this, nullptr);
         m_fields->isHidden = hide;
     }
 
@@ -162,7 +162,6 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         if (!m_fields->hideUIEnabled) return;
 
         hideOrShowUI(true, this, slider);
-        m_fields->isHidden = true;
     }
 
     $override
@@ -171,7 +170,6 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         if (!m_fields->hideUIEnabled) return;
 
         hideOrShowUI(false, this, slider);
-        m_fields->isHidden = false;
     }
 };
 
@@ -189,7 +187,6 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             if (!hideUIEnabled) return;
 
             hideOrShowUI(true, popup, slider);
-            isHidden = true;
             popup->updateParticles();
         }
 
@@ -200,7 +197,6 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
             if (!hideUIEnabled) return;
 
             hideOrShowUI(false, popup, slider);
-            isHidden = false;
         }
     };
 
@@ -249,10 +245,11 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
 
     void updateHideMode(float dt) {
         bool hide = isHideUIKeyPressed();
-        if (hide == m_fields->isHidden) return;
+        if (m_fields->currentSlider || hide == m_fields->isHidden) return;
 
-        m_fields->hideUIEnabled = hide;
-        hideOrShowUI(hide, this, m_fields->currentSlider);
+        hideOrShowUI(hide, this, nullptr);
+        m_fields->isHidden = hide;
+
         updateParticles();
     }
 
