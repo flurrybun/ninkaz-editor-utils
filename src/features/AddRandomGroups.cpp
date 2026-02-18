@@ -1,44 +1,48 @@
 #include "AddRandomGroups.hpp"
+#include "../misc/CCBoundedMenu.hpp"
 #include "../misc/StringUtils.hpp"
+#include <Geode/modify/EditorPauseLayer.hpp>
 #include <algorithm>
 #include <random>
 #include <regex>
 
-$override
-bool ARGEditorPauseLayer::init(LevelEditorLayer* lel) {
-    if (!EditorPauseLayer::init(lel)) return false;
+class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
+    $override
+    bool init(LevelEditorLayer* lel) {
+        if (!EditorPauseLayer::init(lel)) return false;
 
-    auto spr = ButtonSprite::create("Random\nGroups", 30, true, "bigFont.fnt", "GJ_button_04.png", 30.f, 0.3f);
-    spr->setScale(0.8f);
+        auto spr = ButtonSprite::create("Random\nGroups", 30, true, "bigFont.fnt", "GJ_button_04.png", 30.f, 0.3f);
+        spr->setScale(0.8f);
 
-    auto btn = CCMenuItemSpriteExtra::create(
-        spr, this, menu_selector(ARGEditorPauseLayer::onAddRandomGroups)
-    );
-    btn->setID("random-groups-button"_spr);
+        auto btn = CCMenuItemSpriteExtra::create(
+            spr, this, menu_selector(ARGEditorPauseLayer::onAddRandomGroups)
+        );
+        btn->setID("random-groups-button"_spr);
 
-    auto menu = getChildByID("small-actions-menu");
-    auto afterNode = static_cast<CCNode*>(menu->getChildren()->objectAtIndex(0));
-    menu->insertBefore(btn, afterNode);
-    menu->updateLayout();
+        auto menu = getChildByID("small-actions-menu");
+        auto afterNode = static_cast<CCNode*>(menu->getChildren()->objectAtIndex(0));
+        menu->insertBefore(btn, afterNode);
+        menu->updateLayout();
 
-    return true;
-}
-
-void ARGEditorPauseLayer::onAddRandomGroups(CCObject* sender) {
-    CCArray* selectedObjects = m_editorLayer->m_editorUI->getSelectedObjects();
-    
-    if (selectedObjects->count() == 0) {
-        FLAlertLayer::create(
-            "Add Random Groups",
-            "You must have at least <cr>one object</c> selected to add groups to.",
-            "OK"
-        )->show();
-
-        return;
+        return true;
     }
 
-    AddRandomGroupsPopup::create(selectedObjects)->show();
-}
+    void onAddRandomGroups(CCObject* sender) {
+        CCArray* selectedObjects = m_editorLayer->m_editorUI->getSelectedObjects();
+
+        if (selectedObjects->count() == 0) {
+            FLAlertLayer::create(
+                "Add Random Groups",
+                "You must have at least <cr>one object</c> selected to add groups to.",
+                "OK"
+            )->show();
+
+            return;
+        }
+
+        AddRandomGroupsPopup::create(selectedObjects)->show();
+    }
+};
 
 bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
     auto winSize = m_mainLayer->getContentSize();
@@ -365,6 +369,24 @@ void AddRandomGroupsPopup::assignGroups() {
     auto rd = std::random_device {};
     auto rng = std::default_random_engine { rd() };
     std::shuffle(linkedObjectGroups.begin(), linkedObjectGroups.end(), rng);
+
+    // std::sort(linkedObjectGroups.begin(), linkedObjectGroups.end(), [](const std::vector<GameObject*>& a, const std::vector<GameObject*>& b) {
+    //     float avgXa = 0, avgYa = 0, avgXb = 0, avgYb = 0;
+    //     for (GameObject* obj : a) {
+    //         avgXa += obj->m_positionX;
+    //         avgYa += obj->m_positionY;
+    //     }
+    //     for (GameObject* obj : b) {
+    //         avgXb += obj->m_positionX;
+    //         avgYb += obj->m_positionY;
+    //     }
+    //     avgXa /= a.size();
+    //     avgYa /= a.size();
+    //     avgXb /= b.size();
+    //     avgYb /= b.size();
+
+    //     return avgXa < avgXb;
+    // });
 
     short numToKeep = static_cast<int>(std::round(linkedObjectGroups.size() * coveragePercent));
     linkedObjectGroups.resize(numToKeep);

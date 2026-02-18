@@ -38,6 +38,7 @@ CCMenuItemSpriteExtra* MultiEditContext::createMixedButton(int property) {
 
     if (auto input = m_inputs[property]) {
         spr->limitLabelWidth(input->m_maxLabelWidth, input->getScale(), 0);
+        spr->setScale(spr->getScale() * m_popupScale);
     }
 
     auto btn = CCMenuItemExt::createSpriteExtra(spr, [this](CCObject* sender) {
@@ -56,6 +57,26 @@ void MultiEditContext::updateSideMenuButtons() {
     // using handleTouchPriority(m_alertLayer) breaks pulse and particle triggers
     // so whatever i'll just do it this way
 
+    // CCSize popupSize = m_popupSize
+    //     ? *m_popupSize
+    //     : m_alertLayer->m_mainLayer->getChildByType<CCScale9Sprite>(0)->getContentSize();
+    // CCPoint popupCenter = m_popupCenter
+    //     ? *m_popupCenter
+    //     : CCPoint(CCDirector::sharedDirector()->getWinSize() / 2);
+
+    if (typeinfo_cast<HSVLiveOverlay*>(m_alertLayer)) {
+        if (m_sideButtons.empty()) return;
+
+        auto btn = m_sideButtons[0];
+
+        btn->removeFromParent();
+        m_buttonMenu->addChild(btn);
+        btn->setPosition({ 152.6f, -86.4f });
+        btn->setScale(0.5f);
+
+        return;
+    }
+
     CCSize winSize = CCDirector::sharedDirector()->getWinSize();
     CCSize popupSize = m_alertLayer->m_mainLayer->getChildByType<CCScale9Sprite>(0)->getContentSize();
 
@@ -69,6 +90,13 @@ void MultiEditContext::updateSideMenuButtons() {
         button->removeFromParent();
         m_buttonMenu->addChild(button);
 
+        // button->setPosition(
+        //     popupCenter
+        //     + ccp(popupSize.width / 2, -popupSize.height / 2) * m_popupScale
+        //     + button->getContentSize() / 2
+        //     + ccp(5, 35 * i) * m_popupScale
+        //     - m_buttonMenu->getPosition()
+        // );
         button->setPosition(
             winSize / 2
             + ccp(popupSize.width / 2, -popupSize.height / 2)
@@ -101,7 +129,7 @@ void MultiEditContext::makeMixed(int property) {
 
     CCMenuItemSpriteExtra* btn = createMixedButton(property);
 
-    btn->setPosition(input->getPosition() - m_buttonMenu->getPosition() + m_buttonOffset);
+    btn->setPosition((input->getPosition() * m_popupScale) - m_buttonMenu->getPosition() + m_buttonOffset);
     btn->setID("mixed-input-btn"_spr);
     btn->setTag(property);
 
@@ -383,13 +411,13 @@ CCMenuItemToggler* MultiEditContext::createSideMenuButton(
 ) {
     auto onSprTop = CCSprite::createWithSpriteFrameName(sprName);
     auto onSpr = CCScale9Sprite::create("GJ_button_02.png");
-    onSprTop->setScale(0.7);
+    onSprTop->setScale(0.7f);
     onSpr->setContentSize({30, 30});
     onSpr->addChildAtPosition(onSprTop, Anchor::Center);
 
     auto offSprTop = CCSprite::createWithSpriteFrameName(sprName);
     auto offSpr = CCScale9Sprite::create("GJ_button_04.png");
-    offSprTop->setScale(0.7);
+    offSprTop->setScale(0.7f);
     offSpr->setContentSize({30, 30});
     offSpr->addChildAtPosition(offSprTop, Anchor::Center);
 
@@ -438,7 +466,26 @@ bool MultiEditContext::hasContext(CCNode* popup) {
 
 /* enter mixed input when clicking on an input when mixed mode is enabled */
 
+bool mousePosOverBG(CCScale9Sprite* bg) {
+    if (!nodeIsVisible(bg)) return false;
+
+    auto touchPos = getMousePos();
+    auto blPos = bg->convertToWorldSpace({0, 0});
+    auto trPos = bg->convertToWorldSpace(bg->getContentSize());
+
+    return (
+        touchPos.x >= blPos.x && touchPos.x <= trPos.x &&
+        touchPos.y >= blPos.y && touchPos.y <= trPos.y
+    );
+}
+
 class $modify(CCTextInputNode) {
+    static void onModify(auto& self) {
+        // run before geode's input node fix
+        (void)self.setHookPriority("CCTextInputNode::ccTouchBegan", Priority::EarlyPost);
+    }
+
+    $override
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
         std::optional<int> property = MultiEditContext::getPropertyID(this);
         if (!property) return CCTextInputNode::ccTouchBegan(touch, event);
@@ -448,9 +495,10 @@ class $modify(CCTextInputNode) {
 
         if (!ctx->isMixedEnabled()) return CCTextInputNode::ccTouchBegan(touch, event);
 
-        auto bounds = m_textField->boundingBox();
-        auto touchLocation = m_textField->convertToNodeSpace(touch->getLocation()) - m_textField->getContentSize() / 2;
-        if (!bounds.containsPoint(touchLocation)) return true;
+        auto bg = ctx->getInputBG(*property);
+        if (!bg) return CCTextInputNode::ccTouchBegan(touch, event);
+
+        if (!mousePosOverBG(bg)) return CCTextInputNode::ccTouchBegan(touch, event);
 
         ctx->onMixed(this);
 
@@ -467,23 +515,14 @@ void onRightClick() {
     auto ctx = MultiEditContext::get(popup);
     if (!ctx) return;
 
-    CCPoint mousePosition = getMousePos();
-    auto& inputNodes = ctx->getInputs();
+    for (auto const& [key, bg] : ctx->getInputBGs()) {
+        if (!mousePosOverBG(bg)) continue;
 
-    for (auto const& [key, input] : inputNodes) {
-        if (!input->isVisible()) continue;
+        auto input = ctx->getInput(key);
+        if (!input) return;
 
-        auto parent = input->getParent();
-        if (parent && !parent->isVisible()) continue;
-
-        CCPoint inputPosition = input->m_textField->convertToWorldSpace({0, 0});
-        CCSize inputSize = input->m_textField->getContentSize();
-        CCRect inputRect = CCRect(inputPosition, inputSize);
-
-        if (inputRect.containsPoint(mousePosition)) {
-            ctx->onMixed(input);
-            return;
-        }
+        ctx->onMixed(input);
+        return;
     }
 }
 

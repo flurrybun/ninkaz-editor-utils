@@ -52,6 +52,9 @@ protected:
     std::map<int, CCMenuItemSpriteExtra*> m_mixedButtons;
 
     CCPoint m_buttonOffset = {0, 0};
+    float m_popupScale = 1.f;
+    // std::optional<CCSize> m_popupSize;
+    // std::optional<CCPoint> m_popupCenter;
 
     /**
      * CCArrays of CCArrays of CCNodes.

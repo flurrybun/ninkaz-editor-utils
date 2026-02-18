@@ -1,14 +1,7 @@
 #pragma once
 
-#include "../misc/CCBoundedMenu.hpp"
-#include <Geode/modify/EditorPauseLayer.hpp>
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
-
-class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
-    $override bool init(LevelEditorLayer* levelEditorLayer);
-    void onAddRandomGroups(CCObject*);
-};
 
 class AddRandomGroupsPopup : public Popup<CCArray*> {
 protected:
