@@ -5,13 +5,7 @@
 #include <Geode/modify/CCTextInputNode.hpp>
 
 void MultiEditContext::registerSelf(FLAlertLayer* self, CCMenu* buttonMenu) {
-    m_self = self;
-    m_alertLayer = self;
-    m_inputParent = self->m_mainLayer;
-    if (buttonMenu) m_buttonMenu = buttonMenu;
-    else m_buttonMenu = self->m_buttonMenu;
-
-    s_registry[self] = this;
+    registerSelf(self, self, self->m_mainLayer, buttonMenu);
 }
 
 void MultiEditContext::registerSelf(
@@ -24,6 +18,24 @@ void MultiEditContext::registerSelf(
     else m_buttonMenu = alertLayer->m_buttonMenu;
 
     s_registry[self] = this;
+
+    m_mouseListener = MouseInputEvent().listen([this](MouseInputData& data) {
+        if (data.action != MouseInputData::Action::Press) return;
+        if (
+            data.button != MouseInputData::Button::Right &&
+            !(data.button == MouseInputData::Button::Right && m_isMixedEnabled)
+        ) return;
+
+        for (const auto& [key, bg] : m_inputBGs) {
+            if (!hoveringOverBG(bg)) continue;
+
+            auto input = getInput(key);
+            if (!input) return;
+
+            onMixed(input);
+            return;
+        }
+    });
 }
 
 MultiEditContext::~MultiEditContext() {
@@ -407,7 +419,7 @@ void MultiEditContext::setSliderValue(Slider* slider, float value, float min, fl
 }
 
 CCMenuItemToggler* MultiEditContext::createSideMenuButton(
-    const char* sprName, std::function<void (CCMenuItemToggler*)> callback
+    const char* sprName, geode::Function<void (CCMenuItemToggler*)> callback
 ) {
     auto onSprTop = CCSprite::createWithSpriteFrameName(sprName);
     auto onSpr = CCScale9Sprite::create("GJ_button_02.png");
@@ -421,7 +433,7 @@ CCMenuItemToggler* MultiEditContext::createSideMenuButton(
     offSpr->setContentSize({30, 30});
     offSpr->addChildAtPosition(offSprTop, Anchor::Center);
 
-    auto btn = CCMenuItemExt::createToggler(onSpr, offSpr, callback);
+    auto btn = CCMenuItemExt::createToggler(onSpr, offSpr, std::move(callback));
     btn->toggle(false);
 
     return btn;
@@ -466,7 +478,7 @@ bool MultiEditContext::hasContext(CCNode* popup) {
 
 /* enter mixed input when clicking on an input when mixed mode is enabled */
 
-bool mousePosOverBG(CCScale9Sprite* bg) {
+bool hoveringOverBG(CCScale9Sprite* bg) {
     if (!nodeIsVisible(bg)) return false;
 
     auto touchPos = getMousePos();
@@ -478,80 +490,3 @@ bool mousePosOverBG(CCScale9Sprite* bg) {
         touchPos.y >= blPos.y && touchPos.y <= trPos.y
     );
 }
-
-class $modify(CCTextInputNode) {
-    static void onModify(auto& self) {
-        // run before geode's input node fix
-        (void)self.setHookPriority("CCTextInputNode::ccTouchBegan", Priority::EarlyPost);
-    }
-
-    $override
-    bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
-        std::optional<int> property = MultiEditContext::getPropertyID(this);
-        if (!property) return CCTextInputNode::ccTouchBegan(touch, event);
-
-        auto ctx = MultiEditContext::getFromChild(this);
-        if (!ctx) return CCTextInputNode::ccTouchBegan(touch, event);
-
-        if (!ctx->isMixedEnabled()) return CCTextInputNode::ccTouchBegan(touch, event);
-
-        auto bg = ctx->getInputBG(*property);
-        if (!bg) return CCTextInputNode::ccTouchBegan(touch, event);
-
-        if (!mousePosOverBG(bg)) return CCTextInputNode::ccTouchBegan(touch, event);
-
-        ctx->onMixed(this);
-
-        return true;
-    }
-};
-
-/* right click on input to enter mixed input mode */
-
-void onRightClick() {
-    auto popup = CCScene::get()->getChildByType<FLAlertLayer>(-1);
-    if (!popup) return;
-
-    auto ctx = MultiEditContext::get(popup);
-    if (!ctx) return;
-
-    for (auto const& [key, bg] : ctx->getInputBGs()) {
-        if (!mousePosOverBG(bg)) continue;
-
-        auto input = ctx->getInput(key);
-        if (!input) return;
-
-        ctx->onMixed(input);
-        return;
-    }
-}
-
-#if defined(GEODE_IS_WINDOWS)
-#include <Geode/modify/CCEGLView.hpp>
-
-class $modify(CCEGLViewTrigger, CCEGLView) {
-    $override void onGLFWMouseCallBack(GLFWwindow* window, int button, int action, int mods) {
-        CCEGLView::onGLFWMouseCallBack(window, button, action, mods);
-
-        if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
-        if (action != GLFW_RELEASE) return;
-
-        onRightClick();
-    }
-};
-#elif defined(GEODE_IS_MACOS)
-#include <objc/message.h>
-
-void rightMouseUpHook(void* self, SEL sel, void* event) {
-    queueInMainThread([] {
-        onRightClick();
-    });
-    reinterpret_cast<void(*)(void*, SEL, void*)>(objc_msgSend)(self, sel, event);
-}
-
-$execute {
-    if (auto hook = ObjcHook::create("EAGLView", "rightMouseUp:", &rightMouseUpHook, tulip::hook::HookMetadata())) {
-        (void)Mod::get()->claimHook(hook.unwrap());
-    }
-}
-#endif

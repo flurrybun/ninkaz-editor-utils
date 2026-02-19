@@ -3,7 +3,7 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-class AddRandomGroupsPopup : public Popup<CCArray*> {
+class AddRandomGroupsPopup : public Popup {
 protected:
     TextInput* m_groupInput;
     TextInput* m_coverageInput;
@@ -11,10 +11,10 @@ protected:
     ScrollLayer* m_scrollLayer;
     Scrollbar* m_scrollbar;
     std::vector<short> m_groups;
-    CCArray* m_selectedObjects;
+    CCArray* m_objects;
     CCMenuItemToggler* m_toggleLinkedButton;
 
-    bool setup(CCArray* selectedObjects) override;
+    bool init(CCArray* objects);
 
     void onChangeInput(CCObject* sender);
     void onNextFree(CCObject* sender);
@@ -26,5 +26,13 @@ protected:
     void onApply(CCObject* sender);
 
 public:
-    static AddRandomGroupsPopup* create(CCArray* selectedObjects);
+    static AddRandomGroupsPopup* create(CCArray* objects) {
+        auto popup = new AddRandomGroupsPopup;
+        if (popup->init(objects)) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
 };

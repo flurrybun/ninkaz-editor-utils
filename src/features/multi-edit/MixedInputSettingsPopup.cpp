@@ -3,14 +3,16 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-bool MixedInputSettingsPopup::setup(MixedInputSettings settings, std::function<void(MixedInputSettings)> callback) {
+bool MixedInputSettingsPopup::init(MixedInputSettings settings, geode::Function<void(MixedInputSettings)> callback) {
+    if (!Popup::init(250.f, 220.f)) return false;
+
     auto winSize = m_mainLayer->getContentSize();
 
     setTitle("Rounding Options");
     m_closeBtn->removeFromParent();
 
-    m_settings = settings;
-    m_callback = callback;
+    m_settings = std::move(settings);
+    m_callback = std::move(callback);
 
     // INFO BUTTON
 
@@ -92,14 +94,4 @@ void MixedInputSettingsPopup::onRoundingButton(CCObject* sender) {
     
     m_settings.rounding = static_cast<RoundingType>(btn->getTag());
     m_callback(m_settings);
-}
-
-MixedInputSettingsPopup* MixedInputSettingsPopup::create(MixedInputSettings settings, std::function<void(MixedInputSettings)> callback) {
-    auto ret = new MixedInputSettingsPopup();
-    if (ret && ret->initAnchored(250.f, 220.f, settings, callback)) {
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
 }

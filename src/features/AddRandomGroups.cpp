@@ -3,7 +3,6 @@
 #include "../misc/StringUtils.hpp"
 #include <Geode/modify/EditorPauseLayer.hpp>
 #include <algorithm>
-#include <random>
 #include <regex>
 
 class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
@@ -28,9 +27,9 @@ class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
     }
 
     void onAddRandomGroups(CCObject* sender) {
-        CCArray* selectedObjects = m_editorLayer->m_editorUI->getSelectedObjects();
+        CCArray* objects = m_editorLayer->m_editorUI->m_selectedObjects;
 
-        if (selectedObjects->count() == 0) {
+        if (objects->count() == 0) {
             FLAlertLayer::create(
                 "Add Random Groups",
                 "You must have at least <cr>one object</c> selected to add groups to.",
@@ -40,17 +39,16 @@ class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
             return;
         }
 
-        AddRandomGroupsPopup::create(selectedObjects)->show();
+        AddRandomGroupsPopup::create(objects)->show();
     }
 };
 
-bool AddRandomGroupsPopup::setup(CCArray* selectedObjects) {
+bool AddRandomGroupsPopup::init(CCArray* selectedObjects) {
+    if (!Popup::init(350.f, 250.f)) return false;
+
     auto winSize = m_mainLayer->getContentSize();
     auto winCenter = winSize / 2;
     setTitle("Add Random Groups");
-
-    m_groups = {};
-    m_selectedObjects = selectedObjects;
 
     // INFO BUTTON
 
@@ -351,10 +349,9 @@ void AddRandomGroupsPopup::assignGroups() {
 
     std::map<short, std::vector<GameObject*>> linkedObjectsMap;
     std::vector<std::vector<GameObject*>> linkedObjectGroups;
-    CCArrayExt<GameObject*> objects = GameManager::sharedState()->getEditorLayer()->m_editorUI->getSelectedObjects();
 
-    for (GameObject* obj : objects)
-        (linkedObjectsMap)[obj->m_linkedGroup].push_back(obj);
+    for (GameObject* obj : CCArrayExt<GameObject*>(m_objects))
+        linkedObjectsMap[obj->m_linkedGroup].push_back(obj);
 
     for (auto& pair : linkedObjectsMap) {
         if (pair.second[0]->m_linkedGroup == 0) {
@@ -366,9 +363,7 @@ void AddRandomGroupsPopup::assignGroups() {
         }
     };
 
-    auto rd = std::random_device {};
-    auto rng = std::default_random_engine { rd() };
-    std::shuffle(linkedObjectGroups.begin(), linkedObjectGroups.end(), rng);
+    // random::shuffle(linkedObjectGroups);
 
     // std::sort(linkedObjectGroups.begin(), linkedObjectGroups.end(), [](const std::vector<GameObject*>& a, const std::vector<GameObject*>& b) {
     //     float avgXa = 0, avgYa = 0, avgXb = 0, avgYb = 0;
@@ -393,9 +388,9 @@ void AddRandomGroupsPopup::assignGroups() {
 
     short groupIndex = 0;
 
-    for (std::vector<GameObject*>& linkedObject : linkedObjectGroups) {
+    for (const auto& linkedObject : linkedObjectGroups) {
         if (isIgnoreLinked || linkedObject[0]->m_linkedGroup == 0) {
-            std::shuffle(linkedObject.begin(), linkedObject.end(), rng);
+            // random::shuffle(linkedObject);
 
             for (GameObject* object : linkedObject) {
                 auto groupID = m_groups[groupIndex % m_groups.size()];
@@ -433,17 +428,6 @@ void AddRandomGroupsPopup::onApply(CCObject* sender) {
     assignGroups();
     onClose(sender);
 }
-
-AddRandomGroupsPopup* AddRandomGroupsPopup::create(CCArray* selectedObjects) {
-    auto ret = new AddRandomGroupsPopup();
-    if (ret && ret->initAnchored(350.f, 250.f, selectedObjects)) {
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
-}
-
 
 /* sort groups sequentially based on x and y position (will add later)
 

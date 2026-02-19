@@ -13,7 +13,7 @@ struct MixedInputSettings {
     RoundingType rounding;
 };
 
-class MixedInputPopup : public Popup<MultiEditContext*, int> {
+class MixedInputPopup : public Popup {
 protected:
     enum Operator {
         Add, Subtract, Multiply, Divide, Equal
@@ -54,7 +54,7 @@ protected:
             : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), objects(obj) {}
     };
 
-    bool setup(MultiEditContext*, int) override;
+    bool init(MultiEditContext*, int);
 
     CCMenu* createTopRow();
     CCMenu* createBottomRow();
@@ -71,5 +71,13 @@ protected:
     float roundValue(float);
     std::vector<MixedInputPopup::CalculationInfo> createStringMap();
 public:
-    static MixedInputPopup* create(MultiEditContext*, int);
+    static MixedInputPopup* create(MultiEditContext* context, int property) {
+        auto popup = new MixedInputPopup;
+        if (popup->init(context, property)) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
 };

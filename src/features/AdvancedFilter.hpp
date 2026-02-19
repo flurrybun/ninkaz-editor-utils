@@ -401,7 +401,7 @@ bool isScale(FilterType type);
 bool isColor(FilterType type);
 bool isSplit(FilterType type);
 
-class AdvFilterPopup : public Popup<> {
+class AdvFilterPopup : public Popup {
 protected:
     std::array<CCMenu*, 8> m_controlMenus;
     std::array<TextInput*, 8> m_inputs;
@@ -414,7 +414,7 @@ protected:
     bool m_isToggleColor;
     bool m_isToggleScale;
 
-    bool setup() override;
+    bool init() override;
     void addLine(const std::string& label, const std::string& id, FilterType filter, CCPoint position);
     CCMenuItemToggler* createToggler(const std::string& spriteName, SEL_MenuHandler selector);
 
@@ -427,22 +427,37 @@ protected:
     void onReset(CCObject*);
     void onSelectAll(CCObject*);
 public:
-    static AdvFilterPopup* create();
+    static AdvFilterPopup* create() {
+        auto popup = new AdvFilterPopup;
+        if (popup->init()) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
 };
 
-using updateCallback = std::function<void(const std::unordered_set<int>& colors, const HSVInput& hsv)>;
+using updateCallback = geode::Function<void(const std::unordered_set<int>& colors, const HSVInput& hsv)>;
 
-class MoreColorsPopup : public Popup<ColorType, updateCallback> {
+class MoreColorsPopup : public Popup {
 protected:
     ColorType m_colorType;
     updateCallback m_callback;
     std::unordered_set<int> m_selectedColors;
     HSVInput m_hsv;
-    // std::array<ButtonSprite*, 8> m_colorButtonSprites;
 
-    bool setup(ColorType, updateCallback) override;
+    bool init(ColorType, updateCallback);
     void onColor(CCObject*);
     void onUpdateValue();
 public:
-    static MoreColorsPopup* create(ColorType, updateCallback);
+    static MoreColorsPopup* create(ColorType colorType, updateCallback callback) {
+        auto popup = new MoreColorsPopup;
+        if (popup->init(colorType, std::move(callback))) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
 };

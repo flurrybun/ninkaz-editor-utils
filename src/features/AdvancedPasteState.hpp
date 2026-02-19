@@ -3,7 +3,7 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-class PasteStatePopup : public Popup<> {
+class PasteStatePopup : public Popup {
 protected:
     enum Preset { Default, All, None, Custom };
     const std::array<const char*, 4> PRESET_NAMES = {"Default", "All", "None", "Custom"};
@@ -22,7 +22,7 @@ protected:
     std::array<CCMenuItemToggler*, 12> m_togglers;
     std::array<CCMenuItemSpriteExtra*, 4> m_presetButtons;
 
-    bool setup() override;
+    bool init() override;
     void onClose(CCObject* sender) override;
 
     void addQuickPasteButton();
@@ -38,6 +38,14 @@ protected:
 public:
     void onQuickPaste(CCObject* sender);
 
-    static PasteStatePopup* create();
+    static PasteStatePopup* create() {
+        auto popup = new PasteStatePopup;
+        if (popup->init()) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
     static PasteStatePopup* get();
 };

@@ -260,7 +260,7 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 nextFree = getNextFreeItemID(true);
                 break;
             case PropertyType::BlockID:
-                nextFree = lel->getNextFreeBlockID(nullptr);
+                nextFree = lel->getNextFreeBlockID({});
                 break;
             case PropertyType::ControlID:
                 nextFree = getNextFreeControlID();

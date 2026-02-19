@@ -38,6 +38,8 @@ private:
     CCMenu* m_buttonMenu;
 
 protected:
+    ListenerHandle m_mouseListener;
+
     std::vector<CCMenuItem*> m_sideButtons;
     CCArrayExt<GameObject*> m_gameObjects;
     Ref<Notification> m_mixedNotification;
@@ -172,7 +174,7 @@ public:
     static void setInputValue(CCTextInputNode* input, float value, int decimalPlaces);
     static void setSliderValue(Slider* slider, float value, float min, float max);
     static CCMenuItemToggler* createSideMenuButton(
-        const char* sprName, std::function<void (CCMenuItemToggler*)> callback
+        const char* sprName, geode::Function<void (CCMenuItemToggler*)> callback
     );
     static bool isTriggerPopup(SetupTriggerPopup* popup);
 
@@ -180,3 +182,5 @@ public:
     static MultiEditContext* getFromChild(CCNode* child);
     static bool hasContext(CCNode* popup);
 };
+
+bool hoveringOverBG(CCScale9Sprite* bg);

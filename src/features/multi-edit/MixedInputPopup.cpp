@@ -9,7 +9,8 @@ using namespace geode::prelude;
 
 #include <regex>
 
-bool MixedInputPopup::setup(MultiEditContext* context, int property) {
+bool MixedInputPopup::init(MultiEditContext* context, int property) {
+    if (!Popup::init(380.f, 280.f)) return false;
     if (!context) return false;
     
     m_context = context;
@@ -685,14 +686,4 @@ std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap()
     }
 
     return calcVector;
-}
-
-MixedInputPopup* MixedInputPopup::create(MultiEditContext* context, int property) {
-    auto ret = new MixedInputPopup();
-    if (ret && ret->initAnchored(380.f, 280.f, context, property)) {
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
 }

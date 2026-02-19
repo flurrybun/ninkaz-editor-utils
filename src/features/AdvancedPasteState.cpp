@@ -49,7 +49,9 @@ class $modify(APSEditorUI, EditorUI) {
 
 PasteStatePopup* PasteStatePopup::s_instance = nullptr;
 
-bool PasteStatePopup::setup() {
+bool PasteStatePopup::init() {
+    if (!Popup::init(390.f, 280.f)) return false;
+
     setTitle("Paste State");
     m_closeBtn->removeFromParent();
 
@@ -436,18 +438,6 @@ void PasteStatePopup::replaceObjectIDs(CCArray* objects, int newID) {
     if (newObjects) {
         eui->selectObjects(newObjects, true);
     }
-}
-
-PasteStatePopup* PasteStatePopup::create() {
-    auto ret = new PasteStatePopup();
-    if (ret && ret->initAnchored(390, 280)) {
-        ret->autorelease();
-        s_instance = ret;
-
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
 }
 
 PasteStatePopup* PasteStatePopup::get() {

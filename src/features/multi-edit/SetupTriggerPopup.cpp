@@ -9,7 +9,7 @@ using namespace geode::prelude;
 class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
     struct Fields : MultiEditContext {
         SetupTriggerPopup* popup;
-        std::optional<std::function<void(int, float)>> callback;
+        std::optional<geode::Function<void(int, float)>> callback;
 
         void init(SetupTriggerPopup* popup) {
             this->popup = popup;

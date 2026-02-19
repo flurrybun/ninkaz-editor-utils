@@ -234,7 +234,9 @@ bool isSplit(FilterType type) {
         type == FilterType::SCALEX || type == FilterType::SCALEY;
 }
 
-bool AdvFilterPopup::setup() {
+bool AdvFilterPopup::init() {
+    if (!Popup::init(420.f, 265.f)) return false;
+
     setTitle("Advanced Filter");
     m_closeBtn->removeFromParent();
 
@@ -552,7 +554,7 @@ void AdvFilterPopup::onMoreColors(CCObject* sender) {
         onUpdateValue();
     };
 
-    auto popup = MoreColorsPopup::create(colorType, onUpdate);
+    auto popup = MoreColorsPopup::create(colorType, std::move(onUpdate));
     popup->m_noElasticity = true;
 
     popup->show();
@@ -643,18 +645,9 @@ void AdvFilterPopup::onSelectAll(CCObject* sender) {
     onClose(nullptr);
 }
 
-AdvFilterPopup* AdvFilterPopup::create() {
-    auto ret = new AdvFilterPopup();
-    if (ret && ret->initAnchored(420, 265)) {
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
-}
+bool MoreColorsPopup::init(ColorType colorType, updateCallback callback) {
+    if (!Popup::init(360.f, 240.f)) return false;
 
-
-bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
     if (colorType == ColorType::BASE) setTitle("Base Color Special");
     else if (colorType == ColorType::DETAIL) setTitle("Detail Color Special");
     else setTitle("Color Special");
@@ -663,7 +656,7 @@ bool MoreColorsPopup::setup(ColorType colorType, updateCallback callback) {
     FilterType filter = static_cast<FilterType>(static_cast<int>(colorType) + 1);
 
     m_colorType = colorType;
-    m_callback = callback;
+    m_callback = std::move(callback);
     m_hsv = getFilterHSV(colorType).getInput();
 
     auto& colorFilter = getColorFilter(colorType);
@@ -769,14 +762,4 @@ void MoreColorsPopup::onColor(CCObject* sender) {
 
 void MoreColorsPopup::onUpdateValue() {
     m_callback(m_selectedColors, m_hsv);
-}
-
-MoreColorsPopup* MoreColorsPopup::create(ColorType colorType, updateCallback callback) {
-    auto ret = new MoreColorsPopup();
-    if (ret && ret->initAnchored(360, 230, colorType, callback)) {
-        ret->autorelease();
-        return ret;
-    }
-    CC_SAFE_DELETE(ret);
-    return nullptr;
 }
