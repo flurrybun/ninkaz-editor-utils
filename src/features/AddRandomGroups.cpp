@@ -2,8 +2,6 @@
 #include "../misc/CCBoundedMenu.hpp"
 #include "../misc/StringUtils.hpp"
 #include <Geode/modify/EditorPauseLayer.hpp>
-#include <algorithm>
-#include <regex>
 
 class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
     $override
@@ -263,27 +261,47 @@ void AddRandomGroupsPopup::onNextFree(CCObject* sender) {
 }
 
 void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
-    auto inputStr = m_groupInput->getString();
-    if (std::regex_match(inputStr, std::regex("^\\d+-\\d+$"))) {
-        auto rangeStart = nk::toInt(inputStr.substr(0, inputStr.find("-")));
-        auto rangeEnd = nk::toInt(inputStr.substr(inputStr.find("-") + 1));
+    std::string str = m_groupInput->getString();
+    if (str.empty()) return;
 
-        if (rangeStart < 1 || rangeStart > 9999 || rangeEnd < 1 || rangeEnd > 9999) return;
-        if (rangeStart == rangeEnd) return;
-        
-        if (rangeEnd < rangeStart) std::swap(rangeStart, rangeEnd);
+    std::stringstream ss(str);
+    std::string segment;
 
-        for (int i = rangeStart; i <= rangeEnd; i++) {
-            if (std::find(m_groups.begin(), m_groups.end(), i) == m_groups.end()) {
+    while (std::getline(ss, segment, ',')) {
+        string::trimIP(segment, " ");
+
+        if (segment.empty()) continue;
+
+        size_t dashPos = segment.find('-');
+        if (dashPos == 0) dashPos = segment.find('-', 1);
+
+        bool isRange = dashPos != std::string::npos && dashPos > 0;
+
+        if (isRange) {
+            std::string minStr = segment.substr(0, dashPos);
+            std::string maxStr = segment.substr(dashPos + 1);
+
+            Result<short> minResult = numFromString<short>(minStr);
+            Result<short> maxResult = numFromString<short>(maxStr);
+            if (!minResult || !maxResult) continue;
+
+            short minVal = minResult.unwrap();
+            short maxVal = maxResult.unwrap();
+
+            if (minVal > maxVal) {
+                std::swap(minVal, maxVal);
+            }
+
+            for (short i = minVal; i <= maxVal; i++) {
                 addGroupButton(i);
             }
-        }
-    } else {
-        auto inputValue = nk::toInt(inputStr);
-        if (inputValue < 1 || inputValue > 9999) return;
-        if (std::find(m_groups.begin(), m_groups.end(), inputValue) != m_groups.end()) return;
+        } else {
+            Result<short> valResult = numFromString<short>(segment);
+            if (!valResult) continue;
 
-        addGroupButton(inputValue);
+            short val = valResult.unwrap();
+            addGroupButton(val);
+        }
     }
 
     sort(m_groups.begin(), m_groups.end());
@@ -291,6 +309,8 @@ void AddRandomGroupsPopup::onAddGroup(CCObject* sender) {
 }
 
 void AddRandomGroupsPopup::addGroupButton(short group) {
+    if (ranges::contains(m_groups, group)) return;
+
     auto label = std::to_string(group);
     auto spr = ButtonSprite::create(label.c_str(), 30, true, "goldFont.fnt", "GJ_button_04.png", 20.f, 0.5f);
     
@@ -363,7 +383,7 @@ void AddRandomGroupsPopup::assignGroups() {
         }
     };
 
-    // random::shuffle(linkedObjectGroups);
+    random::shuffle(linkedObjectGroups);
 
     // std::sort(linkedObjectGroups.begin(), linkedObjectGroups.end(), [](const std::vector<GameObject*>& a, const std::vector<GameObject*>& b) {
     //     float avgXa = 0, avgYa = 0, avgXb = 0, avgYb = 0;
@@ -388,9 +408,9 @@ void AddRandomGroupsPopup::assignGroups() {
 
     short groupIndex = 0;
 
-    for (const auto& linkedObject : linkedObjectGroups) {
+    for (auto& linkedObject : linkedObjectGroups) {
         if (isIgnoreLinked || linkedObject[0]->m_linkedGroup == 0) {
-            // random::shuffle(linkedObject);
+            random::shuffle(linkedObject);
 
             for (GameObject* object : linkedObject) {
                 auto groupID = m_groups[groupIndex % m_groups.size()];

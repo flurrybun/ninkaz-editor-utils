@@ -260,7 +260,7 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 nextFree = getNextFreeItemID(true);
                 break;
             case PropertyType::BlockID:
-                nextFree = lel->getNextFreeBlockID({});
+                nextFree = lel->getNextFreeBlockID(gd::unordered_set<int>());
                 break;
             case PropertyType::ControlID:
                 nextFree = getNextFreeControlID();
@@ -272,7 +272,7 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
                 return;
         }
 
-        input->setString(fmt::format("{}", nextFree).c_str());
+        input->setString(fmt::to_string(nextFree));
         input->m_delegate->textChanged(input);
     }
 
