@@ -253,7 +253,7 @@ void AddRandomGroupsPopup::onChangeInput(CCObject* sender) {
 }
 
 void AddRandomGroupsPopup::onNextFree(CCObject* sender) {
-    int nextFreeID = GameManager::sharedState()->getEditorLayer()->getNextFreeGroupID({});
+    int nextFreeID = LevelEditorLayer::get()->getNextFreeGroupID(gd::unordered_set<int>());
 
     if (nextFreeID < 0 || nextFreeID > 9999) return;
 
