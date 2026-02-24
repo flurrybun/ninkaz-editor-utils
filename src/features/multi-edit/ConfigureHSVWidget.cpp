@@ -75,13 +75,39 @@ void setHSVSliderValue(ConfigureHSVWidget* widget, HSVType hsvType, float value)
 }
 
 class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
+    struct Fields : TextInputDelegate {
+        ConfigureHSVWidget* widget;
+
+        void textChanged(CCTextInputNode* input) override {
+            gd::string str = input->getString();
+
+            switch (input->getTag()) {
+                case 1:
+                    widget->m_hsv.h = numFromString<float>(str).unwrapOr(0.f);
+                    break;
+                case 2:
+                    widget->m_hsv.s = numFromString<float>(str).unwrapOr(0.f);
+                    break;
+                case 3:
+                    widget->m_hsv.v = numFromString<float>(str).unwrapOr(0.f);
+                    break;
+            }
+
+            widget->m_delegate->hsvChanged(widget);
+            widget->updateSliders();
+        }
+    };
+
     $override
     bool init(ccHSVValue hsv, bool unused, bool addInputs) {
         if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
 
+        m_fields->widget = this;
+
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
             input->setUserObject("fix-text-input", CCBool::create(true));
             input->setLabelPlaceholderColor({ 150, 150, 150 });
+            input->m_delegate = m_fields.self();
         }
 
         CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
@@ -90,13 +116,6 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
         return true;
     }
-
-    // $override
-    // void textChanged(CCTextInputNode* input) {
-    //     ConfigureHSVWidget::textChanged(input);
-
-        
-    // }
 
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
@@ -476,5 +495,23 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
         m_fields->setupMixed();
 
         return true;
+    }
+
+    $override
+    void hsvChanged(ConfigureHSVWidget* widget) {
+        CCArrayExt<GameObject*> objects = m_objects ? m_objects : CCArray::createWithObject(m_object);
+        ccHSVValue hsv = widget->m_hsv;
+
+        for (auto object : objects) {
+            auto color = object->getRelativeSpriteColor(m_activeTab);
+            if (!color) continue;
+
+            if (!isMixed(hsv.h)) color->m_hsv.h = hsv.h;
+            if (!isMixed(hsv.s)) color->m_hsv.s = hsv.s;
+            if (!isMixed(hsv.v)) color->m_hsv.v = hsv.v;
+
+            color->m_hsv.absoluteSaturation = hsv.absoluteSaturation;
+            color->m_hsv.absoluteBrightness = hsv.absoluteBrightness;
+        }
     }
 };
