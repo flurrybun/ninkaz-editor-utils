@@ -237,6 +237,8 @@ void MultiEditContext::setupMixed() {
     if (m_hasSetupMixed) return;
     m_hasSetupMixed = true;
 
+    SetupMixedEvent().send(this);
+
     if (auto objArray = getObjectArray()) {
         m_gameObjects.inner()->removeAllObjects();
         m_gameObjects.inner()->addObjectsFromArray(objArray);

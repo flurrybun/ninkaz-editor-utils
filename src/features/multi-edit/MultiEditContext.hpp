@@ -183,4 +183,12 @@ public:
     static bool hasContext(CCNode* popup);
 };
 
+/**
+ * An event fired right before MultiEditContext::setupMixed runs.
+ */
+class SetupMixedEvent : public Event<SetupMixedEvent, bool(MultiEditContext* ctx)> {
+public:
+    using Event::Event;
+};
+
 bool hoveringOverBG(CCScale9Sprite* bg);

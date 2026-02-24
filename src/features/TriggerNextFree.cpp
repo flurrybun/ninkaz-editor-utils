@@ -182,15 +182,16 @@ void setNextFreeButtonPosition(CCLabelBMFont* label, CCMenuItemSpriteExtra* butt
 }
 
 class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
+    struct Fields {
+        ListenerHandle setupMixedListener;
+    };
+
     $override
     bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
         if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum)) return false;
         if (!MultiEditContext::isTriggerPopup(this)) return true;
 
-        auto ctx = MultiEditContext::get(this);
-        if (!ctx) return true;
-
-        queueInMainThread([this, ctx]() {
+        m_fields->setupMixedListener = SetupMixedEvent().listen([this](MultiEditContext* ctx) {
             for (auto [property, input] : ctx->getInputs()) {
                 if (getPropertyType(property) == PropertyType::Other) continue;
 
