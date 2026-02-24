@@ -323,6 +323,10 @@ class $modify(TNFSetupTriggerPopup, SetupTriggerPopup) {
 };
 
 class $modify(SetupPickupTriggerPopup) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("SetupPickupTriggerPopup::init", Priority::VeryEarlyPost);
+    }
+
     $override
     bool init(EffectGameObject* object, CCArray* objects) {
         if (!SetupPickupTriggerPopup::init(object, objects)) return false;
@@ -336,6 +340,10 @@ class $modify(SetupPickupTriggerPopup) {
 };
 
 class $modify(SetupInteractObjectPopup) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("SetupInteractObjectPopup::init", Priority::VeryEarlyPost);
+    }
+
     $override
     bool init(EffectGameObject* object, CCArray* objects) {
         if (!SetupInteractObjectPopup::init(object, objects)) return false;
@@ -349,6 +357,10 @@ class $modify(SetupInteractObjectPopup) {
 };
 
 class $modify(SetupObjectOptions2Popup) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("SetupObjectOptions2Popup::init", Priority::VeryEarlyPost);
+    }
+
     bool init(GameObject* object, CCArray* objects) {
         if (!SetupObjectOptions2Popup::init(object, objects)) return false;
 
