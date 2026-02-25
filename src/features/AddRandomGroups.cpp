@@ -37,7 +37,9 @@ class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
             return;
         }
 
-        AddRandomGroupsPopup::create(objects)->show();
+        auto popup = AddRandomGroupsPopup::create(objects);
+        popup->m_noElasticity = true;
+        popup->show();
     }
 };
 
