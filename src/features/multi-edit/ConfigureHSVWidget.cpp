@@ -93,7 +93,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
                     break;
             }
 
-            widget->m_delegate->hsvChanged(widget);
+            if (widget->m_delegate) widget->m_delegate->hsvChanged(widget);
             widget->updateSliders();
         }
     };
@@ -107,7 +107,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
             input->setUserObject("fix-text-input", CCBool::create(true));
             input->setLabelPlaceholderColor({ 150, 150, 150 });
-            input->m_delegate = m_fields.self();
+            if (!addInputs) input->m_delegate = m_fields.self();
         }
 
         CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
