@@ -23,7 +23,7 @@ void MultiEditContext::registerSelf(
         if (data.action != MouseInputData::Action::Press) return;
         if (
             data.button != MouseInputData::Button::Right &&
-            !(data.button == MouseInputData::Button::Right && m_isMixedEnabled)
+            !(data.button == MouseInputData::Button::Left && m_isMixedEnabled)
         ) return;
 
         for (const auto& [key, bg] : m_inputBGs) {
