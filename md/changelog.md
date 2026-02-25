@@ -1,3 +1,10 @@
+### 1.5.2 (2/25/2026)
+
+- Migrated to **Geode v5 (2.2081)**
+- Added **number inputs** to all HSV widgets
+- Fixed **Named Editor Group buttons** being removed in some triggers
+- Fixed **Add Random Groups popup** having an enter animation
+
 ### 1.5.1 (1/14/2026)
 
 - Added **ranges and series** to Advanced Filter
@@ -84,7 +91,7 @@ Additionally, multi-edit mode and hide UI were rewritten from scratch. You won't
 
 ### 1.1.0 (1/1/2025)
 
-- Added **2.2074 support**
+- Migrated to **Geode v4 (2.2074)**
 - Added **Multi-Edit Mode** to triggers
 - Added **Improved Edit Triggers Popup**
 - Added **Hide UI** button to triggers
