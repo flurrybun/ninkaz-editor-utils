@@ -288,10 +288,6 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         m_fields->addSlider(m_saturationSlider, saturation);
         m_fields->addSlider(m_brightnessSlider, value);
 
-        CCMenu* widgetButtonMenu = getChildByType<CCMenu*>(0);
-        m_fields->addButton(widgetButtonMenu->getChildByType<CCMenuItemToggler*>(0), saturation);
-        m_fields->addButton(widgetButtonMenu->getChildByType<CCMenuItemToggler*>(1), value);
-
         m_fields->setupMixed();
     }
 };
