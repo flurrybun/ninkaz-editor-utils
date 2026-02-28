@@ -75,39 +75,13 @@ void setHSVSliderValue(ConfigureHSVWidget* widget, HSVType hsvType, float value)
 }
 
 class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
-    struct Fields : TextInputDelegate {
-        ConfigureHSVWidget* widget;
-
-        void textChanged(CCTextInputNode* input) override {
-            gd::string str = input->getString();
-
-            switch (input->getTag()) {
-                case 1:
-                    widget->m_hsv.h = numFromString<float>(str).unwrapOr(0.f);
-                    break;
-                case 2:
-                    widget->m_hsv.s = numFromString<float>(str).unwrapOr(0.f);
-                    break;
-                case 3:
-                    widget->m_hsv.v = numFromString<float>(str).unwrapOr(0.f);
-                    break;
-            }
-
-            if (widget->m_delegate) widget->m_delegate->hsvChanged(widget);
-            widget->updateSliders();
-        }
-    };
-
     $override
     bool init(ccHSVValue hsv, bool unused, bool addInputs) {
         if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
 
-        m_fields->widget = this;
-
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
             input->setUserObject("fix-text-input", CCBool::create(true));
             input->setLabelPlaceholderColor({ 150, 150, 150 });
-            if (!addInputs) input->m_delegate = m_fields.self();
         }
 
         CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
