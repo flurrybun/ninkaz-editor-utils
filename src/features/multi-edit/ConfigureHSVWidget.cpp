@@ -95,31 +95,31 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
-        if (obj) return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
+        CCArray* objects = objs ? objs : CCArray::create(obj);
+        if (!objects || objects->count() == 0) return {0, 0, 0, false, false};
 
-        ccHSVValue multiHSV;
+        ccHSVValue hsv = {0, 0, 0, true, true};
         bool first = true;
 
-        for (auto object : CCArrayExt<GameObject*>(objs)) {
+        for (auto object : CCArrayExt<GameObject*>(objects)) {
             GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
             if (!color) continue;
 
             if (first) {
-                multiHSV = color->m_hsv;
+                hsv = color->m_hsv;
                 first = false;
-
                 continue;
             }
 
-            if (color->m_hsv.h != multiHSV.h) multiHSV.h = MIXED_VALUE;
-            if (color->m_hsv.s != multiHSV.s) multiHSV.s = MIXED_VALUE;
-            if (color->m_hsv.v != multiHSV.v) multiHSV.v = MIXED_VALUE;
+            if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
+            if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
+            if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
 
-            if (color->m_hsv.absoluteSaturation == false) multiHSV.absoluteSaturation = false;
-            if (color->m_hsv.absoluteBrightness == false) multiHSV.absoluteBrightness = false;
+            if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
+            if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
         }
 
-        return multiHSV;
+        return hsv;
     }
 
     $override
