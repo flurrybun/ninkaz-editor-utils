@@ -17,8 +17,6 @@ void MultiEditContext::registerSelf(
     if (buttonMenu) m_buttonMenu = buttonMenu;
     else m_buttonMenu = alertLayer->m_buttonMenu;
 
-    log::info("Registering MultiEditContext for {}", self);
-
     s_registry[self] = this;
 
     m_mouseListener = MouseInputEvent().listen([this](MouseInputData& data) {
@@ -41,7 +39,6 @@ void MultiEditContext::registerSelf(
 }
 
 MultiEditContext::~MultiEditContext() {
-    log::info("Unregistering MultiEditContext for {}", m_self);
     if (m_self) {
         s_registry.erase(m_self);
         m_self = nullptr;

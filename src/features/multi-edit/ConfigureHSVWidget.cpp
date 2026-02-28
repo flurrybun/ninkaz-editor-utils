@@ -235,7 +235,13 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     void textChanged(CCTextInputNode* input) {
+        log::info("textChanged: m_updating={} h={} s={} v={} absS={} absV={}",
+            m_updating, m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
+
         ConfigureHSVWidget::textChanged(input);
+
+        log::info("textChanged (after): h={} s={} v={} absS={} absV={}",
+            m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
 
         // the hsv live overlay works differently, so textChanged does nothing
 
@@ -382,6 +388,10 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
 
     $override
     void hsvChanged(ConfigureHSVWidget* widget) {
+        log::info("hsvChanged: m_updating={} h={} s={} v={} absS={} absV={}",
+            widget->m_updating, widget->m_hsv.h, widget->m_hsv.s, widget->m_hsv.v,
+            widget->m_hsv.absoluteSaturation, widget->m_hsv.absoluteBrightness);
+
         CCArrayExt<GameObject*> objects = m_objects ? m_objects : CCArray::createWithObject(m_object);
         ccHSVValue hsv = widget->m_hsv;
 
