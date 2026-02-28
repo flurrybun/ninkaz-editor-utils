@@ -186,28 +186,6 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         }
     };
 
-    $override
-    bool init(ccHSVValue hsv, bool unused, bool addInputs) {
-        log::info("init (before): h={} s={} v={} absS={} absV={}",
-            hsv.h, hsv.s, hsv.v, hsv.absoluteSaturation, hsv.absoluteBrightness);
-
-        if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
-
-        log::info("init (after): h={} s={} v={} absS={} absV={}",
-            m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
-
-        for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
-            input->setUserObject("fix-text-input", CCBool::create(true));
-            input->setLabelPlaceholderColor({ 150, 150, 150 });
-        }
-
-        CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
-        buttonMenu->getChildByType<CCMenuItemToggler*>(0)->setCascadeOpacityEnabled(true);
-        buttonMenu->getChildByType<CCMenuItemToggler*>(1)->setCascadeOpacityEnabled(true);
-
-        return true;
-    }
-
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
     $override
@@ -241,13 +219,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     void textChanged(CCTextInputNode* input) {
-        log::info("textChanged: m_updating={} h={} s={} v={} absS={} absV={}",
-            m_updating, m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
-
         ConfigureHSVWidget::textChanged(input);
-
-        log::info("textChanged (after): h={} s={} v={} absS={} absV={}",
-            m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
 
         // the hsv live overlay works differently, so textChanged does nothing
 
@@ -280,6 +252,15 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     void setupMixed(bool isBase, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
         m_fields->init(this, isBase, alertLayer, buttonMenu);
+
+        for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
+            input->setUserObject("fix-text-input", CCBool::create(true));
+            input->setLabelPlaceholderColor({ 150, 150, 150 });
+        }
+
+        CCMenu* widgetButtonMenu = getChildByType<CCMenu*>(0);
+        widgetButtonMenu->getChildByType<CCMenuItemToggler*>(0)->setCascadeOpacityEnabled(true);
+        widgetButtonMenu->getChildByType<CCMenuItemToggler*>(1)->setCascadeOpacityEnabled(true);
 
         int offset = isBase ? 0 : 3;
         int hue = static_cast<int>(HSVProperty::BaseHue) + offset;
@@ -394,10 +375,6 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
 
     $override
     void hsvChanged(ConfigureHSVWidget* widget) {
-        log::info("hsvChanged: m_updating={} h={} s={} v={} absS={} absV={}",
-            widget->m_updating, widget->m_hsv.h, widget->m_hsv.s, widget->m_hsv.v,
-            widget->m_hsv.absoluteSaturation, widget->m_hsv.absoluteBrightness);
-
         CCArrayExt<GameObject*> objects = m_objects ? m_objects : CCArray::createWithObject(m_object);
         ccHSVValue hsv = widget->m_hsv;
 
