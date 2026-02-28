@@ -390,11 +390,14 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
             if (!color) continue;
 
             if (!isMixed(hsv.h)) color->m_hsv.h = hsv.h;
-            if (!isMixed(hsv.s)) color->m_hsv.s = hsv.s;
-            if (!isMixed(hsv.v)) color->m_hsv.v = hsv.v;
-
-            color->m_hsv.absoluteSaturation = hsv.absoluteSaturation;
-            color->m_hsv.absoluteBrightness = hsv.absoluteBrightness;
+            if (!isMixed(hsv.s)) {
+                color->m_hsv.s = hsv.s;
+                color->m_hsv.absoluteSaturation = hsv.absoluteSaturation;
+            }
+            if (!isMixed(hsv.v)) {
+                color->m_hsv.v = hsv.v;
+                color->m_hsv.absoluteBrightness = hsv.absoluteBrightness;
+            }
         }
     }
 };
