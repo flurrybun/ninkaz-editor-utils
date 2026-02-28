@@ -188,7 +188,13 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     bool init(ccHSVValue hsv, bool unused, bool addInputs) {
+        log::info("init (before): h={} s={} v={} absS={} absV={}",
+            hsv.h, hsv.s, hsv.v, hsv.absoluteSaturation, hsv.absoluteBrightness);
+
         if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
+
+        log::info("init (after): h={} s={} v={} absS={} absV={}",
+            m_hsv.h, m_hsv.s, m_hsv.v, m_hsv.absoluteSaturation, m_hsv.absoluteBrightness);
 
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
             input->setUserObject("fix-text-input", CCBool::create(true));
