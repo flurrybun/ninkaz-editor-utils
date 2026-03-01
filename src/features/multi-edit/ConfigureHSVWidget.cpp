@@ -343,6 +343,7 @@ class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
 };
 
 class $modify(CustomizeObjectLayer) {
+    $override
     void hsvPopupClosed(HSVWidgetPopup* hsvPopup, ccHSVValue newHSV) {
         if (!m_targetObjects || m_targetObjects->count() <= 1) {
             CustomizeObjectLayer::hsvPopupClosed(hsvPopup, newHSV);
@@ -368,6 +369,13 @@ class $modify(CustomizeObjectLayer) {
 
         updateHSVButtons();
     }
+
+#ifdef GEODE_IS_ANDROID
+    $override
+    ccHSVValue getHSV() {
+        return s_getHSVRet ? *s_getHSVRet : cchsv(0, 0, 0, true, true);
+    }
+#endif
 };
 
 class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
