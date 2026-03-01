@@ -206,10 +206,11 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
     $override
-    static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+    static ccHSVValue& getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
         CCArray* objects = objs ? objs : CCArray::create(obj);
 
-        ccHSVValue hsv = { 0.f, 0.f, 0.f, true, true };
+        static ccHSVValue hsv;
+        hsv = {0, 0, 0, true, true};
         bool first = true;
 
         if (!objects || objects->count() == 0) return hsv;
