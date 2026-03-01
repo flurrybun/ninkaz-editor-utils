@@ -23,6 +23,10 @@ enum class HSVProperty {
     DetailValue = 5
 };
 
+std::string hsvToString(const ccHSVValue& hsv) {
+    return fmt::format("h={}, s={}, v={}, aS={}, aV={}", hsv.h, hsv.s, hsv.v, hsv.absoluteSaturation, hsv.absoluteBrightness);
+}
+
 const float MIXED_VALUE = std::numeric_limits<float>::quiet_NaN();
 
 bool isMixed(float value) {
@@ -188,13 +192,15 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     bool init(ccHSVValue hsv, bool unused, bool addInputs) {
-        // if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
+        log::info("[pre ConfigureHSVWidget::init] hsv={}, m_hsv={}, addInputs={}", hsvToString(hsv), hsvToString(m_hsv), addInputs);
+        if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
+        log::info("[post ConfigureHSVWidget::init] hsv={}, m_hsv={}, addInputs={}", hsvToString(hsv), hsvToString(m_hsv), addInputs);
 
         // // m_hsv = getHSV
 
-        // return true;
+        return true;
 
-        return ConfigureHSVWidget::init(hsv, unused, true);
+        // return ConfigureHSVWidget::init(hsv, unused, true);
     }
 
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
@@ -226,15 +232,16 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
             if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
         }
 
-        log::info("Calculated HSV for {} objects: h={}, s={}, v={}, absoluteSaturation={}, absoluteBrightness={}",
-            objects->count(), hsv.h, hsv.s, hsv.v, hsv.absoluteSaturation, hsv.absoluteBrightness);
+        log::info("[ConfigureHSVWidget::getHSV] obj={}, objs={}, baseOrDetail={}, hsv={}", obj, objs, baseOrDetail, hsvToString(hsv));
 
         return hsv;
     }
 
     $override
     void textChanged(CCTextInputNode* input) {
+        log::info("[pre ConfigureHSVWidget::textChanged] input={}, text={}, m_hsv={}", input, input->getString(), hsvToString(m_hsv));
         ConfigureHSVWidget::textChanged(input);
+        log::info("[post ConfigureHSVWidget::textChanged] input={}, text={}, m_hsv={}", input, input->getString(), hsvToString(m_hsv));
 
         // the hsv live overlay works differently, so textChanged does nothing
 
@@ -314,7 +321,9 @@ class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
 
     $override
     bool init(ccHSVValue hsv, HSVWidgetDelegate* delegate, gd::string title) {
+        log::info("pre [HSVWidgetPopup::init] hsv={}, title={}", hsvToString(hsv), title);
         if (!HSVWidgetPopup::init(hsv, delegate, title)) return false;
+        log::info("post [HSVWidgetPopup::init] hsv={}, title={}", hsvToString(hsv), title);
 
         m_fields->isBase = title == "Base HSV";
 
@@ -363,6 +372,7 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
     $override
     bool init(GameObject* obj, CCArray* objs) {
         if (!HSVLiveOverlay::init(obj, objs)) return false;
+        log::info("[post HSVLiveOverlay::init] obj={}, objs={}, m_hsv={}", obj, objs, hsvToString(m_widget->m_hsv));
 
         // layer above widget
         m_buttonMenu->setZOrder(2);
