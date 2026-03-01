@@ -205,37 +205,37 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
-    // $override
-    // static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
-    //     CCArray* objects = objs ? objs : CCArray::create(obj);
+    $override
+    static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+        CCArray* objects = objs ? objs : CCArray::create(obj);
 
-    //     ccHSVValue hsv = { 0.f, 0.f, 0.f, true, true };
-    //     bool first = true;
+        ccHSVValue hsv = { 0.f, 0.f, 0.f, true, true };
+        bool first = true;
 
-    //     if (!objects || objects->count() == 0) return hsv;
+        if (!objects || objects->count() == 0) return hsv;
 
-    //     for (auto object : CCArrayExt<GameObject*>(objects)) {
-    //         GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
-    //         if (!color) continue;
+        for (auto object : CCArrayExt<GameObject*>(objects)) {
+            GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
+            if (!color) continue;
 
-    //         if (first) {
-    //             hsv = color->m_hsv;
-    //             first = false;
-    //             continue;
-    //         }
+            if (first) {
+                hsv = color->m_hsv;
+                first = false;
+                continue;
+            }
 
-    //         if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
-    //         if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
-    //         if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
+            if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
+            if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
+            if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
 
-    //         if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
-    //         if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
-    //     }
+            if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
+            if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
+        }
 
-    //     log::info("[ConfigureHSVWidget::getHSV] obj={}, objs={}, baseOrDetail={}, hsv={}", obj, objs, baseOrDetail, hsvToString(hsv));
+        log::info("[ConfigureHSVWidget::getHSV] obj={}, objs={}, baseOrDetail={}, hsv={}", obj, objs, baseOrDetail, hsvToString(hsv));
 
-    //     return hsv;
-    // }
+        return hsv;
+    }
 
     $override
     void textChanged(CCTextInputNode* input) {
