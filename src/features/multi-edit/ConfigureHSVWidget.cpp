@@ -219,7 +219,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         log::info("[post ConfigureHSVWidget::init] m_brightnessSlider={}", m_brightnessSlider);
         log::info("[post ConfigureHSVWidget::init] m_hsv={}", hsvToString(m_hsv));
         log::info("[post ConfigureHSVWidget::init] m_mixed={}", m_mixed);
-        log::info("[post ConfigureHSVWidget::init] m_delegate={}", m_delegate);
+        // log::info("[post ConfigureHSVWidget::init] m_delegate={}", m_delegate);
         log::info("[post ConfigureHSVWidget::init] m_addInputs={}", m_addInputs);
         log::info("[post ConfigureHSVWidget::init] m_updating={}", m_updating);
         log::info("[post ConfigureHSVWidget::init] m_inputs={}", m_inputs);
