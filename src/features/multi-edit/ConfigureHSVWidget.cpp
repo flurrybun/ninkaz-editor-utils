@@ -198,34 +198,32 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         log::info("obj={}", obj);
         log::info("objs={}", objs);
         log::info("baseOrDetail={}", baseOrDetail);
-        CCArray* objects = objs ? objs : CCArray::create(obj);
+        // CCArray* objects = objs ? objs : CCArray::create(obj);
 
         static ccHSVValue hsv = {0, 0, 0, true, true};
-        bool first = true;
+        // bool first = true;
 
-        if (!objects || objects->count() == 0) return hsv;
+        // if (!objects || objects->count() == 0) return hsv;
 
-        for (auto object : CCArrayExt<GameObject*>(objects)) {
-            GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
-            if (!color) continue;
+        // for (auto object : CCArrayExt<GameObject*>(objects)) {
+        //     GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
+        //     if (!color) continue;
 
-            if (first) {
-                hsv = color->m_hsv;
-                first = false;
-                continue;
-            }
+        //     if (first) {
+        //         hsv = color->m_hsv;
+        //         first = false;
+        //         continue;
+        //     }
 
-            if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
-            if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
-            if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
+        //     if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
+        //     if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
+        //     if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
 
-            if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
-            if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
-        }
+        //     if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
+        //     if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
+        // }
 
         return hsv;
-
-        // return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
     }
 
     $override
