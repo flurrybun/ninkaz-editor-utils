@@ -191,6 +191,14 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
     };
 
     $override
+    static ConfigureHSVWidget* create(ccHSVValue hsv, bool noBackground, bool addInputs) {
+        log::info("[pre ConfigureHSVWidget::create] hsv={}, noBackground={}, addInputs={}", hsvToString(hsv), noBackground, addInputs);
+        auto ret = ConfigureHSVWidget::create(hsv, noBackground, addInputs);
+        log::info("[post ConfigureHSVWidget::create] hsv={}, noBackground={}, addInputs={}, ret={}", hsvToString(hsv), noBackground, addInputs, ret);
+        return ret;
+    }
+
+    $override
     bool init(ccHSVValue hsv, bool unused, bool addInputs) {
         log::info("[pre ConfigureHSVWidget::init] hsv={}, m_hsv={}, addInputs={}", hsvToString(hsv), hsvToString(m_hsv), addInputs);
         if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
@@ -233,6 +241,8 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+        auto ret = ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
+        log::info("[ConfigureHSVWidget::getHSV expected] ret={}", hsvToString(ret));
         CCArray* objects = objs ? objs : CCArray::create(obj);
 
         ccHSVValue hsv = {0, 0, 0, true, true};
