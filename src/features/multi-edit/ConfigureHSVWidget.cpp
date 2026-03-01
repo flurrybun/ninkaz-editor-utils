@@ -186,15 +186,27 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         }
     };
 
+    $override
+    bool init(ccHSVValue hsv, bool unused, bool addInputs) {
+        // if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
+
+        // // m_hsv = getHSV
+
+        // return true;
+
+        return ConfigureHSVWidget::init(hsv, unused, true);
+    }
+
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
     $override
     static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
         CCArray* objects = objs ? objs : CCArray::create(obj);
-        if (!objects || objects->count() == 0) return {0, 0, 0, false, false};
 
-        ccHSVValue hsv = {0, 0, 0, true, true};
+        ccHSVValue hsv = { 0.f, 0.f, 0.f, true, true };
         bool first = true;
+
+        if (!objects || objects->count() == 0) return hsv;
 
         for (auto object : CCArrayExt<GameObject*>(objects)) {
             GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
@@ -213,6 +225,9 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
             if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
             if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
         }
+
+        log::info("Calculated HSV for {} objects: h={}, s={}, v={}, absoluteSaturation={}, absoluteBrightness={}",
+            objects->count(), hsv.h, hsv.s, hsv.v, hsv.absoluteSaturation, hsv.absoluteBrightness);
 
         return hsv;
     }
