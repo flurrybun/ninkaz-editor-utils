@@ -373,7 +373,12 @@ class $modify(CustomizeObjectLayer) {
 #ifdef GEODE_IS_ANDROID
     $override
     ccHSVValue getHSV() {
-        return s_getHSVRet ? *s_getHSVRet : cchsv(0, 0, 0, true, true);
+        ConfigureHSVWidget::getHSV(m_targetObject, m_targetObjects, m_selectedMode);
+
+        auto hsv = s_getHSVRet ? *s_getHSVRet : cchsv(0, 0, 0, true, true);
+        s_getHSVRet = std::nullopt;
+
+        return hsv;
     }
 #endif
 };
