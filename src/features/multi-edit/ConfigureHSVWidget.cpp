@@ -235,8 +235,13 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
         s_getHSVRet = hsv;
 
-        return ConfigureHSVWidget::getHSV(obj, objects, baseOrDetail);
+        return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
     }
+
+    // $override
+    // static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+    //     return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
+    // }
 
     $override
     void textChanged(CCTextInputNode* input) {
