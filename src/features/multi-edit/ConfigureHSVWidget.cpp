@@ -201,7 +201,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
         addInputs = true;
 
-        return ConfigureHSVWidget::init(hsv, true, addInputs);
+        return ConfigureHSVWidget::init(hsv, unused, addInputs);
     }
 
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
@@ -235,7 +235,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
         s_getHSVRet = hsv;
 
-        return {0, 0, 0, true, true};
+        return ConfigureHSVWidget::getHSV(obj, objects, baseOrDetail);
     }
 
     $override
