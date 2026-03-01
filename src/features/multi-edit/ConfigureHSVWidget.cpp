@@ -33,8 +33,6 @@ bool isMixed(float value) {
     return std::isnan(value);
 }
 
-std::optional<ccHSVValue> s_getHSVRet = std::nullopt;
-
 HSVType hsvPropertyToType(HSVProperty property) {
     switch (property) {
         case HSVProperty::BaseHue:
@@ -192,56 +190,37 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         }
     };
 
-    $override
-    bool init(ccHSVValue hsv, bool unused, bool addInputs) {
-        if (s_getHSVRet) {
-            hsv = *s_getHSVRet;
-            s_getHSVRet = std::nullopt;
-        }
-
-        addInputs = true;
-
-        return ConfigureHSVWidget::init(hsv, unused, addInputs);
-    }
-
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
     $override
-    static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
-        CCArray* objects = objs ? objs : CCArray::create(obj);
+    static ccHSVValue& getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+        // CCArray* objects = objs ? objs : CCArray::create(obj);
 
-        ccHSVValue hsv = {0, 0, 0, true, true};
-        bool first = true;
+        // static ccHSVValue hsv = {0, 0, 0, true, true};
+        // bool first = true;
 
-        if (!objects || objects->count() == 0) return hsv;
+        // if (!objects || objects->count() == 0) return hsv;
 
-        for (auto object : CCArrayExt<GameObject*>(objects)) {
-            GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
-            if (!color) continue;
+        // for (auto object : CCArrayExt<GameObject*>(objects)) {
+        //     GJSpriteColor* color = object->getRelativeSpriteColor(baseOrDetail);
+        //     if (!color) continue;
 
-            if (first) {
-                hsv = color->m_hsv;
-                first = false;
-                continue;
-            }
+        //     if (first) {
+        //         hsv = color->m_hsv;
+        //         first = false;
+        //         continue;
+        //     }
 
-            if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
-            if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
-            if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
+        //     if (color->m_hsv.h != hsv.h) hsv.h = MIXED_VALUE;
+        //     if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
+        //     if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
 
-            if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
-            if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
-        }
-
-        s_getHSVRet = hsv;
+        //     if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
+        //     if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
+        // }
 
         return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
     }
-
-    // $override
-    // static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
-    //     return ConfigureHSVWidget::getHSV(obj, objs, baseOrDetail);
-    // }
 
     $override
     void textChanged(CCTextInputNode* input) {
@@ -369,18 +348,6 @@ class $modify(CustomizeObjectLayer) {
 
         updateHSVButtons();
     }
-
-#ifdef GEODE_IS_ANDROID
-    $override
-    ccHSVValue getHSV() {
-        ConfigureHSVWidget::getHSV(m_targetObject, m_targetObjects, m_selectedMode);
-
-        auto hsv = s_getHSVRet ? *s_getHSVRet : cchsv(0, 0, 0, true, true);
-        s_getHSVRet = std::nullopt;
-
-        return hsv;
-    }
-#endif
 };
 
 class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
