@@ -198,6 +198,32 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
         // // m_hsv = getHSV
 
+        // cocos2d::CCLabelBMFont* m_hueLabel;
+        // cocos2d::CCLabelBMFont* m_saturationLabel;
+        // cocos2d::CCLabelBMFont* m_brightnessLabel;
+        // Slider* m_hueSlider;
+        // Slider* m_saturationSlider;
+        // Slider* m_brightnessSlider;
+        // cocos2d::ccHSVValue m_hsv;
+        // bool m_mixed;
+        // HSVWidgetDelegate* m_delegate;
+        // bool m_addInputs;
+        // bool m_updating;
+        // cocos2d::CCDictionary* m_inputs;
+
+        log::info("[post ConfigureHSVWidget::init] m_hueLabel={}", m_hueLabel);
+        log::info("[post ConfigureHSVWidget::init] m_saturationLabel={}", m_saturationLabel);
+        log::info("[post ConfigureHSVWidget::init] m_brightnessLabel={}", m_brightnessLabel);
+        log::info("[post ConfigureHSVWidget::init] m_hueSlider={}", m_hueSlider);
+        log::info("[post ConfigureHSVWidget::init] m_saturationSlider={}", m_saturationSlider);
+        log::info("[post ConfigureHSVWidget::init] m_brightnessSlider={}", m_brightnessSlider);
+        log::info("[post ConfigureHSVWidget::init] m_hsv={}", hsvToString(m_hsv));
+        log::info("[post ConfigureHSVWidget::init] m_mixed={}", m_mixed);
+        log::info("[post ConfigureHSVWidget::init] m_delegate={}", m_delegate);
+        log::info("[post ConfigureHSVWidget::init] m_addInputs={}", m_addInputs);
+        log::info("[post ConfigureHSVWidget::init] m_updating={}", m_updating);
+        log::info("[post ConfigureHSVWidget::init] m_inputs={}", m_inputs);
+
         return true;
 
         // return ConfigureHSVWidget::init(hsv, unused, true);
@@ -206,11 +232,10 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
     // ConfigureHSVWidget::getHSV is only used in the edit object menu and the hsv live overlay
 
     $override
-    static ccHSVValue& getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
+    static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
         CCArray* objects = objs ? objs : CCArray::create(obj);
 
-        static ccHSVValue hsv;
-        hsv = {0, 0, 0, true, true};
+        ccHSVValue hsv = {0, 0, 0, true, true};
         bool first = true;
 
         if (!objects || objects->count() == 0) return hsv;
