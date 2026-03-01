@@ -192,7 +192,15 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     static ConfigureHSVWidget* create(ccHSVValue hsv, bool noBackground, bool addInputs) {
-        log::info("[pre ConfigureHSVWidget::create] hsv={}, noBackground={}, addInputs={}", hsvToString(hsv), noBackground, addInputs);
+        // log::info("[pre ConfigureHSVWidget::create] hsv={}, noBackground={}, addInputs={}", hsvToString(hsv), noBackground, addInputs);
+
+        log::info("[pre ConfigureHSVWidget::create] called");
+        log::info("[pre ConfigureHSVWidget::create] noBackground={}, addInputs={}", noBackground, addInputs);
+        log::info("[pre ConfigureHSVWidget::create] h={}", hsv.h);
+        log::info("[pre ConfigureHSVWidget::create] s={}", hsv.s);
+        log::info("[pre ConfigureHSVWidget::create] v={}", hsv.v);
+        log::info("[pre ConfigureHSVWidget::create] aS={}", hsv.absoluteSaturation);
+        log::info("[pre ConfigureHSVWidget::create] aV={}", hsv.absoluteBrightness);
         auto ret = ConfigureHSVWidget::create(hsv, noBackground, addInputs);
         log::info("[post ConfigureHSVWidget::create] hsv={}, noBackground={}, addInputs={}, ret={}", hsvToString(hsv), noBackground, addInputs, ret);
         return ret;
