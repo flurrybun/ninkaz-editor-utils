@@ -1,3 +1,8 @@
+### 1.5.3 (3/2/2026)
+
+- Temporarily disabled **multi-edit HSV on Android** due to Geode bug
+- Fixed **several crashes** with the live HSV overlay
+
 ### 1.5.2 (2/25/2026)
 
 - Migrated to **Geode v5 (2.2081)**
