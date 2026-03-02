@@ -1,3 +1,7 @@
+// disabling on android due to a tuliphook bug
+// not properly returning the ccHSVValue struct from ConfigureHSVWidget::getHSV
+
+#ifndef GEODE_IS_ANDROID
 #include <Geode/modify/HSVWidgetPopup.hpp>
 #include <Geode/modify/ConfigureHSVWidget.hpp>
 #include <Geode/modify/CustomizeObjectLayer.hpp>
@@ -226,8 +230,8 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
             if (color->m_hsv.s != hsv.s) hsv.s = MIXED_VALUE;
             if (color->m_hsv.v != hsv.v) hsv.v = MIXED_VALUE;
 
-            if (color->m_hsv.absoluteSaturation == false) hsv.absoluteSaturation = false;
-            if (color->m_hsv.absoluteBrightness == false) hsv.absoluteBrightness = false;
+            if (!color->m_hsv.absoluteSaturation) hsv.absoluteSaturation = false;
+            if (!color->m_hsv.absoluteBrightness) hsv.absoluteBrightness = false;
         }
 
         return hsv;
@@ -401,3 +405,4 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
         }
     }
 };
+#endif
