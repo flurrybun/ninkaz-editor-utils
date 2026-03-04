@@ -288,7 +288,6 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 50:
                 case 209:
                 case 260:
-                case 80:
                 case 95:
                 case 534:
                 case 225:
@@ -312,7 +311,6 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 206:
                     return PropertyBounds(0, 9999);
                 // i am undoubtably missing some here but it shouldn't matter too much
-                // 10, 85, 51, 71, 45, 46, 47, 35, 63, 556, 80
                 case 10:
                 case 85:
                 case 45:
@@ -321,6 +319,7 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 35:
                 case 63:
                 case 556:
+                case 80:
                     return PropertyBounds::toInf(0);
                 default:
                     return PropertyBounds::negInfToInf();
