@@ -2,6 +2,7 @@
 // not properly returning the ccHSVValue struct from ConfigureHSVWidget::getHSV
 
 #ifndef GEODE_IS_ANDROID
+#include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/HSVWidgetPopup.hpp>
 #include <Geode/modify/ConfigureHSVWidget.hpp>
 #include <Geode/modify/CustomizeObjectLayer.hpp>
@@ -11,6 +12,38 @@
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
+
+// stolen from betteredit
+
+class $modify(ForcePrioEditorUI, EditorUI) {
+    struct Fields {
+        std::unordered_set<WeakRef<CCNode>> forceTouchPrio;
+    };
+
+    $override
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
+        for (auto nodeRef : m_fields->forceTouchPrio) {
+            auto node = nodeRef.lock();
+            if (!node) continue;
+
+            if (
+                nodeIsVisible(node) &&
+                CCRect(
+                    node->getPosition() - node->getScaledContentSize() / 2,
+                    node->getScaledContentSize()
+                ).containsPoint(node->getParent()->convertTouchToNodeSpace(touch))
+            ) {
+                return true;
+            }
+        }
+
+        return EditorUI::ccTouchBegan(touch, event);
+    }
+};
+
+void forceTouchPriority(CCNode* node) {
+    static_cast<ForcePrioEditorUI*>(EditorUI::get())->m_fields->forceTouchPrio.insert(node);
+}
 
 enum class HSVType {
     Hue = 0,
@@ -197,6 +230,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
             input->setUserObject("fix-text-input", CCBool::create(true));
             input->setLabelPlaceholderColor({ 150, 150, 150 });
+            forceTouchPriority(input);
         }
 
         CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
@@ -239,6 +273,8 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     void textChanged(CCTextInputNode* input) {
+        if (!input->getParent()) return;
+
         ConfigureHSVWidget::textChanged(input);
 
         // the hsv live overlay works differently, so textChanged does nothing
