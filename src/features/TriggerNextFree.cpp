@@ -21,6 +21,8 @@ int getNextFreeID(const std::set<short>& ids) {
     short expected = 0;
 
     for (short id : ids) {
+        if (id < 0) continue;
+
         if (id != expected) {
             return expected;
         }
