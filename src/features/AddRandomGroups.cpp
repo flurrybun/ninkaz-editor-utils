@@ -46,6 +46,8 @@ class $modify(ARGEditorPauseLayer, EditorPauseLayer) {
 bool AddRandomGroupsPopup::init(CCArray* selectedObjects) {
     if (!Popup::init(350.f, 250.f)) return false;
 
+    m_objects = selectedObjects;
+
     auto winSize = m_mainLayer->getContentSize();
     auto winCenter = winSize / 2;
     setTitle("Add Random Groups");
