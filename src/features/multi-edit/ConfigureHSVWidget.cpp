@@ -1,7 +1,7 @@
-// disabling on android due to a tuliphook bug
+// disabling on all platforms except windows temporarily due to tuliphook bug
 // not properly returning the ccHSVValue struct from ConfigureHSVWidget::getHSV
 
-#ifndef GEODE_IS_ANDROID
+#ifdef GEODE_IS_WINDOWS
 #include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/HSVWidgetPopup.hpp>
 #include <Geode/modify/ConfigureHSVWidget.hpp>
