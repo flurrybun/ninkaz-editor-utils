@@ -17,23 +17,24 @@ using namespace geode::prelude;
 
 class $modify(ForcePrioEditorUI, EditorUI) {
     struct Fields {
-        std::unordered_set<WeakRef<CCNode>> forceTouchPrio;
+        std::unordered_set<WeakRef<CCTextInputNode>> forceTouchPrio;
     };
 
     $override
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
-        for (auto nodeRef : m_fields->forceTouchPrio) {
-            auto node = nodeRef.lock();
-            if (!node) continue;
+        for (auto inputRef : m_fields->forceTouchPrio) {
+            auto input = inputRef.lock();
+            if (!input) continue;
 
             if (
-                nodeIsVisible(node) &&
+                nodeIsVisible(input) &&
+                input->getParent() &&
                 CCRect(
-                    node->getPosition() - node->getScaledContentSize() / 2,
-                    node->getScaledContentSize()
-                ).containsPoint(node->getParent()->convertTouchToNodeSpace(touch))
+                    input->getPosition() - input->getScaledContentSize() / 2,
+                    input->getScaledContentSize()
+                ).containsPoint(input->getParent()->convertTouchToNodeSpace(touch))
             ) {
-                return true;
+                return input->ccTouchBegan(touch, event);
             }
         }
 
@@ -41,8 +42,8 @@ class $modify(ForcePrioEditorUI, EditorUI) {
     }
 };
 
-void forceTouchPriority(CCNode* node) {
-    static_cast<ForcePrioEditorUI*>(EditorUI::get())->m_fields->forceTouchPrio.insert(node);
+void forceTouchPriority(CCTextInputNode* input) {
+    static_cast<ForcePrioEditorUI*>(EditorUI::get())->m_fields->forceTouchPrio.insert(input);
 }
 
 enum class HSVType {
