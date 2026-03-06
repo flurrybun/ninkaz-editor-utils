@@ -1,6 +1,15 @@
+### 1.5.4 (3/5/2026)
+
+- Fixed **crash when applying groups** in Add Random Groups
+- Fixed **crash when closing HSV live overlay** with an input selected
+- Fixed **inputs passing through** HSV live overlay
+- Fixed next free material button **always returning 0** if any objects have a negative material ID
+- Fixed **item IDs being limited to 0-999** in multi-edit
+
 ### 1.5.3 (3/2/2026)
 
-- Temporarily disabled **multi-edit HSV on Android** due to Geode bug
+- Temporarily disabled **multi-edit HSV on all platforms except Windows** due to TulipHook bug
+- Fixed multi-edit HSV **not preserving absolute saturation/brightness**
 - Fixed **several crashes** with the live HSV overlay
 
 ### 1.5.2 (2/25/2026)
