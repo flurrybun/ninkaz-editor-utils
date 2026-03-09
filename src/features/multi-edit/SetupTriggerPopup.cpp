@@ -127,10 +127,9 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
 
         bool hasProperty(GameObject* object, int property) override {
             if (property >= 2000 && property <= 2005) return true;
-
-            if (auto ego = typeinfo_cast<EnhancedGameObject*>(object)) {
-                if (property == 97) return true;
-            }
+            if (property == 343 || property == 446) return true;
+            if (property == 534 && object->m_classType == GameObjectClassType::Effect) return true;
+            if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) return true;
 
             auto in = [property](const std::vector<int>& vec) {
                 return std::find(vec.begin(), vec.end(), property) != vec.end();
