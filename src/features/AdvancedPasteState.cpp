@@ -58,7 +58,7 @@ bool PasteStatePopup::init() {
     m_closeBtn->removeFromParent();
 
     addQuickPasteButton();
-    EditorUI::get()->m_pasteStateBtn->setVisible(false);
+    EditorUI::get()->m_pasteStateBtn->setOpacity(0);
 
     // TOGGLERS PANEL
 
@@ -157,7 +157,6 @@ bool PasteStatePopup::init() {
 }
 
 void PasteStatePopup::onClose(CCObject* sender) {
-    EditorUI::get()->m_pasteStateBtn->setVisible(true);
     s_instance = nullptr;
 
     Popup::onClose(sender);
