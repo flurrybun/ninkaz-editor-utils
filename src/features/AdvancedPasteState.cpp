@@ -52,6 +52,8 @@ PasteStatePopup* PasteStatePopup::s_instance = nullptr;
 bool PasteStatePopup::init() {
     if (!Popup::init(390.f, 280.f)) return false;
 
+    s_instance = this;
+
     setTitle("Paste State");
     m_closeBtn->removeFromParent();
 
