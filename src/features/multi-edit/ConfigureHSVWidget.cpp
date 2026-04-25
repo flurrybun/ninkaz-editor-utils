@@ -1,7 +1,3 @@
-// disabling on all platforms except windows temporarily due to tuliphook bug
-// not properly returning the ccHSVValue struct from ConfigureHSVWidget::getHSV
-
-#ifdef GEODE_IS_WINDOWS
 #include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/HSVWidgetPopup.hpp>
 #include <Geode/modify/ConfigureHSVWidget.hpp>
@@ -442,4 +438,3 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
         }
     }
 };
-#endif
