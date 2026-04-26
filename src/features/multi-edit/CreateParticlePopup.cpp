@@ -33,7 +33,7 @@ CCLabelBMFont* getLabelForInput(CCTextInputNode* input) {
 
 class $modify(MECreateParticlePopup, CreateParticlePopup) {
     struct Fields : MultiEditContext {
-        CreateParticlePopup* popup;
+        CreateParticlePopup* popup = nullptr;
 
         void init(CreateParticlePopup* popup) {
             this->popup = popup;

@@ -13,12 +13,12 @@ enum class RotateAction {
 
 class $modify(PRSetupRotatePopup, SetupRotatePopup) {
     struct Fields {
-        CCSprite* m_previewObject;
-        CCLayerColor* m_controlCover;
-        CCTextInputNode* m_input;
-        Slider* m_slider;
+        CCSprite* m_previewObject = nullptr;
+        CCLayerColor* m_controlCover = nullptr;
+        CCTextInputNode* m_input = nullptr;
+        Slider* m_slider = nullptr;
 
-        float m_defaultRotationSpeed;
+        float m_defaultRotationSpeed = 0.f;
     };
 
     $override

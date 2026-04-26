@@ -9,7 +9,7 @@ class MixedInputSettingsPopup : public Popup {
 protected:
     MixedInputSettings m_settings;
     geode::Function<void(MixedInputSettings)> m_callback;
-    CCMenuItemToggler* m_roundingBtn;
+    CCMenuItemToggler* m_roundingBtn = nullptr;
 
     bool init(MixedInputSettings, geode::Function<void(MixedInputSettings)>);
     void onRoundingButton(CCObject*);

@@ -24,25 +24,26 @@ protected:
     };
     
     MultiEditContext* m_context;
-    CCArrayExt<GameObject*> m_objects;
     int m_property;
-    Operator m_operator;
-    float m_modifierValue;
-    float m_initialValue;
     int m_decimalPlaces;
     PropertyBounds m_propertyBounds = {0, 0};
-    RoundingType m_rounding;
-    DirectionType m_direction;
+    
+    CCArrayExt<GameObject*> m_objects;
+    Operator m_operator = Operator::Equal;
+    float m_modifierValue = 0;
+    float m_initialValue = 0;
+    RoundingType m_rounding = RoundingType::Round;
+    DirectionType m_direction = DirectionType::None;
 
-    CCMenu* m_topRow;
-    CCMenu* m_bottomRow;
-    CCMenuItemToggler* m_operatorBtn;
-    CCMenuItemToggler* m_directionBtn;
-    TextInput* m_modifierInput;
-    TextInput* m_initialInput;
-    CCLayerColor* m_equalBtnCover;
-    CCLayerColor* m_initialInputCover;
-    ListView* m_list;
+    CCMenu* m_topRow = nullptr;
+    CCMenu* m_bottomRow = nullptr;
+    CCMenuItemToggler* m_operatorBtn = nullptr;
+    CCMenuItemToggler* m_directionBtn = nullptr;
+    TextInput* m_modifierInput = nullptr;
+    TextInput* m_initialInput = nullptr;
+    CCLayerColor* m_equalBtnCover = nullptr;
+    CCLayerColor* m_initialInputCover = nullptr;
+    ListView* m_list = nullptr;
 
     struct CalculationInfo {
         std::string propertyString;

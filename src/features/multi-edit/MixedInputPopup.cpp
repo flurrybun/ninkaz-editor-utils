@@ -7,8 +7,6 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
-#include <regex>
-
 bool MixedInputPopup::init(MultiEditContext* context, int property) {
     if (!Popup::init(380.f, 280.f)) return false;
     if (!context) return false;
@@ -32,15 +30,10 @@ bool MixedInputPopup::init(MultiEditContext* context, int property) {
         return aValue < bValue;
     });
 
-    m_operator = Operator::Equal;
     m_decimalPlaces = context->getPropertyDecimalPlaces(property);
     m_propertyBounds = context->getPropertyBounds(property);
 
-    m_modifierValue = 0;
-    m_initialValue = 0;
     if (!propertyValues.empty() && std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
-    m_direction = DirectionType::None;
-    m_rounding = RoundingType::Round;
     
     auto winSize = m_mainLayer->getContentSize();
     m_bgSprite->setZOrder(-10);

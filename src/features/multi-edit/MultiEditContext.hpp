@@ -32,10 +32,10 @@ struct PropertyBounds {
 class MultiEditContext {
 private:
     static inline std::unordered_map<CCNode*, MultiEditContext*> s_registry;
-    CCNode* m_self;
-    FLAlertLayer* m_alertLayer;
-    CCNode* m_inputParent;
-    CCMenu* m_buttonMenu;
+    CCNode* m_self = nullptr;
+    FLAlertLayer* m_alertLayer = nullptr;
+    CCNode* m_inputParent = nullptr;
+    CCMenu* m_buttonMenu = nullptr;
 
 protected:
     ListenerHandle m_mouseListener;

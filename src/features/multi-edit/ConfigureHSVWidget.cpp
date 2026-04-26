@@ -342,7 +342,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
 class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
     struct Fields {
-        bool isBase;
+        bool isBase = true;
     };
 
     $override
@@ -390,7 +390,7 @@ class $modify(CustomizeObjectLayer) {
 
 class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
     struct Fields {
-        bool isBase;
+        bool isBase = true;
     };
 
     $override

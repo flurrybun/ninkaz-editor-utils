@@ -17,10 +17,11 @@ protected:
         "Position X", "Position Y", "Rotation X", "Rotation Y", "Scale X", "Scale Y"
     };
 
-    static PasteStatePopup* s_instance;
     std::array<bool, 12> m_properties;
     std::array<CCMenuItemToggler*, 12> m_togglers;
     std::array<CCMenuItemSpriteExtra*, 4> m_presetButtons;
+
+    static PasteStatePopup* s_instance;
 
     bool init() override;
     void onClose(CCObject* sender) override;

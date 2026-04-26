@@ -111,7 +111,7 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
         bool hideUIEnabled = false;
         bool isHidden = false;
-        Slider* currentSlider;
+        Slider* currentSlider = nullptr;
     };
 
     $override
@@ -177,8 +177,8 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
     struct Fields : SliderDelegate {
         bool hideUIEnabled = false;
         bool isHidden = false;
-        Slider* currentSlider;
-        HUICreateParticlePopup* popup;
+        Slider* currentSlider = nullptr;
+        HUICreateParticlePopup* popup = nullptr;
 
         void sliderBegan(Slider* slider) override {
             popup->CreateParticlePopup::sliderBegan(slider);

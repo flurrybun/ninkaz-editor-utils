@@ -406,13 +406,15 @@ protected:
     std::array<CCMenu*, 8> m_controlMenus;
     std::array<TextInput*, 8> m_inputs;
     std::array<std::array<CCMenuItemSpriteExtra*, 2>, 8> m_arrowButtons;
-    CCMenu* m_zLayerMenu;
-    CCMenuItemSpriteExtra* m_resetBtn;
-    CCMenuItemToggler* m_colorToggler;
     std::array<CCMenuItemToggler*, 3> m_moreColorBtns;
-    CCMenuItemToggler* m_scaleToggler;
-    bool m_isToggleColor;
-    bool m_isToggleScale;
+
+    CCMenu* m_zLayerMenu = nullptr;
+    CCMenuItemSpriteExtra* m_resetBtn = nullptr;
+    CCMenuItemToggler* m_colorToggler = nullptr;
+    CCMenuItemToggler* m_scaleToggler = nullptr;
+
+    bool m_isToggleColor = false;
+    bool m_isToggleScale = false;
 
     bool init() override;
     void addLine(const std::string& label, const std::string& id, FilterType filter, CCPoint position);

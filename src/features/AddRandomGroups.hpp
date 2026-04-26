@@ -5,14 +5,15 @@ using namespace geode::prelude;
 
 class AddRandomGroupsPopup : public Popup {
 protected:
-    TextInput* m_groupInput;
-    TextInput* m_coverageInput;
-    CCMenu* m_layout;
-    ScrollLayer* m_scrollLayer;
-    Scrollbar* m_scrollbar;
+    TextInput* m_groupInput = nullptr;
+    TextInput* m_coverageInput = nullptr;
+    CCMenu* m_layout = nullptr;
+    ScrollLayer* m_scrollLayer = nullptr;
+    Scrollbar* m_scrollbar = nullptr;
+    CCArray* m_objects = nullptr;
+    CCMenuItemToggler* m_toggleLinkedButton = nullptr;
+
     std::vector<short> m_groups;
-    CCArray* m_objects;
-    CCMenuItemToggler* m_toggleLinkedButton;
 
     bool init(CCArray* objects);
 
