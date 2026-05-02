@@ -126,8 +126,12 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         bool hasProperty(GameObject* object, int property) override {
-            if (property >= 2000 && property <= 2005) return true;
-            if (property == 343 || property == 446) return true;
+            if (
+                (property >= 2000 && property <= 2005) ||
+                property == 343 || property == 446 ||
+                property == 107 || property == 462
+            ) return true;
+
             if (property == 534 && object->m_classType == GameObjectClassType::Effect) return true;
             if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) return true;
 
