@@ -241,7 +241,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 
     $override
     static ccHSVValue getHSV(GameObject* obj, CCArray* objs, int baseOrDetail) {
-        CCArray* objects = objs ? objs : CCArray::create(obj);
+        CCArray* objects = objs ? objs : CCArray::createWithObject(obj);
         if (!objects || objects->count() == 0) return {0, 0, 0, false, false};
 
         ccHSVValue hsv = {0, 0, 0, true, true};
