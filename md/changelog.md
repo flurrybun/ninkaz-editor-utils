@@ -1,3 +1,10 @@
+### 1.5.5 (5/1/2026)
+
+- Reenabled **multi-edit HSV** on all platforms
+- Fixed **incompatibility with Tinker** causing menu buttons to shift after pasting state
+- Fixed BetterEdit's **paste state keybind** opening multiple popups
+- Fixed the **reset button** in Advanced Filter sometimes causing weird UI updates
+
 ### 1.5.4 (3/5/2026)
 
 - Fixed **crash when applying groups** in Add Random Groups
