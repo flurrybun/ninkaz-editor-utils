@@ -109,6 +109,8 @@ bool isHideUIKeyPressed() {
 
 class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     struct Fields {
+        ListenerHandle setupMixedListener;
+
         bool hideUIEnabled = false;
         bool isHidden = false;
         Slider* currentSlider = nullptr;
@@ -119,10 +121,7 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum)) return false;
         if (!MultiEditContext::isTriggerPopup(this)) return true;
 
-        auto ctx = MultiEditContext::get(this);
-        if (!ctx) return true;
-
-        queueInMainThread([this, ctx]() {
+        m_fields->setupMixedListener = SetupMixedEvent().listen([this](MultiEditContext* ctx) {
             if (ctx->getSliders().size() > 0) {
                 auto hideBtn = MultiEditContext::createSideMenuButton(
                     "hide-btn.png"_spr, [this](CCObject* sender) {
@@ -139,6 +138,8 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
                 ctx->addSideMenuButton(hideBtn);
             }
         });
+
+        if (!MultiEditContext::get(this)) return true;
 
         #ifdef GEODE_IS_DESKTOP
         schedule(schedule_selector(HUISetupTriggerPopup::updateHideMode));
