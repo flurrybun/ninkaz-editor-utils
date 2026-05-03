@@ -1,3 +1,7 @@
+### 1.5.6 (5/2/2026)
+
+- Fixed **edit object menu** crashing on iOS
+
 ### 1.5.5 (5/1/2026)
 
 - Reenabled **multi-edit HSV** on all platforms
