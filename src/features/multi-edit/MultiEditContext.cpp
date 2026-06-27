@@ -335,7 +335,7 @@ Slider* MultiEditContext::getSlider(int property) {
     return m_sliders[property];
 }
 
-std::vector<CCMenuItem*> MultiEditContext::getButtonsForProperty(int property) {
+std::vector<Ref<CCMenuItem>> MultiEditContext::getButtonsForProperty(int property) {
     if (m_buttons.find(property) == m_buttons.end()) return {};
     return m_buttons[property];
 }

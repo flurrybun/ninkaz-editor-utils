@@ -47,11 +47,11 @@ protected:
     bool m_hasSetupMixed = false;
 
     std::map<int, Ref<CCTextInputNode>> m_inputs;
-    std::map<int, Slider*> m_sliders;
-    std::map<int, std::vector<CCMenuItem*>> m_buttons;
-    std::map<int, CCScale9Sprite*> m_inputBGs;
-    std::map<int, CCLabelBMFont*> m_inputLabels;
-    std::map<int, CCMenuItemSpriteExtra*> m_mixedButtons;
+    std::map<int, Ref<Slider>> m_sliders;
+    std::map<int, std::vector<Ref<CCMenuItem>>> m_buttons;
+    std::map<int, Ref<CCScale9Sprite>> m_inputBGs;
+    std::map<int, Ref<CCLabelBMFont>> m_inputLabels;
+    std::map<int, Ref<CCMenuItemSpriteExtra>> m_mixedButtons;
 
     CCPoint m_buttonOffset = {0, 0};
     float m_popupScale = 1.f;
@@ -150,15 +150,15 @@ public:
     bool isMixedEnabled() { return m_isMixedEnabled; }
     CCArrayExt<GameObject*>& getGameObjects() { return m_gameObjects; }
     std::map<int, Ref<CCTextInputNode>>& getInputs() { return m_inputs; }
-    std::map<int, Slider*>& getSliders() { return m_sliders; }
-    std::map<int, std::vector<CCMenuItem*>>& getButtons() { return m_buttons; }
-    std::map<int, CCScale9Sprite*>& getInputBGs() { return m_inputBGs; }
-    std::map<int, CCLabelBMFont*>& getInputLabels() { return m_inputLabels; }
-    std::map<int, CCMenuItemSpriteExtra*>& getMixedButtons() { return m_mixedButtons; }
+    std::map<int, Ref<Slider>>& getSliders() { return m_sliders; }
+    std::map<int, std::vector<Ref<CCMenuItem>>>& getButtons() { return m_buttons; }
+    std::map<int, Ref<CCScale9Sprite>>& getInputBGs() { return m_inputBGs; }
+    std::map<int, Ref<CCLabelBMFont>>& getInputLabels() { return m_inputLabels; }
+    std::map<int, Ref<CCMenuItemSpriteExtra>>& getMixedButtons() { return m_mixedButtons; }
 
     CCTextInputNode* getInput(int property);
     Slider* getSlider(int property);
-    std::vector<CCMenuItem*> getButtonsForProperty(int property);
+    std::vector<Ref<CCMenuItem>> getButtonsForProperty(int property);
     CCScale9Sprite* getInputBG(int property);
     CCLabelBMFont* getInputLabel(int property);
     CCMenuItemSpriteExtra* getMixedButton(int property);
