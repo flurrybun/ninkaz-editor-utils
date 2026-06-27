@@ -408,7 +408,10 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
         HSVLiveOverlay::createHSVWidget(tab);
 
         for (auto node : m_buttonMenu->getChildrenExt()) {
-            if (node->getID() == "ninkaz.editor_utils/mixed-input-btn") {
+            if (
+                node->getID() == "ninkaz.editor_utils/mixed-input-btn" ||
+                node->getID() == "ninkaz.editor_utils/multi-edit-btn"
+            ) {
                 node->removeFromParent();
             }
         }
