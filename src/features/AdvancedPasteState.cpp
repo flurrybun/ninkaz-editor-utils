@@ -29,16 +29,16 @@ class $modify(APSEditorUI, EditorUI) {
             return EditorUI::onPasteState(sender);
         }
 
-        if (m_pasteStateBtn->getOpacity() != 255) return;
-
-        if (PasteStatePopup::get()) {
+        if (auto popup = PasteStatePopup::get()) {
             if (!sender) {
                 // used betteredit paste state keybind while popup is open
-                PasteStatePopup::get()->onQuickPaste(nullptr);
+                popup->onQuickPaste(nullptr);
             }
 
             return;
         }
+
+        if (m_pasteStateBtn->getOpacity() != 255) return;
 
         auto popup = PasteStatePopup::create();
         popup->m_noElasticity = true;
