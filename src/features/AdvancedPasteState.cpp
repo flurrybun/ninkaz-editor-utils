@@ -158,6 +158,7 @@ bool PasteStatePopup::init() {
 
 void PasteStatePopup::onClose(CCObject* sender) {
     s_instance = nullptr;
+    EditorUI::get()->updateButtons();
 
     Popup::onClose(sender);
 }
