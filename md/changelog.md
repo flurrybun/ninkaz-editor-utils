@@ -1,3 +1,9 @@
+### 1.5.7 (7/21/2026)
+
+- Fixed **stale multi-edit button** crashing in HSV live overlay
+- Fixed BetterEdit's **paste state keybind** not working (again)
+- Fixed the paste state button **staying invisible** when backing out of the Improved Paste State menu
+
 ### 1.5.6 (5/2/2026)
 
 - Fixed **edit object menu** crashing on iOS
