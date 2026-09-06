@@ -1,11 +1,16 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include <Geode/modify/EditTriggersPopup.hpp>
 #include <Geode/modify/EditorUI.hpp>
+#include <Geode/modify/SetupTouchTogglePopup.hpp>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
 class $modify(SetupTriggerPopup) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("SetupTriggerPopup::init", Priority::VeryEarlyPre);
+    }
+
     $override
     bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
         // increase popup size

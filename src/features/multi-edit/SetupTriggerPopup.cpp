@@ -9,7 +9,10 @@ using namespace geode::prelude;
 class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
     struct Fields : MultiEditContext {
         SetupTriggerPopup* popup = nullptr;
+
         std::optional<geode::Function<void(int, float)>> callback;
+        std::unordered_map<GameObject*, int> oldRemapIDs;
+        std::unordered_map<GameObject*, int> newRemapIDs;
 
         void init(SetupTriggerPopup* popup) {
             this->popup = popup;
@@ -19,6 +22,14 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         float getProperty(GameObject* object, int property) override { 
             if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) {
                 return static_cast<EnhancedGameObject*>(object)->m_rotationSpeed;
+            }
+
+            if ((property == -1 || property == -2) && object->m_objectID == 1268) {
+                // special logic to handle spawn order multi-edit
+
+                auto spawnPopup = static_cast<SetupSpawnPopup*>(popup);
+                if (property == -1) return spawnPopup->m_remapOriginalID;
+                if (property == -2) return spawnPopup->m_remapNewID;
             }
 
             // these properties aren't supported by SetupTriggerPopup::getTriggerValue
@@ -60,6 +71,13 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
             if (property == 97 && object->m_classType == GameObjectClassType::Enhanced) {
                 static_cast<EnhancedGameObject*>(object)->m_rotationSpeed = newValue;
                 return;
+            }
+
+            if ((property == -1 || property == -2) && object->m_objectID == 1268) {
+                // special logic to handle spawn order multi-edit
+
+                if (property == -1) oldRemapIDs.insert({object, newValue});
+                if (property == -2) newRemapIDs.insert({object, newValue});
             }
 
             // these properties aren't supported by SetupTriggerPopup::updateValue
@@ -151,7 +169,7 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 1006: return in({50, 51, 45, 46, 47}); // added manually
                 case 1007: return in({10, 51}); // added manually
                 case 1049: return in({51});
-                case 1268: return in({51, 63, 556}); //removed: -1, -2
+                case 1268: return in({51, 63, 556, -1, -2});
                 case 2067: return in({150, 151, 10, 71, 51});
                 case 1347: return in({10, 72, 73, 51, 71}); // added manually
                 case 1520: return in({10, 75, 84}); // added manually
@@ -375,6 +393,15 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         int charCountLimit, bool enableArrows, float sliderMin, float sliderMax, int page, int group,
         GJInputStyle inputStyle, int decimalPlaces, bool enableTrashCan
     ) {
+        // change position of spawn remap inputs
+
+        if (
+            (property == -1 && label == "OriginalID:") ||
+            (property == -2 && label == "NewID:")
+        ) {
+            position.x -= 12.f;
+        }
+
         CCArray* ret = SetupTriggerPopup::createValueControlAdvanced(
             property, label, position, scale, disableSlider, valueType, charCountLimit, enableArrows, sliderMin,
             sliderMax, page, group, inputStyle, decimalPlaces, enableTrashCan
@@ -585,6 +612,91 @@ class $modify(SetupOpacityPopup) {
         ctx->setupMixed();
 
         return true;
+    }
+};
+
+#include <Geode/modify/SetupSpawnPopup.hpp>
+
+class $modify(STPSetupSpawnPopup, SetupSpawnPopup) {
+    static void onModify(auto& self) {
+        // tinker compatibility
+        // make the delete all remap button properly update the remap
+        (void)self.setHookPriority("SetupSpawnPopup::init", Priority::EarlyPost);
+    }
+
+    bool init(EffectGameObject* obj, CCArray* objs) {
+        if (!SetupSpawnPopup::init(obj, objs)) return false;
+
+        auto delAllSpr = ButtonSprite::create(
+            CCSprite::createWithSpriteFrameName("edit_delBtn_001.png"),
+            32,
+            0.f,
+            32.f,
+            1.f,
+            true,
+            "GJ_button_04.png",
+            true
+        );
+
+        auto delAllBtn = CCMenuItemSpriteExtra::create(
+            delAllSpr, this, menu_selector(STPSetupSpawnPopup::onDeleteAllRemap)
+        );
+
+        float xPos = 0.f;
+
+        for (auto btn : m_buttonMenu->getChildrenExt()) {
+            if (btn->getPositionY() != 181.f || btn->getContentSize() != CCSize{40, 40}) continue;
+
+            btn->setPositionX(btn->getPositionX() - 32.f);
+            xPos = std::max(xPos, btn->getPositionX());
+        }
+
+        delAllBtn->setPosition(xPos + 30.f, 181.f);
+        m_buttonMenu->addChild(delAllBtn);
+        addObjectToPage(delAllBtn, 1);
+        delAllBtn->setVisible(false);
+        delAllBtn->setScale(0.6f);
+        delAllBtn->m_baseScale = 0.6f;
+        delAllBtn->setID("delete-all-remap-btn"_spr);
+
+        return true;
+    }
+
+    void addRemap(int origOldID, int origNewID) {
+        if (m_isBusy) return;
+
+        auto ctx = getMultiEditContext(this);
+
+        if (ctx->oldRemapIDs.size() == 0 && ctx->newRemapIDs.size() == 0) {
+            SetupSpawnPopup::addRemap(origOldID, origNewID);
+            return;
+        }
+
+        auto objects = m_gameObject ? CCArray::createWithObject(m_gameObject) : m_gameObjects;
+
+        for (auto object : CCArrayExt<SpawnTriggerGameObject*>(objects)) {
+            auto it = ctx->oldRemapIDs.find(object);
+            int oldID = (it != ctx->oldRemapIDs.end()) ? it->second : origOldID;
+
+            auto it2 = ctx->newRemapIDs.find(object);
+            int newID = (it2 != ctx->newRemapIDs.end()) ? it2->second : origNewID;
+            
+            object->addRemap(oldID, newID);
+        }
+
+        queueUpdateButtons();
+    }
+
+    void onDeleteAllRemap(CCObject* sender) {
+        if (m_isBusy) return;
+
+        auto objects = m_gameObject ? CCArray::createWithObject(m_gameObject) : m_gameObjects;
+
+        for (auto object : CCArrayExt<SpawnTriggerGameObject*>(objects)) {
+            object->m_remapObjects.clear();
+        }
+
+        queueUpdateButtons();
     }
 };
 
