@@ -6,20 +6,36 @@
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+static bool hasSameObjectID(EffectGameObject* obj, CCArray* objs) {
+    if (obj) return true;
+
+    int objID = -1;
+
+    for (auto obj : CCArrayExt<GameObject*>(objs)) {
+        if (objID == -1) {
+            objID = obj->m_objectID;
+        } else {
+            if (objID != obj->m_objectID) return false;
+        }
+    }
+
+    return true;
+}
+
 class $modify(SetupTriggerPopup) {
     static void onModify(auto& self) {
         (void)self.setHookPriority("SetupTriggerPopup::init", Priority::VeryEarlyPre);
     }
 
     $override
-    bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
+    bool init(EffectGameObject* obj, CCArray* objs, float width, float height, int unkEnum) {
         // increase popup size
-        if (typeinfo_cast<EditTriggersPopup*>(this)) {
+        if (!hasSameObjectID(obj, objs) && typeinfo_cast<EditTriggersPopup*>(this)) {
             width = 440;
             height = 310;
         }
 
-        return SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum);
+        return SetupTriggerPopup::init(obj, objs, width, height, unkEnum);
     }
 };
 
@@ -27,6 +43,7 @@ class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
     $override
     bool init(EffectGameObject* obj, CCArray* objs) {
         if (!EditTriggersPopup::init(obj, objs)) return false;
+        if (hasSameObjectID(obj, objs)) return true;
 
         // change spawn/touch trigger toggle positions
 
@@ -40,9 +57,7 @@ class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
         spawnTriggerBtn->setPosition(spawnTriggerBtn->getPosition() + ccp(90, 0));
         spawnTriggerLabel->setPosition(spawnTriggerLabel->getPosition() + ccp(90, 0));
 
-        // SetupTriggerPopup::preSetup
-        m_disableTextDelegate = true;
-        SetupTriggerPopup::determineStartValues();
+        preSetup();
 
         CCPoint center = CCDirector::get()->getWinSize() / 2 + ccp(0, 3);
         createValueControlAdvanced(51, "Target Group ID:", center + ccp(-70, 25), 0.8, true, InputValueType::Int, 10, true, 0, 10, 0, 0, GJInputStyle::GoldLabel, 0, false);
@@ -50,9 +65,7 @@ class $modify(EditMultipleTriggersPopup, EditTriggersPopup) {
         createEasingControls(center + ccp(-90, -20), 0.8, 0, 0);
         createValueControlAdvanced(10, "Duration:", center + ccp(90, -25), 0.8, false, InputValueType::Float, 10, false, 0, 10, 0, 0, GJInputStyle::GoldLabel, 2, false);
 
-        // SetupTriggerPopup::postSetup
-        this->updateDefaultTriggerValues();
-        m_disableTextDelegate = false;
+        postSetup();
 
         return true;
     }
