@@ -344,17 +344,6 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         CCArray* getObjectArray() override {
-            // special case: SetupTouchTogglePopup sets m_gameObjects to nullptr
-            if (typeinfo_cast<SetupTouchTogglePopup*>(popup)) {
-                auto eui = EditorUI::get();
-
-                if (auto obj = eui->m_selectedObject) {
-                    return CCArray::createWithObject(obj);
-                } else {
-                    return eui->getSelectedObjects();
-                }
-            }
-
             if (auto obj = popup->m_gameObject) {
                 return CCArray::createWithObject(obj);
             } else {
@@ -792,11 +781,10 @@ class $modify(MESetupTouchTogglePopup, SetupTouchTogglePopup) {
             }
         };
 
-        auto objs = EditorUI::get()->m_selectedObjects;
-
-        if (objs && objs->count() > 0) {
-            if (auto firstObj = typeinfo_cast<EffectGameObject*>(objs->firstObject())) {
-                m_groupIDInput->setString(std::to_string(firstObj->m_targetGroupID).c_str());
+        if (m_gameObjects) {
+            if (auto firstObj = static_cast<EffectGameObject*>(m_gameObjects->firstObject())) {
+                // set label without calling callback
+                m_groupIDInput->updateLabel(std::to_string(firstObj->m_targetGroupID).c_str());
             }
         }
 

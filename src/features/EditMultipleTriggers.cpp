@@ -116,3 +116,30 @@ class $modify(EditorUI) {
         }
     }
 };
+
+class $modify(SetupTouchTogglePopup) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("SetupTouchTogglePopup::init", Priority::EarlyPost);
+    }
+
+    struct Fields {
+        Ref<CCArray> realGameObjects;
+    };
+
+    bool init(EffectGameObject* object, CCArray* objects) {
+        if (!SetupTouchTogglePopup::init(object, objects)) return false;
+ 
+        // SetupTouchTogglePopup::init sets m_gameObjects
+        // to nullptr, which messes up my shit
+
+        if (!object) {
+            m_gameObjects = CCArray::create();
+            m_gameObjects->addObjectsFromArray(EditorUI::get()->m_selectedObjects);
+
+            // please don't release me ty
+            m_fields->realGameObjects = m_gameObjects;
+        }
+
+        return true;
+    }
+};
