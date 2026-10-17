@@ -71,6 +71,8 @@ class $modify(AFEditorUI, EditorUI) {
     }
 
     bool shouldFilterObject(GameObject* object) {
+        // if (!s_filter.isActive()) return false;
+
         if (s_filter.m_group.isActive()) {
             bool hasGroup = false;
 
@@ -111,8 +113,9 @@ class $modify(AFEditorUI, EditorUI) {
         // a small tolerance is used to account for this
 
         constexpr float tolerance = 0.01f - std::numeric_limits<float>::epsilon();
-
         if (!s_filter.m_scale.contains(object->m_scaleX, object->m_scaleY, tolerance)) return true;
+
+        if (!s_filter.m_extra.contains(object)) return true;
 
         return false;
     }
@@ -321,6 +324,12 @@ bool AdvFilterPopup::init() {
         zLayerMenu->addChild(btn);
     }
 
+    auto extraOnSpr = ButtonSprite::create("Extra", 220, false, "goldFont.fnt", "GJ_button_04.png", 25, 0.3);
+    auto extraOffSpr = ButtonSprite::create("Extra", 220, false, "goldFont.fnt", "GJ_button_04.png", 25, 0.3);
+    auto extraBtn = CCMenuItemToggler::create(extraOffSpr, extraOnSpr, this, menu_selector(AdvFilterPopup::onExtra));
+    zLayerMenu->addChild(extraBtn);
+    m_extraToggler = extraBtn;
+
     zLayerMenu->updateLayout();
     m_mainLayer->addChildAtPosition(zLayerMenu, Anchor::Center, {0, -52});
 
@@ -481,6 +490,16 @@ void AdvFilterPopup::onUpdateValue() {
         btns[1]->setOpacity(enabled ? 255 : 127);
     }
 
+    // horrible hacky solution, yeah yeah whatever. i'm never touching this code ever again so who gaf
+
+    bool enabled = s_filter.m_extra.isActive();
+    const char* frame = enabled ? "GJ_button_02.png" : "GJ_button_04.png";
+
+    auto extraOnSpr = ButtonSprite::create("Extra", 220, false, "goldFont.fnt", frame, 25, 0.3);
+    auto extraOffSpr = ButtonSprite::create("Extra", 220, false, "goldFont.fnt", frame, 25, 0.3);
+    m_extraToggler->m_onButton->setNormalImage(extraOnSpr);
+    m_extraToggler->m_offButton->setNormalImage(extraOffSpr);
+
     bool enableReset = s_filter.isActive();
 
     m_resetBtn->setEnabled(enableReset);
@@ -535,7 +554,7 @@ void AdvFilterPopup::onMoreColors(CCObject* sender) {
 
     ColorType colorType = static_cast<ColorType>(sender->getTag());
 
-    updateCallback onUpdate = [this, colorType](const std::unordered_set<int>& colors, const HSVInput& hsv) {
+    MoreColorsPopup::UpdateCallback onUpdate = [this, colorType](const std::unordered_set<int>& colors, const HSVInput& hsv) {
         getFilterHSV(colorType).set(hsv);
 
         FilterType filter = static_cast<FilterType>(static_cast<int>(colorType) + 1);
@@ -606,6 +625,17 @@ void AdvFilterPopup::onToggleScale(CCObject* sender) {
     onUpdateValue();
 }
 
+void AdvFilterPopup::onExtra(CCObject* sender) {
+    MoreExtrasPopup::UpdateCallback onUpdate = [this]() {
+        onUpdateValue();
+    };
+
+    auto popup = MoreExtrasPopup::create(std::move(onUpdate));
+    popup->m_noElasticity = true;
+
+    popup->show();
+}
+
 void AdvFilterPopup::onReset(CCObject* sender) {
     s_filter.reset();
 
@@ -645,7 +675,7 @@ void AdvFilterPopup::onSelectAll(CCObject* sender) {
     onClose(nullptr);
 }
 
-bool MoreColorsPopup::init(ColorType colorType, updateCallback callback) {
+bool MoreColorsPopup::init(ColorType colorType, UpdateCallback callback) {
     if (!Popup::init(360.f, 240.f)) return false;
 
     if (colorType == ColorType::BASE) setTitle("Base Color Special");
@@ -762,4 +792,118 @@ void MoreColorsPopup::onColor(CCObject* sender) {
 
 void MoreColorsPopup::onUpdateValue() {
     m_callback(m_selectedColors, m_hsv);
+}
+
+bool MoreExtrasPopup::init(UpdateCallback callback) {
+    if (!Popup::init(390.f, 310.f)) return false;
+
+    m_callback = std::move(callback);
+
+    setTitle("Object Options");
+    m_closeBtn->removeFromParent();
+    auto winCenter = CCDirector::get()->getWinSize() / 2;
+
+    auto menu = CCMenu::create();
+    menu->setContentSize({ 370.f, 240.f });
+    menu->ignoreAnchorPointForPosition(false);
+
+    CCPoint startPosition = menu->getContentSize() / 2.f + ccp(-155, 105);
+    CCPoint position = startPosition;
+
+    for (int i = 0; i < 24; i++) {
+        ExtraType extra = static_cast<ExtraType>(i);
+        ExtraValueType value = s_filter.m_extra.getValue(extra);
+
+        auto toggler = Button::createWithSpriteFrameName(
+            "GJ_checkOff_001.png",
+            [this, extra](CCObject* sender) {
+                ExtraValueType value = getNextValue(s_filter.m_extra.getValue(extra));
+                setTogglerValue(static_cast<Button*>(sender), extra, value);
+                m_callback();
+            }
+        );
+        toggler->setScale(0.7f);
+        toggler->setPosition(position);
+
+        setTogglerValue(toggler, extra, value);
+
+        std::string labelStr = getExtraTypeLabel(extra);
+        auto label = CCLabelBMFont::create(labelStr.c_str(), "bigFont.fnt");
+        label->setScale(0.35f);
+        label->setAnchorPoint({ 0.f, 0.5f });
+        label->setPosition(position + ccp(20, 0));
+
+        menu->addChild(toggler);
+        menu->addChild(label);
+
+        if (i > 0 && (i + 1) % 8 == 0) {
+            position.y = startPosition.y;
+            position.x += 120;
+        } else {
+            position.y -= 30;
+        }
+    }
+
+    m_mainLayer->addChildAtPosition(menu, Anchor::Center, { 0.f, 5.f });
+
+    // OK BUTTON
+
+    auto okSpr = ButtonSprite::create("OK", 40, true, "goldFont.fnt", "GJ_button_01.png", 30, 0.8);
+    auto okBtn = CCMenuItemSpriteExtra::create(okSpr, this, menu_selector(MoreExtrasPopup::onClose));
+    m_buttonMenu->addChildAtPosition(okBtn, Anchor::Bottom, {0, 24});
+
+    return true;
+}
+
+void MoreExtrasPopup::setTogglerValue(Button* sender, ExtraType extra, ExtraValueType value) {
+    s_filter.m_extra.setValue(extra, value);
+
+    auto frameName = getExtraValueTypeFrameName(value);
+    auto frame = CCSpriteFrameCache::get()->spriteFrameByName(frameName.c_str());
+    static_cast<CCSprite*>(sender->getDisplayNode())->setDisplayFrame(frame);
+}
+
+ExtraValueType MoreExtrasPopup::getNextValue(ExtraValueType value) {
+    switch (value) {
+        case ExtraValueType::NONE: return ExtraValueType::YES;
+        case ExtraValueType::YES: return ExtraValueType::NO;
+        case ExtraValueType::NO: return ExtraValueType::NONE;
+    }
+}
+
+std::string MoreExtrasPopup::getExtraTypeLabel(ExtraType extra) {
+    switch (extra) {
+        case ExtraType::DONT_FADE: return "Dont\nFade";
+        case ExtraType::DONT_ENTER: return "Dont\nEnter";
+        case ExtraType::NO_EFFECTS: return "No\nEffects";
+        case ExtraType::GROUP_PARENT: return "Group\nParent";
+        case ExtraType::AREA_PARENT: return "Area\nParent";
+        case ExtraType::DONT_BOOSTY: return "Dont\nBoostY";
+        case ExtraType::DONT_BOOSTX: return "Dont\nBoostX";
+        case ExtraType::SINGLE_PTOUCH: return "Single\nPTouch";
+        case ExtraType::HIGH_DETAIL: return "High\nDetail";
+        case ExtraType::NOTOUCH: return "NoTouch";
+        case ExtraType::PASSABLE: return "Passable";
+        case ExtraType::HIDE: return "Hide";
+        case ExtraType::NONSTICKX: return "NonStickX";
+        case ExtraType::EXTRASTICKY: return "ExtraSticky";
+        case ExtraType::EXTENDEDCOLLISION: return "Extended\nCollision";
+        case ExtraType::CENTER_EFFECT: return "Center\nEffect";
+        case ExtraType::ICEBLOCK: return "IceBlock";
+        case ExtraType::GRIPSLOPE: return "GripSlope";
+        case ExtraType::NOGLOW: return "NoGlow";
+        case ExtraType::NOPARTICLE: return "NoParticle";
+        case ExtraType::NONSTICKY: return "NonStickY";
+        case ExtraType::SCALESTICK: return "ScaleStick";
+        case ExtraType::NO_AUDIO_SCALE: return "No Audio\nScale";
+        case ExtraType::REVERSE: return "Reverse";
+    }
+}
+
+std::string MoreExtrasPopup::getExtraValueTypeFrameName(ExtraValueType value) {
+    switch (value) {
+        case ExtraValueType::NONE: return "GJ_checkOff_001.png";
+        case ExtraValueType::YES: return "GJ_checkOn_001.png";
+        case ExtraValueType::NO: return "toggle-off-btn.png"_spr;
+    }
 }

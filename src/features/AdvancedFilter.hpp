@@ -269,6 +269,124 @@ public:
     }
 };
 
+enum class ExtraType {
+    DONT_FADE,
+    DONT_ENTER,
+    NO_EFFECTS,
+    GROUP_PARENT,
+    AREA_PARENT,
+    DONT_BOOSTY,
+    DONT_BOOSTX,
+    SINGLE_PTOUCH,
+    HIGH_DETAIL,
+    NOTOUCH,
+    PASSABLE,
+    HIDE,
+    NONSTICKX,
+    EXTRASTICKY,
+    EXTENDEDCOLLISION,
+    CENTER_EFFECT,
+    ICEBLOCK,
+    GRIPSLOPE,
+    NOGLOW,
+    NOPARTICLE,
+    NONSTICKY,
+    SCALESTICK,
+    NO_AUDIO_SCALE,
+    REVERSE
+};
+
+enum class ExtraValueType {
+    NONE,
+    YES,
+    NO
+};
+
+class ExtraFilter {
+    std::array<ExtraValueType, 24> m_values = {};
+    char m_activeCount = 0;
+
+    bool getExtraType(GameObject* object, ExtraType extra) {
+        switch (extra) {
+            case ExtraType::DONT_FADE: return object->m_isDontFade;
+            case ExtraType::DONT_ENTER: return object->m_isDontEnter;
+            case ExtraType::NO_EFFECTS: return object->m_hasNoEffects;
+            case ExtraType::GROUP_PARENT: return object->m_hasGroupParent;
+            case ExtraType::AREA_PARENT: return object->m_hasAreaParent;
+            case ExtraType::DONT_BOOSTY: return object->m_isDontBoostY;
+            case ExtraType::DONT_BOOSTX: return object->m_isDontBoostX;
+            case ExtraType::SINGLE_PTOUCH:
+                return object->m_classType == GameObjectClassType::Effect &&
+                    static_cast<EffectGameObject*>(object)->m_isSinglePTouch;
+            case ExtraType::HIGH_DETAIL: return object->m_isHighDetail;
+            case ExtraType::NOTOUCH: return object->m_isNoTouch;
+            case ExtraType::PASSABLE: return object->m_isPassable;
+            case ExtraType::HIDE: return object->m_isHide;
+            case ExtraType::NONSTICKX: return object->m_isNonStickX;
+            case ExtraType::EXTRASTICKY: return object->m_isExtraSticky;
+            case ExtraType::EXTENDEDCOLLISION: return object->m_hasExtendedCollision;
+            case ExtraType::CENTER_EFFECT:
+                return object->m_classType == GameObjectClassType::Effect &&
+                    static_cast<EffectGameObject*>(object)->m_hasCenterEffect;
+            case ExtraType::ICEBLOCK: return object->m_isIceBlock;
+            case ExtraType::GRIPSLOPE: return object->m_isGripSlope;
+            case ExtraType::NOGLOW: return object->m_hasNoGlow;
+            case ExtraType::NOPARTICLE: return object->m_hasNoParticles;
+            case ExtraType::NONSTICKY: return object->m_isNonStickY;
+            case ExtraType::SCALESTICK: return object->m_isScaleStick;
+            case ExtraType::NO_AUDIO_SCALE: return object->m_hasNoAudioScale;
+            case ExtraType::REVERSE:
+                return object->m_classType == GameObjectClassType::Effect &&
+                    static_cast<EffectGameObject*>(object)->m_isReverse;
+        }
+
+        return false;
+    }
+
+public:
+    void setValue(ExtraType extra, ExtraValueType value) {
+        bool isPrevNone = m_values[static_cast<int>(extra)] == ExtraValueType::NONE;
+        bool isNowNone = value == ExtraValueType::NONE;
+
+        if (!isPrevNone && isNowNone) m_activeCount--;
+        else if (isPrevNone && !isNowNone) m_activeCount++;
+
+        m_values[static_cast<int>(extra)] = value;
+    }
+
+    ExtraValueType getValue(ExtraType extra) {
+        return m_values[static_cast<int>(extra)];
+    }
+
+    bool contains(GameObject* object) {
+        if (!isActive()) return true;
+
+        for (char i = 0; i < m_values.size(); i++) {
+            ExtraType extra = static_cast<ExtraType>(i);
+            ExtraValueType value = m_values[i];
+
+            if (
+                value != ExtraValueType::NONE &&
+                getExtraType(object, extra) != (value == ExtraValueType::YES)
+            ) return false;
+        }
+
+        return true;
+    }
+
+    bool isActive() const {
+        return m_activeCount > 0;
+    }
+
+    void reset() {
+        m_activeCount = 0;
+
+        for (char i = 0; i < m_values.size(); i++) {
+            m_values[i] = ExtraValueType::NONE;
+        }
+    }
+};
+
 class ColorFilter {
     SplitFilterValue<int, ColorParser> m_color;
     FilterHSV m_baseHSV;
@@ -355,13 +473,15 @@ struct Filter {
     SplitFilterValue<float, NumberParser<float>> m_scale;
     FilterValue<int> m_zOrder;
     FilterSet<ZLayer> m_zLayer;
+    ExtraFilter m_extra;
 
     bool isActive() const {
         return m_group.isActive() ||
             m_color.isActive() ||
             m_scale.isActive() ||
             m_zOrder.isActive() ||
-            m_zLayer.isActive();
+            m_zLayer.isActive() ||
+            m_extra.isActive();
     }
 
     void reset() {
@@ -370,6 +490,7 @@ struct Filter {
         m_scale.reset();
         m_zOrder.reset();
         m_zLayer.reset();
+        m_extra.reset();
     }
 };
 
@@ -412,6 +533,7 @@ protected:
     CCMenuItemSpriteExtra* m_resetBtn = nullptr;
     CCMenuItemToggler* m_colorToggler = nullptr;
     CCMenuItemToggler* m_scaleToggler = nullptr;
+    CCMenuItemToggler* m_extraToggler = nullptr;
 
     bool m_isToggleColor = false;
     bool m_isToggleScale = false;
@@ -426,6 +548,7 @@ protected:
     void onMoreColors(CCObject*);
     void onToggleColor(CCObject*);
     void onToggleScale(CCObject*);
+    void onExtra(CCObject*);
     void onReset(CCObject*);
     void onSelectAll(CCObject*);
 public:
@@ -440,22 +563,50 @@ public:
     }
 };
 
-using updateCallback = geode::Function<void(const std::unordered_set<int>& colors, const HSVInput& hsv)>;
-
 class MoreColorsPopup : public Popup {
+public:
+    using UpdateCallback = geode::Function<void(const std::unordered_set<int>& colors, const HSVInput& hsv)>;
+
 protected:
     ColorType m_colorType;
-    updateCallback m_callback;
+    UpdateCallback m_callback;
     std::unordered_set<int> m_selectedColors;
     HSVInput m_hsv;
 
-    bool init(ColorType, updateCallback);
+    bool init(ColorType, UpdateCallback);
     void onColor(CCObject*);
     void onUpdateValue();
+
 public:
-    static MoreColorsPopup* create(ColorType colorType, updateCallback callback) {
+    static MoreColorsPopup* create(ColorType colorType, UpdateCallback callback) {
         auto popup = new MoreColorsPopup;
         if (popup->init(colorType, std::move(callback))) {
+            popup->autorelease();
+            return popup;
+        }
+        delete popup;
+        return nullptr;
+    }
+};
+
+class MoreExtrasPopup : public Popup {
+public:
+    using UpdateCallback = geode::Function<void()>;
+
+protected:
+    UpdateCallback m_callback;
+
+    bool init(UpdateCallback);
+    void setTogglerValue(Button*, ExtraType, ExtraValueType);
+    ExtraValueType getNextValue(ExtraValueType);
+
+    std::string getExtraTypeLabel(ExtraType);
+    std::string getExtraValueTypeFrameName(ExtraValueType);
+
+public:
+    static MoreExtrasPopup* create(UpdateCallback callback) {
+        auto popup = new MoreExtrasPopup;
+        if (popup->init(std::move(callback))) {
             popup->autorelease();
             return popup;
         }
