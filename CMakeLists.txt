@@ -7,6 +7,7 @@ else()
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(SKIP_BUILDING_CODEGEN OFF)
 
 project(NinKazEditorUtils VERSION 1.0.0)
 
@@ -21,5 +22,6 @@ else()
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 setup_geode_mod(${PROJECT_NAME})

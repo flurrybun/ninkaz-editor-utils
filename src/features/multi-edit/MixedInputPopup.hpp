@@ -1,76 +1,49 @@
 #pragma once
 
 #include "MultiEditContext.hpp"
+#include "MultiEditCalculation.hpp"
+#include "../../ui/ToggleGroup.hpp"
+#include "../../ui/NumberInput.hpp"
 
-#include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
+#include <Geode/binding/GameObject.hpp>
 using namespace geode::prelude;
 
-enum RoundingType {
-    Round, Floor, Ceiling
-};
+namespace me {
 
-struct MixedInputSettings {
-    RoundingType rounding;
+struct ObjectIDFrequency {
+    int objectID;
+    int count;
 };
 
 class MixedInputPopup : public Popup {
-protected:
-    enum Operator {
-        Add, Subtract, Multiply, Divide, Equal
-    };
-
-    enum DirectionType {
-        None, Up, Down, Left, Right
-    };
-    
+protected:    
     MultiEditContext* m_context;
     int m_property;
     int m_decimalPlaces;
     PropertyBounds m_propertyBounds = {0, 0};
-    
-    CCArrayExt<GameObject*> m_objects;
-    Operator m_operator = Operator::Equal;
-    float m_modifierValue = 0;
-    float m_initialValue = 0;
-    RoundingType m_rounding = RoundingType::Round;
-    DirectionType m_direction = DirectionType::None;
 
-    CCMenu* m_topRow = nullptr;
-    CCMenu* m_bottomRow = nullptr;
-    CCMenuItemToggler* m_operatorBtn = nullptr;
-    CCMenuItemToggler* m_directionBtn = nullptr;
-    TextInput* m_modifierInput = nullptr;
-    TextInput* m_initialInput = nullptr;
-    CCLayerColor* m_equalBtnCover = nullptr;
-    CCLayerColor* m_initialInputCover = nullptr;
-    ListView* m_list = nullptr;
+    Ref<Calculation> m_calculation;
 
-    struct CalculationInfo {
-        std::string propertyString;
-        std::string changeString;
-        std::string newPropertyString;
-        CCArrayExt<GameObject*> objects;
+    Ref<ToggleGroup<Operation>> m_operationGroup;
+    Ref<ToggleGroup<Direction>> m_directionGroup;
+    Ref<CCNode> m_inputColumn;
+    Ref<CCNode> m_rangeColumn;
+    Ref<NumberInput> m_modifierInput;
+    Ref<NumberInput> m_initialInput;
+    Ref<CCNode> m_previewFrame;
+    Ref<CCNode> m_selectedObjectRow;
 
-        CalculationInfo(const std::string& propStr, const std::string& changeStr, const std::string& newPropStr, const CCArrayExt<GameObject*>& obj)
-            : propertyString(propStr), changeString(changeStr), newPropertyString(newPropStr), objects(obj) {}
-    };
+    bool init(MultiEditContext* context, int property);
 
-    bool init(MultiEditContext*, int);
+    void updateInputVisibility();
+    void createCalculationPreview(const std::vector<Calculation::Unit>& units);
+    void onApply();
 
-    CCMenu* createTopRow();
-    CCMenu* createBottomRow();
-    void createScrollLayer(bool);
-    CCSprite* spriteFromObject(GameObject*);
-
-    void onOperator(CCObject*);
-    void onDirection(CCObject*);
-    void onValueArrow(CCObject*);
-    void onSettings(CCObject*);
-    void onApply(CCObject*);
-
-    float applyOperation(float, float, Operator, bool = true);
-    float roundValue(float);
-    std::vector<MixedInputPopup::CalculationInfo> createStringMap();
+    static std::string getRandomFrameName();
+    static CCNode* createSpriteForObjectID(int id);
+    static std::vector<ObjectIDFrequency> getObjectIDFrequencies(const std::vector<GameObject*>& objects);
+    static CCNode* createObjectFrequencyRow(const std::vector<GameObject*>& objects, float max);
 public:
     static MixedInputPopup* create(MultiEditContext* context, int property) {
         auto popup = new MixedInputPopup;
@@ -82,3 +55,5 @@ public:
         return nullptr;
     }
 };
+
+} // namespace me

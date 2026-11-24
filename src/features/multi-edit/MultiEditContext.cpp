@@ -280,12 +280,12 @@ void MultiEditContext::onMixed(CCObject* sender) {
         return;
     }
 
-    if (CCScene::get()->getChildByType<MixedInputPopup>(0)) return;
+    if (CCScene::get()->getChildByType<me::MixedInputPopup>(0)) return;
 
     std::optional<int> property = getPropertyID(static_cast<CCNode*>(sender));
     if (!property) return;
 
-    auto popup = MixedInputPopup::create(this, *property);
+    auto popup = me::MixedInputPopup::create(this, *property);
     popup->m_noElasticity = true;
     popup->show();
 }

@@ -1,682 +1,714 @@
 #include "MixedInputPopup.hpp"
-#include "MixedInputSettingsPopup.hpp"
-#include "MultiEditContext.hpp"
-#include "../../misc/StringUtils.hpp"
-#include "../../misc/SpriteColor.hpp"
+#include "../../ui/NumberInput.hpp"
+#include "../../ui/SequenceInput.hpp"
+#include "../../ui/Checkbox.hpp"
+#include "Geode/utils/random.hpp"
+#include "ccTypes.h"
+#include <ranges>
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
 
+namespace me {
+
 bool MixedInputPopup::init(MultiEditContext* context, int property) {
     if (!Popup::init(380.f, 280.f)) return false;
-    if (!context) return false;
-    
+
+    const float CONTROL_WIDTH = m_size.width - 50.f;
+    const float PREVIEW_WIDTH = m_size.width - 30.f;
+
     m_context = context;
     m_property = property;
-    
-    std::vector<float> propertyValues;
-    
+
+    std::vector<GameObject*> objects;
+    std::vector<float> initialValues;
+
     for (auto object : context->getGameObjects()) {
-        if (context->hasProperty(object, property)) {
-            m_objects.push_back(object);
-            propertyValues.push_back(context->getProperty(object, property));
-        }
+        if (!context->hasProperty(object, property)) continue;
+
+        objects.push_back(object);
+        initialValues.push_back(context->getProperty(object, property));
     }
 
-    std::sort(m_objects.begin(), m_objects.end(), [context, property](GameObject* a, GameObject* b) {
-        float aValue = context->getProperty(a, property);
-        float bValue = context->getProperty(b, property);
-
-        return aValue < bValue;
-    });
+    std::ranges::sort(std::views::zip(initialValues, objects));
 
     m_decimalPlaces = context->getPropertyDecimalPlaces(property);
     m_propertyBounds = context->getPropertyBounds(property);
 
-    if (!propertyValues.empty() && std::equal(propertyValues.begin() + 1, propertyValues.end(), propertyValues.begin())) m_initialValue = propertyValues[0];
-    
-    auto winSize = m_mainLayer->getContentSize();
-    m_bgSprite->setZOrder(-10);
+    m_calculation = Calculation::create();
+    m_calculation->m_decimalPlaces = m_decimalPlaces;
+    m_calculation->setValueBounds(m_propertyBounds.min, m_propertyBounds.max);
+    m_calculation->setInitialValues(std::views::zip(objects, initialValues) | std::ranges::to<std::unordered_map>());
+
+    // if all property values are equal, that means the user manually entered this menu
+    // rather than simply selecting a mixed input. so they most likely want to do direction
+
+    if (
+        !initialValues.empty() &&
+        std::equal(initialValues.begin() + 1, initialValues.end(), initialValues.begin())
+    ) {
+        m_calculation->m_direction = Direction::Right;
+        m_calculation->m_initial = initialValues[0];
+        m_calculation->m_modifier = 1.0;
+    }
 
     m_closeBtn->removeFromParent();
 
     // INFO BUTTON
 
-    auto infoText = "Use the <cg>operators</c> to override, add, subtract, multiply, or divide the old values by the <cy>modifier value</c>.\n"
-        "When a <cl>direction</c> is selected, the operation is compounded for each subsequent trigger, ordered by their x/y position.\n"
-        "The <cp>initial value</c> is the first value in the sequence.\n";
-    
+    auto infoText = "Use the <cg>operators</c> to override or modify each object's current value by the <cy>modifier value</c>.\n"
+        "With a <cl>direction</c>, the operation compounds from the <cp>initial value</c> in order, based on the object's position.\n"
+        "<cp>Cycle</c> hands out values from a sequence, e.g. 1-5,10,20-30 (ranges are supported).\n"
+        "Define a <cl>range with a hyphen</c> (1-5) and a <cp>series with commas</c> (1,2,3). These can be combined (1-3,5,10).\n"
+        "<cp>Preserve Sign</c> applies operations to each value's magnitude and keeps its original sign.\n";
+
     auto infoBtn = InfoAlertButton::create("Info", infoText, 0.7f);
-    infoBtn->setPosition(winSize - ccp(18, 18));
-    m_buttonMenu->addChild(infoBtn);
+    m_buttonMenu->addChildAtPosition(infoBtn, Anchor::TopLeft, { 18.f, -18.f });
 
-    auto topRow = createTopRow();
-    auto bottomRow = createBottomRow();
-    m_mainLayer->addChildAtPosition(topRow, Anchor::Center, {0, -51});
-    m_mainLayer->addChildAtPosition(bottomRow, Anchor::Center, {0, -80});
+    auto mainColumn = CCNode::create();
+    mainColumn->setAnchorPoint({ 0.5f, 0.5f });
+    mainColumn->setLayout(
+        SimpleColumnLayout::create()
+            ->setGap(7.f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
 
-    createScrollLayer(true);
+    // PREVIEW WINDOW
+
+    auto topInfoRow = CCNode::create();
+    topInfoRow->setLayout(
+        SimpleRowLayout::create()
+            ->setGap(5.f)
+            ->setMainAxisAlignment(MainAxisAlignment::Between)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
+    topInfoRow->setContentWidth(CONTROL_WIDTH);
+
+    auto objCountLabel = Label::create(
+        fmt::format("{} object{}", objects.size(), objects.size() != 1 ? "s" : ""),
+        "goldFont.fnt"
+    );
+    objCountLabel->setScale(0.5f);
+
+    auto objFrequencyRow = this->createObjectFrequencyRow(objects, 7);
+    objFrequencyRow->setScale(0.4f);
+
+    topInfoRow->addChild(objCountLabel);
+    topInfoRow->addChild(objFrequencyRow);
+    topInfoRow->updateLayout();
+
+    auto previewFrame = CCLayerColor::create({ 191, 114, 62, 255 });
+    previewFrame->setContentSize({ PREVIEW_WIDTH, 120.f });
+
+    auto previewBorder = ListBorders::create();
+    previewBorder->setZOrder(1);
+
+    auto previewNode = CCNode::create();
+    previewNode->setAnchorPoint({ 0.5f, 0.5f });
+    previewNode->setContentHeight(110.f);
+    previewNode->setLayout(
+        SimpleColumnLayout::create()
+            ->setGap(5.f)
+            ->setMainAxisAlignment(MainAxisAlignment::Between)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
+    m_previewFrame = previewNode;
+
+    previewFrame->addChild(previewBorder);
+    previewFrame->addChildAtPosition(previewNode, Anchor::Center);
+    previewFrame->setLayout(
+        CopySizeLayout::create()
+            ->add(previewBorder)
+    );
+
+    // CONTROL BUTTONS
+
+    auto makeBase = [](bool active) -> CCNode* {
+        auto base = NineSlice::create(
+            active ? "GJ_button_02.png" : "GJ_button_04.png",
+            { 0, 0, 40, 40 }
+        );
+        base->setContentSize({ 35, 35 });
+        base->setScale(0.8f);
+        base->setCascadeColorEnabled(true);
+        base->setCascadeOpacityEnabled(true);
+        return base;
+    };
+
+    std::array<std::string, 6> operationFrames = {
+        "equal-btn.png"_spr, "plus-btn.png"_spr, "minus-btn.png"_spr,
+        "multiply-btn.png"_spr, "divide-btn.png"_spr, "cycle-btn.png"_spr, 
+    };
+
+    m_operationGroup = ToggleGroup<Operation>::create(
+        { Operation::Set, Operation::Add, Operation::Subtract, Operation::Multiply, Operation::Divide, Operation::Cycle },
+        makeBase,
+        [operationFrames](Operation operation) {
+            size_t idx = static_cast<size_t>(operation);
+            auto spr = CCSprite::createWithSpriteFrameName(operationFrames[idx].c_str());
+            spr->setScale(0.8f);
+
+            return spr;
+        },
+        [this](Operation operation) {
+            m_calculation->m_operation = operation;
+            m_calculation->queueRecalculate();
+            this->updateInputVisibility();
+        },
+        5.f
+    );
+
+    std::array<std::string, 6> directionFrames = {
+        "no-direction-btn.png"_spr, "direction-btn.png"_spr, "direction-btn.png"_spr,
+        "direction-btn.png"_spr, "direction-btn.png"_spr, getRandomFrameName(),
+    };
+    std::array<float, 6> directionRotations = {
+        0.f, -90.f, 90.f, 180.f, 0.f, 0.f
+    };
+
+    m_directionGroup = ToggleGroup<Direction>::create(
+        { Direction::None, Direction::Up, Direction::Down, Direction::Left, Direction::Right, Direction::Random },
+        makeBase,
+        [directionFrames, directionRotations](Direction direction) {
+            size_t idx = static_cast<size_t>(direction);
+            auto spr = CCSprite::createWithSpriteFrameName(directionFrames[idx].c_str());
+            spr->setRotation(directionRotations[idx]);
+            spr->setScale(0.8f);
+
+            return spr;
+        },
+        [this](Direction direction) {
+            m_operationGroup->setEnabled(Operation::Set, direction == Direction::None);
+            m_operationGroup->setEnabled(Operation::Cycle, direction != Direction::None);
+
+            if (
+                direction != Direction::None && m_calculation->m_modifier == 0 &&
+                m_calculation->m_operation != Operation::Set && m_calculation->m_operation != Operation::Cycle
+            ) {
+                m_calculation->m_modifier = 1;
+                m_modifierInput->setValue(1.0);
+            }
+
+            if (direction == Direction::Random) {
+                // whatever man
+                std::string frameName = getRandomFrameName();
+                auto frame = CCSpriteFrameCache::get()->spriteFrameByName(frameName.c_str());
+                auto btn = m_directionGroup->getButton(Direction::Random);
+                btn->m_onButton->getNormalImage()->getChildByIndex<CCSprite>(0)->setDisplayFrame(frame);
+                btn->m_offButton->getNormalImage()->getChildByIndex<CCSprite>(0)->setDisplayFrame(frame);
+            }
+
+            m_calculation->m_direction = direction;
+            m_calculation->queueRecalculate();
+            this->updateInputVisibility();
+        },
+        5.f
+    );
+
+    m_operationGroup->setEnabled(Operation::Cycle, false);
+
+    auto buttonColumn = CCNode::create();
+    buttonColumn->setLayout(
+        SimpleColumnLayout::create()
+            ->setGap(5.f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
+
+    buttonColumn->addChild(m_operationGroup);
+    buttonColumn->addChild(m_directionGroup);
+    buttonColumn->updateLayout();
+
+    // CONTROL INPUTS
+
+    int decimalPlaces = context->getPropertyDecimalPlaces(property);
+
+    auto modifierInput = NumberInput::create(
+        [this](double value) {
+            m_calculation->m_modifier = value;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = m_calculation->m_modifier,
+            .decimalPlaces = decimalPlaces,
+            .label = "Modifier:"
+        }
+    );
+    m_modifierInput = modifierInput;
+
+    auto initialInput = NumberInput::create(
+        [this](double value) {
+            m_calculation->m_initial = value;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = m_calculation->m_initial,
+            .decimalPlaces = decimalPlaces,
+            .label = "Initial:"
+        }
+    );
+    m_initialInput = initialInput;
+
+    auto inputColumn = CCNode::create();
+    m_inputColumn = inputColumn;
+    inputColumn->setLayout(
+        SimpleColumnLayout::create()
+            ->setGap(3.5f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisAlignment(CrossAxisAlignment::End)
+    );
+
+    inputColumn->addChild(modifierInput);
+    inputColumn->addChild(initialInput);
+    inputColumn->updateLayout();
+
+    auto sequenceInput = SequenceInput::create(
+        [this](const std::string& text) {
+            m_calculation->m_cycleText = text;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = m_calculation->m_cycleText,
+            // .label = "Range:"
+            .label = "Sequence:"
+        }
+    );
+
+    auto stepInput = NumberInput::create(
+        [this](double value) {
+            m_calculation->m_cycleStep = value;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = m_calculation->m_cycleStep,
+            .decimalPlaces = decimalPlaces,
+            .label = "Step:"
+        }
+    );
+
+    auto rangeColumn = CCNode::create();
+    m_rangeColumn = rangeColumn;
+    rangeColumn->setLayout(
+        SimpleColumnLayout::create()
+            ->setGap(3.5f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisAlignment(CrossAxisAlignment::End)
+    );
+
+    rangeColumn->addChild(sequenceInput);
+    rangeColumn->addChild(stepInput);
+    rangeColumn->updateLayout();
+
+    auto controlRow = CCNode::create();
+    controlRow->setLayout(
+        SimpleRowLayout::create()
+            ->setMainAxisAlignment(MainAxisAlignment::Between)
+            ->setMainAxisScaling(AxisScaling::None)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
+    controlRow->setScale(0.8f);
+    controlRow->setScaledContentSize({ CONTROL_WIDTH, 0 });
+
+    controlRow->addChild(buttonColumn);
+    controlRow->addChild(inputColumn);
+    controlRow->addChild(rangeColumn);
+    rangeColumn->setVisible(false);
+    controlRow->updateLayout();
+
+    // CHECKBOXES
+
+    m_calculation->m_combineLinked = true;
+
+    auto combineCheckbox = Checkbox::create(
+        [this](bool enabled) {
+            m_calculation->m_combineLinked = !enabled;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = !m_calculation->m_combineLinked,
+            .label = "Ignore Linked"
+        }
+    );
+
+    auto checkboxRow = CCNode::create();
+    checkboxRow->setLayout(
+        SimpleRowLayout::create()
+            ->setGap(15.f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+            ->setPadding({ 0.f, 2.f, 0.f, 2.f })
+    );
+    auto preserveSignCheckbox = Checkbox::create(
+        [this](bool enabled) {
+            m_calculation->m_preserveSign = enabled;
+            m_calculation->queueRecalculate();
+        },
+        {
+            .initialValue = m_calculation->m_preserveSign,
+            .label = "Preserve Sign"
+        }
+    );
+
+    checkboxRow->addChild(combineCheckbox);
+    checkboxRow->addChild(preserveSignCheckbox);
+    checkboxRow->updateLayout();
 
     // APPLY, CANCEL, & OPTIONS BUTTONS
 
-    auto buttonLayout = CCMenu::create();
-    buttonLayout->setLayout(
-        RowLayout::create()
+    auto popupButtonRow = CCNode::create();
+    popupButtonRow->setLayout(
+        SimpleRowLayout::create()
             ->setGap(10.f)
-    );
-    buttonLayout->setPosition({winSize.width / 2, 24});
-
-    auto cancelSpr = ButtonSprite::create("Cancel", "goldFont.fnt", "GJ_button_01.png", .9f);
-    auto cancelBtn = CCMenuItemSpriteExtra::create(
-        cancelSpr, this, menu_selector(MixedInputPopup::onClose)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
     );
 
-    auto applySpr = ButtonSprite::create("Apply", "goldFont.fnt", "GJ_button_01.png", .9f);
-    auto applyBtn = CCMenuItemSpriteExtra::create(
-        applySpr, this, menu_selector(MixedInputPopup::onApply)
+    auto cancelBtn = Button::createWithNode(
+        ButtonSprite::create("Cancel", "goldFont.fnt", "GJ_button_01.png", 0.9f),
+        [this](CCObject* sender) {
+            onClose(sender);
+        }
     );
 
-    buttonLayout->addChild(cancelBtn);
-    buttonLayout->addChild(applyBtn);
-
-    auto settingsSpr = CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
-    auto settingsBtn = CCMenuItemSpriteExtra::create(
-        settingsSpr, this, menu_selector(MixedInputPopup::onSettings)
-    );
-    settingsBtn->setLayoutOptions(AxisLayoutOptions::create()
-        ->setRelativeScale(0.6f)
+    auto applyBtn = Button::createWithNode(
+        ButtonSprite::create("Apply", "goldFont.fnt", "GJ_button_01.png", 0.9f),
+        [this](CCObject* sender) {
+            this->onApply();
+        }
     );
 
-    buttonLayout->addChild(settingsBtn);
+    popupButtonRow->addChild(cancelBtn);
+    popupButtonRow->addChild(applyBtn);
+    popupButtonRow->updateLayout();
 
-    m_buttonMenu->addChild(buttonLayout);
-    buttonLayout->updateLayout();
+    mainColumn->addChild(topInfoRow);
+    mainColumn->addChild(AxisGap::create(4.f));
+    mainColumn->addChild(previewFrame);
+    mainColumn->addChild(controlRow);
+    mainColumn->addChild(checkboxRow);
+    mainColumn->addChild(popupButtonRow);
+    mainColumn->updateLayout();
+    m_mainLayer->addChildAtPosition(mainColumn, Anchor::Center);
+
+    this->updateInputVisibility();
+
+    m_calculation->setObjects(objects);
+    m_calculation->queueRecalculate();
+    m_calculation->setRecalculateCallback([this](const std::vector<Calculation::Unit>& units) {
+        this->createCalculationPreview(units);
+    });
+
+    previewFrame->setZOrder(-1);
+    previewBorder->setContentSize(previewBorder->getContentSize() + ccp(5.f, 5.f));
 
     return true;
 }
 
-CCMenu* MixedInputPopup::createTopRow() {
-    auto menu = CCMenu::create();
-    menu->setLayout(
-        RowLayout::create()
-            ->setGap(10.f)
-    );
-    menu->setScale(0.8f);
-    m_topRow = menu;
-
-    // OPERATOR BUTTONS
-
-    const Operator operators[] = {Operator::Equal, Operator::Add, Operator::Subtract, Operator::Multiply, Operator::Divide};
-
-    for (const auto& operatorType : operators) {
-        auto selectedBaseSpr = CCScale9Sprite::create("GJ_button_02.png", {0, 0, 40, 40});
-        selectedBaseSpr->setContentSize({35, 35});
-        selectedBaseSpr->setScale(0.8f);
-
-        auto unselectedBaseSpr = CCScale9Sprite::create("GJ_button_04.png", {0, 0, 40, 40});
-        unselectedBaseSpr->setContentSize({35, 35});
-        unselectedBaseSpr->setScale(0.8f);
-
-        auto name = operatorType == Operator::Add ? "plus-btn.png"_spr :
-            operatorType == Operator::Subtract ? "minus-btn.png"_spr :
-            operatorType == Operator::Multiply ? "multiply-btn.png"_spr :
-            operatorType == Operator::Divide ? "divide-btn.png"_spr : "equal-btn.png"_spr;
-
-        auto topSpr = CCSprite::createWithSpriteFrameName(name);
-        topSpr->setPosition(selectedBaseSpr->getContentSize() / 2);
-        topSpr->setScale(0.8f);
-
-        selectedBaseSpr->addChild(topSpr);
-        unselectedBaseSpr->addChild(topSpr);
-
-        auto btn = CCMenuItemToggler::create(
-            unselectedBaseSpr, selectedBaseSpr, this, menu_selector(MixedInputPopup::onOperator)
-        );
-        btn->setTag(static_cast<int>(operatorType));
-        
-        btn->toggle(m_operator == operatorType);
-        if (m_operator == operatorType) m_operatorBtn = btn;
-
-        menu->addChild(btn);
-    }
-
-    // MODIFIER INPUT
-
-    auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
-    input->setFilter("0123456789.-");
-    input->getInputNode()->m_numberInput = true;
-    input->setString(nk::toString(m_modifierValue));
-    input->setID("modifier-value-input"_spr);
-    input->setCallback([&](const std::string& text) {
-        m_modifierValue = text.empty() ? 0 : nk::toFloat(text);
-        createScrollLayer(false);
-    });
-    input->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setNextGap(10.f)
-            ->setPrevGap(10.f)
-    );
-    m_modifierInput = input;
-
-    auto decArrowSpr = CCSprite::createWithSpriteFrameName("edit_leftBtn_001.png");
-    auto decArrowBtn = CCMenuItemSpriteExtra::create(
-        decArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
-    );
-    decArrowBtn->setTag(-1);
-
-    auto incArrowSpr = CCSprite::createWithSpriteFrameName("edit_rightBtn_001.png");
-    auto incArrowBtn = CCMenuItemSpriteExtra::create(
-        incArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
-    );
-    incArrowBtn->setTag(1);
-
-    auto label = CCLabelBMFont::create("Modifier:", "goldFont.fnt");
-    label->setAnchorPoint({1, 0.5});
-    label->setLayoutOptions(AxisLayoutOptions::create()
-        ->setLength(60)
-        ->setRelativeScale(0.6)
-        ->setPrevGap(30)
-        ->setNextGap(10)
-    );
-
-    menu->addChild(label);
-    menu->addChild(decArrowBtn);
-    menu->addChild(input);
-    menu->addChild(incArrowBtn);
-    menu->updateLayout();
-    
-    auto equalBtnCover = CCLayerColor::create(ccc4(153, 85, 51, 127), 29, 29);
-    equalBtnCover->setPosition(menu->getChildByType<CCMenuItemToggler>(0)->getPosition());
-    equalBtnCover->ignoreAnchorPointForPosition(false);
-    equalBtnCover->setVisible(false);
-    menu->addChild(equalBtnCover);
-    m_equalBtnCover = equalBtnCover;
-
-    return menu;
-}
-
-CCMenu* MixedInputPopup::createBottomRow() {
-    auto menu = CCMenu::create();
-    menu->setLayout(
-        RowLayout::create()
-            ->setGap(10.f)
-    );
-    menu->setScale(0.8f);
-    m_bottomRow = menu;
-
-    // DIRECTION BUTTONS
-
-    const DirectionType directions[] = {DirectionType::None, DirectionType::Up, DirectionType::Down, DirectionType::Left, DirectionType::Right};
-
-    for (const auto& directionType : directions) {
-
-        auto selectedBaseSpr = CCScale9Sprite::create("GJ_button_02.png", {0, 0, 40, 40});
-        selectedBaseSpr->setContentSize({35, 35});
-        selectedBaseSpr->setScale(0.8f);
-
-        auto unselectedBaseSpr = CCScale9Sprite::create("GJ_button_04.png", {0, 0, 40, 40});
-        unselectedBaseSpr->setContentSize({35, 35});
-        unselectedBaseSpr->setScale(0.8f);
-
-        auto topSpr = CCSprite::createWithSpriteFrameName(directionType != DirectionType::None ? "direction-btn.png"_spr : "no-direction-btn.png"_spr);
-        topSpr->setPosition(selectedBaseSpr->getContentSize() / 2);
-        topSpr->setScale(0.8f);
-        topSpr->setRotation(directionType == DirectionType::Up ? -90 :
-            directionType == DirectionType::Down ? 90 :
-            directionType == DirectionType::Left ? 180 : 0
-        );
-        
-        selectedBaseSpr->addChild(topSpr);
-        unselectedBaseSpr->addChild(topSpr);
-
-        auto btn = CCMenuItemToggler::create(
-            unselectedBaseSpr, selectedBaseSpr, this, menu_selector(MixedInputPopup::onDirection)
-        );
-        btn->setTag(static_cast<int>(directionType));
-        
-        btn->toggle(m_direction == directionType);
-        if (m_direction == directionType) m_directionBtn = btn;
-
-        menu->addChild(btn);
-    }
-
-    // INITIAL VALUE INPUT
-
-    auto input = TextInput::create(70.f, "Num", "bigFont.fnt");
-    input->getInputNode()->m_numberInput = true;
-    input->setFilter("0123456789.-");
-    input->setString(nk::toString(m_initialValue));
-    input->setID("initial-value-input"_spr);
-    input->setCallback([&](const std::string& text) {
-        m_initialValue = text.empty() ? 0 : nk::toFloat(text);
-        createScrollLayer(false);
-    });
-    input->setLayoutOptions(
-        AxisLayoutOptions::create()
-            ->setNextGap(10.f)
-            ->setPrevGap(10.f)
-    );
-    m_initialInput = input;
-
-    auto decArrowSpr = CCSprite::createWithSpriteFrameName("edit_leftBtn_001.png");
-    auto decArrowBtn = CCMenuItemSpriteExtra::create(
-        decArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
-    );
-    decArrowBtn->setTag(-2);
-    decArrowBtn->setID("initial-value-dec-arrow"_spr);
-
-    auto incArrowSpr = CCSprite::createWithSpriteFrameName("edit_rightBtn_001.png");
-    auto incArrowBtn = CCMenuItemSpriteExtra::create(
-        incArrowSpr, this, menu_selector(MixedInputPopup::onValueArrow)
-    );
-    incArrowBtn->setTag(2);
-    incArrowBtn->setID("initial-value-inc-arrow"_spr);
-
-    input->getInputNode()->setTouchEnabled(m_direction != DirectionType::None);
-    decArrowBtn->setEnabled(m_direction != DirectionType::None);
-    incArrowBtn->setEnabled(m_direction != DirectionType::None);
-
-    auto label = CCLabelBMFont::create("Initial:", "goldFont.fnt");
-    label->setAnchorPoint({1, 0.5});
-    label->setLayoutOptions(AxisLayoutOptions::create()
-        ->setLength(60)
-        ->setRelativeScale(0.6)
-        ->setPrevGap(30)
-        ->setNextGap(10)
-    );
-
-    menu->addChild(label);
-    menu->addChild(decArrowBtn);
-    menu->addChild(input);
-    menu->addChild(incArrowBtn);
-    menu->updateLayout();
-
-    auto inputCover = CCLayerColor::create(ccc4(153, 85, 51, 127), 127, 35);
-    inputCover->setPosition(input->getPosition());
-    inputCover->ignoreAnchorPointForPosition(false);
-    inputCover->setVisible(m_direction == DirectionType::None);
-    menu->addChild(inputCover);
-    m_initialInputCover = inputCover;
-
-    return menu;
-}
-
-void MixedInputPopup::createScrollLayer(bool isInit) {
-    auto winSize = m_mainLayer->getContentSize();
-    auto scrollPosition = winSize / 2 + ccp(0, 46);
-    auto scrollSize = CCSize(300, 150);
-    auto rowSize = CCSize(scrollSize.width, 37);
-
-    if (isInit) {
-        auto border = ListBorders::create();
-        border->setContentSize(scrollSize + CCSize(3, 5));
-        border->setPosition(scrollPosition);
-        border->setZOrder(9);
-        m_mainLayer->addChild(border);
-
-        auto bg = CCLayerColor::create();
-        bg->setColor(ccc3(191, 114, 62));
-        bg->setOpacity(255);
-        bg->setContentSize(scrollSize);
-        bg->setPosition(scrollPosition);
-        bg->ignoreAnchorPointForPosition(false);
-        bg->setZOrder(-1);
-        m_mainLayer->addChild(bg);
-    } else {
-        m_list->removeFromParent();
-    }
-
-    auto stringMap = createStringMap();
-
-    int maxTriggerCount = 0;
-    std::set<int> uniqueTriggerIDs;
-
-    for (const auto& calcInfo : stringMap) {
-        auto objects = calcInfo.objects;
-        
-        uniqueTriggerIDs.clear();
-        for (const auto& trigger : objects) {
-            uniqueTriggerIDs.insert(trigger->m_objectID);
-        }
-
-        int triggerCount = uniqueTriggerIDs.size();
-        if (triggerCount > maxTriggerCount) maxTriggerCount = triggerCount;
-    }
-
-    CCArrayExt<CCMenu*> rows;
-    size_t index = 0;
-
-    for (const auto& calcInfo : stringMap) {
-        auto [oldString, changeString, newString, triggers] = calcInfo;
-        
-        auto rowMenu = CCMenu::create();
-        rowMenu->setContentSize(rowSize);
-
-        // TRIGGER COUNT LAYOUT
-
-        auto triggerLayout = CCMenu::create();
-        triggerLayout->setLayout(
-            RowLayout::create()
-                ->setAxisAlignment(AxisAlignment::Start)
-                ->setDefaultScaleLimits(0, 1)
-        );
-        triggerLayout->setPosition({57, rowSize.height / 2});
-        triggerLayout->setContentWidth(112);
-        triggerLayout->setScale(0.7);
-
-        std::map<int, std::pair<CCSprite*, int>> triggerCounts;
-        for (const auto& trigger : triggers) {
-            auto count = triggerCounts[trigger->m_objectID].second;
-            triggerCounts[trigger->m_objectID] = {spriteFromObject(trigger), count + 1};
-        }
-
-        for (const auto& [id, pair] : triggerCounts) {
-            auto [spr, count] = pair;
-
-            CCNode* container = CCNode::create();
-            container->setContentSize({30, 30});
-            container->addChildAtPosition(spr, Anchor::Center);
-            spr->setScale(spr->getContentWidth() > 30 ? 30.f / spr->getContentWidth() : 1.f);
-
-            if (count > 1) {
-                auto str = std::to_string(count);
-                auto label = CCLabelBMFont::create(str.c_str(), "bigFont.fnt");
-                label->setScale(0.5f);
-                label->setAnchorPoint({0.5, 0});
-
-                container->addChildAtPosition(label, Anchor::BottomRight, {-3, -3});
-            }
-
-            triggerLayout->addChild(container);
-        }
-
-        rowMenu->addChild(triggerLayout);
-        triggerLayout->updateLayout();
-
-        // CALCULATION LAYOUT
-
-        auto calcLayout = CCMenu::create();
-        calcLayout->setLayout(
-            RowLayout::create()
-                ->setAxisAlignment(AxisAlignment::Between)
-                ->setDefaultScaleLimits(0, 1)
-        );
-        calcLayout->setPosition({rowSize.width - 22, rowSize.height / 2});
-        calcLayout->setAnchorPoint({1, 0.5});
-        calcLayout->setScale(0.7f);
-
-        if (maxTriggerCount == 1) calcLayout->setContentWidth(320);
-        else if (maxTriggerCount == 2) calcLayout->setContentWidth(283);
-        else calcLayout->setContentWidth(247);
-
-        auto oldLabel = CCLabelBMFont::create(oldString.c_str(), "bigFont.fnt");
-        auto changeLabel = CCLabelBMFont::create(changeString.c_str(), "bigFont.fnt");
-        auto newLabel = CCLabelBMFont::create(newString.c_str(), "bigFont.fnt");
-
-        auto signOptions = AxisLayoutOptions::create()
-            ->setRelativeScale(0.6f);
-
-        auto signName = m_operator == Operator::Add ? "plus-bigFont.png"_spr :
-            m_operator == Operator::Subtract ? "minus-bigFont.png"_spr :
-            m_operator == Operator::Multiply ? "multiply-bigFont.png"_spr :
-            m_operator == Operator::Divide ? "divide-bigFont.png"_spr : "equal-bigFont.png"_spr;
-
-        auto sign = CCSprite::createWithSpriteFrameName(signName);
-
-        sign->setLayoutOptions(signOptions);
-        auto equalSign = CCSprite::createWithSpriteFrameName("equal-bigFont.png"_spr);
-        equalSign->setLayoutOptions(signOptions);
-
-        calcLayout->addChild(oldLabel);
-        calcLayout->addChild(sign);
-        calcLayout->addChild(changeLabel);
-        calcLayout->addChild(equalSign);
-        calcLayout->addChild(newLabel);
-
-        if (m_operator == Operator::Equal || (m_direction != DirectionType::None && index == 0)) {
-            sign->setVisible(false);
-            changeLabel->setVisible(false);
-        }
-
-        rowMenu->addChild(calcLayout);
-        calcLayout->updateLayout();
-
-        // visually align text with operators
-        oldLabel->setPositionY(oldLabel->getPositionY() + 2);
-        changeLabel->setPositionY(changeLabel->getPositionY() + 2);
-        newLabel->setPositionY(newLabel->getPositionY() + 2);
-
-        // BOTTOM BORDER
-
-        rows.push_back(rowMenu);
-        index++;
-    }
-
-    auto list = ListView::create(rows.inner(), rowSize.height, scrollSize.width, scrollSize.height);
-    list->setPrimaryCellColor(ccc3(144, 79, 39));
-    list->setSecondaryCellColor(ccc3(156, 85, 42));
-
-    list->setPosition(scrollPosition);
-    list->ignoreAnchorPointForPosition(false);
-    
-    m_mainLayer->addChild(list);
-    m_list = list;
-}
-
-CCSprite* MixedInputPopup::spriteFromObject(GameObject* object) {
-    std::string str = fmt::format("1,{},2,0,3,0;", object->m_objectID);
-    CCArray* objects = CCArray::create();
-
-    CCSprite* spr = EditorUI::get()->spriteFromObjectString(str, false, true, 1, objects, nullptr, nullptr);
-
-    if (auto obj = static_cast<GameObject*>(objects->firstObject())) {
-        obj->setZOrder(-1);
-        nk::normalizeSpriteColor(obj->m_baseColor);
-        nk::normalizeSpriteColor(obj->m_detailColor);
-    }
-
-    LevelEditorLayer::get()->updateObjectColors(objects);
-    return spr;
-}
-
-void MixedInputPopup::onOperator(CCObject* sender) {
-    if (m_operatorBtn) m_operatorBtn->toggle(false);
-
-    auto btn = static_cast<CCMenuItemToggler*>(sender);
-    m_operator = static_cast<Operator>(btn->getTag());
-    m_operatorBtn = btn;
-
-    createScrollLayer(false);
-}
-
-void MixedInputPopup::onDirection(CCObject* sender) {
-    if (m_directionBtn) m_directionBtn->toggle(false);
-
-    auto btn = static_cast<CCMenuItemToggler*>(sender);
-    m_direction = static_cast<DirectionType>(btn->getTag());
-    m_directionBtn = btn;
-
-    // UX stuff
-
-    if (m_operator == Operator::Equal) m_topRow->getChildByType<CCMenuItemToggler>(1)->toggleWithCallback(true);
-    m_equalBtnCover->setVisible(m_direction != DirectionType::None);
-    m_topRow->getChildByType<CCMenuItemToggler>(0)->setEnabled(m_direction == DirectionType::None);
-
-    if (m_modifierValue == 0) m_modifierInput->setString("1", true);
-
-    // set if the initial value input is enabled
-
-    m_initialInput->getInputNode()->setTouchEnabled(m_direction != DirectionType::None);
-    m_initialInputCover->setVisible(m_direction == DirectionType::None);
-    m_bottomRow->getChildByType<CCMenuItemSpriteExtra>(0)->setEnabled(m_direction != DirectionType::None);
-    m_bottomRow->getChildByType<CCMenuItemSpriteExtra>(1)->setEnabled(m_direction != DirectionType::None);
-
-    // sort triggers by direction
-
-    std::sort(m_objects.begin(), m_objects.end(), [&](const GameObject* a, const GameObject* b) {
-        if (m_direction == DirectionType::Left) return a->m_positionX > b->m_positionX;
-        else if (m_direction == DirectionType::Right) return a->m_positionX < b->m_positionX;
-        else if (m_direction == DirectionType::Up) return a->m_positionY < b->m_positionY;
-        else if (m_direction == DirectionType::Down) return a->m_positionY > b->m_positionY;
-
-        return false;
-    });
-
-    createScrollLayer(false);
-}
-
-void MixedInputPopup::onValueArrow(CCObject* sender) {
-    auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
-    auto tag = btn->getTag();
-
-    if (tag == -1 || tag == 1) {
-        m_modifierValue += tag;
-        m_modifierInput->setString(nk::toString(m_modifierValue));
-    } else if (tag == -2 || tag == 2) {
-        m_initialValue += tag / 2;
-        m_initialInput->setString(nk::toString(m_initialValue));
-    }
-
-    createScrollLayer(false);
-}
-
-void MixedInputPopup::onSettings(CCObject* sender) {
-    auto settings = MixedInputSettings{m_rounding};
-    
-    auto alert = MixedInputSettingsPopup::create(settings, [this](MixedInputSettings settings) {
-        m_rounding = settings.rounding;
-        createScrollLayer(false);
-    });
-
-    alert->m_noElasticity = true;
-    alert->show();
-}
-
-void MixedInputPopup::onApply(CCObject* sender) {
-    if (!m_context) {
-        onClose(sender);
+void MixedInputPopup::createCalculationPreview(const std::vector<Calculation::Unit>& units) {
+    m_previewFrame->removeAllChildren();
+
+    auto unitGroups = m_calculation->makeUnitGroups(units);
+
+    if (unitGroups.empty()) {
+        auto emptyLabel = Label::create("Nothing to preview", "chatFont.fnt");
+        emptyLabel->setScale(0.5f);
+        emptyLabel->setColor(ccBLACK);
+        emptyLabel->setOpacity(120);
+        m_previewFrame->addChildAtPosition(emptyLabel, Anchor::Center);
         return;
     }
 
-    std::vector<float> newProperties;
-    
-    if (m_direction == DirectionType::None) {
-        for (auto& object : m_objects) {
-            auto property = m_context->getProperty(object, m_property);
-            auto newProperty = applyOperation(property, m_modifierValue, m_operator);
+    bool hasExcess = unitGroups.size() > 10;
+    if (hasExcess) unitGroups.erase(unitGroups.begin() + 5, unitGroups.end() - 5);
 
-            newProperties.push_back(newProperty);
-            m_context->setProperty(object, m_property, newProperty);
-        }
-    } else {
-        size_t count = 0;
+    auto bottomRow = NineSlice::create("square02_small.png");
+    bottomRow->setOpacity(50);
+    bottomRow->setContentSize({ 340, 20 });
+    bottomRow->setLayout(
+        SimpleRowLayout::create()
+            ->setMainAxisAlignment(MainAxisAlignment::Between)
+            ->setMainAxisScaling(AxisScaling::None)
+            ->setPadding(Padding::horizontal(10.f))
+    );
 
-        for (auto& trigger : m_objects) {
-            float newProperty;
+    auto description = Label::create("chatFont.fnt");
+    description->setScale(0.6f);
+    m_selectedObjectRow = CCNode::create();
 
-            if (m_operator == Operator::Multiply || m_operator == Operator::Divide) {
-                newProperty = applyOperation(m_initialValue, std::pow(m_modifierValue, count), m_operator, false);
-            } else {
-                newProperty = applyOperation(m_initialValue, m_modifierValue * count, m_operator, false);
-            }
+    bottomRow->addChild(description);
+    bottomRow->addChild(m_selectedObjectRow);
+    bottomRow->updateLayout();
 
-            newProperties.push_back(newProperty);
-            m_context->setProperty(trigger, m_property, newProperty);
+    auto makeBase = [](bool active) -> CCNode* {
+        auto base = NineSlice::create(
+            active ? "GJ_button_02.png" : "GJ_button_04.png",
+            { 0, 0, 40, 40 }
+        );
+        base->setContentSize({ 60, 40 });
+        return base;
+    };
 
-            count++;
-        }
+    auto group = ToggleGroup<Calculation::UnitGroup>::create(
+        unitGroups,
+        makeBase,
+        [this](const Calculation::UnitGroup& unitGroup) {
+            auto frame = CCNode::create();
+            frame->setLayout(
+                SimpleColumnLayout::create()
+                    ->setGap(3.f)
+                    ->setMainAxisScaling(AxisScaling::Fit)
+                    ->setCrossAxisScaling(AxisScaling::Fit)
+            );
+            frame->setAnchorPoint({ 0.5f, 0.5f });
+            frame->setScale(0.6f);
+
+            auto objFrame = NineSlice::create("square02_small.png");
+            objFrame->setContentSize({ 78, 30 });
+            objFrame->setOpacity(50);
+            auto objRow = this->createObjectFrequencyRow(unitGroup.objects, 3);
+            objRow->setScale(0.6f);
+            objRow->setContentWidth(120.f);
+            static_cast<SimpleAxisLayout*>(objRow->getLayout())->setMainAxisScaling(AxisScaling::ScaleDown);
+            objRow->updateLayout();
+            objFrame->addChildAtPosition(objRow, Anchor::Center);
+
+            auto label = Label::create(unitGroup.label, "chatFont.fnt");
+            label->setColor(ccBLACK);
+            label->setOpacity(150);
+            label->setScale(0.7f);
+
+            frame->addChild(objFrame);
+            frame->addChild(label);
+            frame->updateLayout();
+
+            return frame;
+        },
+        [this, bottomRow, description](const Calculation::UnitGroup& unitGroup) {
+            description->setText(unitGroup.description);
+
+            m_selectedObjectRow->removeFromParent();
+            m_selectedObjectRow = this->createObjectFrequencyRow(unitGroup.objects, 7);
+            m_selectedObjectRow->setScale(0.4f);
+            bottomRow->addChild(m_selectedObjectRow);
+            bottomRow->updateLayout();
+        },
+        5.f
+    );
+
+    // simpleaxislayout doesn't support wrapping :(
+    // axislayout doesn't support having a fixed height with a wrapped row :((
+
+    group->setContentWidth(320.f);
+    group->setLayout(
+        AxisLayout::create()
+            ->setAxisAlignment(AxisAlignment::Start)
+            ->setAutoScale(false)
+            ->setGrowCrossAxis(true)
+    );
+    group->updateLayout();
+    group->runCallback();
+
+    m_previewFrame->addChild(group);
+    m_previewFrame->addChild(bottomRow);
+    m_previewFrame->updateLayout();
+
+    if (hasExcess) {
+        // show cut off buttons to imply there are more than just 10
+
+        auto base1 = NineSlice::create("GJ_button_04.png", { 0, 0, 40, 40 });
+        base1->setContentSize({ 15, 40 });
+        base1->setAnchorPoint({ 0, 0.5 });
+        auto base2 = NineSlice::create("GJ_button_04.png", { 0, 0, 40, 40 });
+        base2->setContentSize({ 15, 40 });
+        base2->setAnchorPoint({ 1, 0.5 });
+
+        base1->setPosition(group->getChildByIndex(4)->getPosition() + ccp(35.f, 0.f));
+        base2->setPosition(group->getChildByIndex(5)->getPosition() - ccp(35.f, 0.f));
+        group->addChild(base1);
+        group->addChild(base2);
     }
-
-    if (newProperties.size() > 1 && std::equal(newProperties.begin() + 1, newProperties.end(), newProperties.begin())) {
-        m_context->onMixedInputApplied(m_property, newProperties.front());
-    } else if (newProperties.size() == 1) {
-        m_context->onMixedInputApplied(m_property, newProperties.front());
-    } else {
-        m_context->onMixedInputApplied(m_property, std::nullopt);
-    }
-
-    onClose(sender);
 }
 
-float MixedInputPopup::applyOperation(float value, float modifier, Operator op, bool shouldRound) {
-    float result;
+void MixedInputPopup::onApply() {
+    auto& units = m_calculation->getUnits();
 
-    switch (op) {
-        case Operator::Add: result = value + modifier; break;
-        case Operator::Subtract: result = value - modifier; break;
-        case Operator::Multiply: result = value * modifier; break;
-        case Operator::Divide:
-            if (modifier == 0) return 0;
-            result = value / modifier;
-            break;
-        default: result = modifier;
+    for (const auto& unit : units) {
+        float value = static_cast<float>(unit.value);
+
+        for (GameObject* object : unit.objects) {
+            m_context->setProperty(object, m_property, value);
+        }
     }
 
-    result = std::clamp(result, m_propertyBounds.min, m_propertyBounds.max);
-    if (shouldRound) return roundValue(result);
+    if (!units.empty()) {
+        float first = static_cast<float>(units.front().value);
+        bool allSame = std::ranges::all_of(units, [&](const Calculation::Unit& unit) {
+            return static_cast<float>(unit.value) == first;
+        });
+
+        std::optional<float> common = allSame ? std::optional<float>(first) : std::nullopt;
+        m_context->onMixedInputApplied(m_property, common);
+    }
+
+    this->onClose(nullptr);
+}
+
+void MixedInputPopup::updateInputVisibility() {
+    bool isCycle = m_calculation->m_operation == Operation::Cycle;
+    bool isSet = m_calculation->m_operation == Operation::Set;
+    bool isDirectional = m_calculation->m_direction != Direction::None;
+
+    m_rangeColumn->setVisible(isCycle);
+    m_inputColumn->setVisible(!isCycle);
+    m_initialInput->setEnabled(!isSet && isDirectional);
+
+    if (auto parent = m_inputColumn->getParent()) parent->updateLayout();
+}
+
+std::string MixedInputPopup::getRandomFrameName() {
+    static int prevNum = -1, prevNum2 = -1;
+    int num;
+
+    do {
+        num = random::generate<int>(0, 6);
+    } while (num == prevNum || num == prevNum2);
+
+    prevNum2 = prevNum;
+    prevNum = num;
+    return fmt::format("random-btn_{}.png"_spr, num);
+}
+
+CCNode* MixedInputPopup::createSpriteForObjectID(int id) {
+    // based on EditorUI::getCreateBtn
+
+    GameObject* obj;
+
+    if (id == 914 || id == 1615) {
+        // @geode-ignore(unknown-resource)
+        auto texture = CCTextureCache::get()->addImage("bigFont.png", false);
+        obj = TextGameObject::create(texture);
+    } else {
+        obj = GameObject::createWithKey(id);
+    }
+
+    gd::string frame = ObjectToolbox::sharedState()->intKeyToFrame(id);
+
+    obj->customSetup();
+    obj->addColorSprite(frame);
+    obj->setupCustomSprites(frame);
+
+    switch (id) {
+        case 1049:
+            static_cast<EffectGameObject*>(obj)->updateSpecialColor();
+            break;
+        case 914:
+            static_cast<TextGameObject*>(obj)->updateTextObject("A", true);
+            break;
+        case 1615:
+            static_cast<TextGameObject*>(obj)->updateTextObject("0", true);
+            break;
+    }
+
+    if (
+        obj->m_classType == GameObjectClassType::Effect &&
+        obj->isColorObject() &&
+        static_cast<EffectGameObject*>(obj)->m_shouldPreview
+    ) {
+        obj->setColor({ 200, 200, 255 });
+    }
+
+    if (obj->m_opacityMod2 > 0.f) {
+        obj->setOpacity(255);
+    }
+
+    CCRect rect = LevelEditorLayer::get()->getObjectRect(obj, false, false);
+    float fitScale = 32.f / std::max(rect.size.width, rect.size.height);
+
+    obj->setScale(fitScale);
+
+    auto node = CCNode::create();
+    node->setAnchorPoint({ 0.5f, 0.5f });
+    node->setContentSize(obj->getScaledContentSize());
+    node->addChild(obj);
+    obj->setPosition(node->getContentSize() / 2.f);
+
+    if (obj->m_colorSprite && !obj->m_unk28c) {
+        obj->addChild(obj->m_colorSprite, obj->m_colorZLayerRelated ? 1 : -1);
+
+        obj->m_colorSprite->setPosition(obj->getContentSize() / 2.f);
+        obj->m_colorSprite->setColor({ 200, 200, 255 });
+        obj->m_colorSprite->setScale(1.f);
+    }
+
+    return node;
+}
+
+std::vector<ObjectIDFrequency> MixedInputPopup::getObjectIDFrequencies(const std::vector<GameObject*>& objects) {
+    std::unordered_map<int, int> frequencyMap;
+    for (GameObject* object : objects) {
+        frequencyMap[object->m_objectID]++;
+    }
+
+    std::vector<ObjectIDFrequency> result;
+    result.reserve(frequencyMap.size());
+    
+    for (const auto& [val, cnt] : frequencyMap) {
+        result.push_back({val, cnt});
+    }
+
+    std::sort(result.begin(), result.end(), [](const ObjectIDFrequency& a, const ObjectIDFrequency& b) {
+        return a.count > b.count; 
+    });
+
     return result;
 }
 
-float MixedInputPopup::roundValue(float value) {
-    auto factor = std::pow(10, m_decimalPlaces);
+CCNode* MixedInputPopup::createObjectFrequencyRow(const std::vector<GameObject*>& objects, float max) {
+    auto row = CCNode::create();
+    row->setAnchorPoint({ 0.5f, 0.5f });
+    row->setLayout(
+        SimpleRowLayout::create()
+            ->setGap(5.f)
+            ->setMainAxisScaling(AxisScaling::Fit)
+            ->setCrossAxisScaling(AxisScaling::Fit)
+    );
 
-    if (m_rounding == RoundingType::Round) {
-        return std::round(value * factor) / factor;
-    } else if (m_rounding == RoundingType::Floor) {
-        return std::floor(value * factor) / factor;
-    } else { // RoundingType::Ceiling
-        return std::ceil(value * factor) / factor;
-    }
-}
+    std::vector<ObjectIDFrequency> frequencies = getObjectIDFrequencies(objects);
+    int i = max > 0 ? max : INT_MAX;
+    bool notFirst = false;
 
-// this is a mess of a function but it essentially creates a giant vector of CalculationInfo structs
-// which are used to display the values in the scroll layer
+    for (const auto& [objectID, count] : frequencies) {
+        if (i == 0) {
+            auto label = Label::create("...", "chatFont.fnt");
+            label->setColor(ccBLACK);
+            label->setOpacity(150);
+            row->addChild(label);
 
-std::vector<MixedInputPopup::CalculationInfo> MixedInputPopup::createStringMap() {
-    std::vector<CalculationInfo> calcVector;
-
-    size_t index = 0;
-    float previousNewProperty = m_initialValue;
-
-    auto hasDirection = m_direction != DirectionType::None;
-
-    for (const auto& object : m_objects) {
-        float property;
-        float change;
-        float newProperty;
-
-        if (hasDirection) {
-            property = roundValue(previousNewProperty);
-            change = m_modifierValue;
-            newProperty = index != 0 ? applyOperation(property, change, m_operator) : property;
-        } else {
-            property = m_context->getProperty(object, m_property);
-            change = m_modifierValue;
-            newProperty = applyOperation(property, change, m_operator);
+            break;
         }
 
-        auto propertyString = nk::toString(property, m_decimalPlaces);
-        auto changeString = m_operator != Operator::Equal ? nk::toString(change, 3) : "0";
-        auto newPropertyString = nk::toString(newProperty, m_decimalPlaces, false);
+        i--;
 
-        CalculationInfo calcInfo(propertyString, changeString, newPropertyString, CCArray::createWithObject(object));
+        auto object = createSpriteForObjectID(objectID);
+        auto label = Label::create(
+            fmt::format("{}x", count),
+            "chatFont.fnt"
+        );
+        label->setColor(ccBLACK);
+        label->setOpacity(150);
 
-        if (!hasDirection) {
-            // group triggers with the same property string
-            auto it = std::find_if(calcVector.begin(), calcVector.end(), [&](const CalculationInfo& ci) {
-                return ci.propertyString == calcInfo.propertyString;
-            });
+        if (notFirst) row->addChild(AxisGap::create(15.f));
+        notFirst = true;
 
-            if (it == calcVector.end()) calcVector.push_back(calcInfo);
-            else it->objects.push_back(object);
-        } else {
-            // don't group triggers
-            calcVector.push_back(calcInfo);
-        }
-
-        index++;
-        previousNewProperty = newProperty;
+        row->addChild(object);
+        row->addChild(label);
     }
 
-    return calcVector;
+    row->updateLayout();
+    return row;
 }
+
+} // namespace me
