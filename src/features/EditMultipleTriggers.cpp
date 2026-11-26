@@ -28,14 +28,14 @@ class $modify(SetupTriggerPopup) {
     }
 
     $override
-    bool init(EffectGameObject* obj, CCArray* objs, float width, float height, int unkEnum) {
+    bool init(EffectGameObject* obj, CCArray* objs, float width, float height, int unkEnum, float verticalOffset) {
         // increase popup size
         if (!hasSameObjectID(obj, objs) && typeinfo_cast<EditTriggersPopup*>(this)) {
             width = 440;
             height = 310;
         }
 
-        return SetupTriggerPopup::init(obj, objs, width, height, unkEnum);
+        return SetupTriggerPopup::init(obj, objs, width, height, unkEnum, verticalOffset);
     }
 };
 

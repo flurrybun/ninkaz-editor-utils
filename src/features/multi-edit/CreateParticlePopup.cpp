@@ -237,7 +237,7 @@ class $modify(MECreateParticlePopup, CreateParticlePopup) {
     };
 
     $override
-    bool init(ParticleGameObject* obj, cocos2d::CCArray* objs, gd::string str) {
+    bool init(ParticleGameObject* obj, cocos2d::CCArray* objs, std::string str) {
         if (!CreateParticlePopup::init(obj, objs, str)) return false;
 
         m_fields->init(this);
@@ -250,7 +250,7 @@ class $modify(MECreateParticlePopup, CreateParticlePopup) {
                 m_fields->addInput(input, key);
 
                 if (auto bg = getBGForInput(input)) m_fields->addInputBG(bg, key);
-                if (auto label = getLabelForInput(input)) m_fields->addInputLabel(label, key);
+                if (auto label = getLabelForInput(input)) m_fields->addExtraNode(label, key);
             }
         }
 

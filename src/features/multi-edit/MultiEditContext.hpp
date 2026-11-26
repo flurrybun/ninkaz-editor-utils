@@ -50,7 +50,11 @@ protected:
     std::map<int, Ref<Slider>> m_sliders;
     std::map<int, std::vector<Ref<CCMenuItem>>> m_buttons;
     std::map<int, Ref<CCScale9Sprite>> m_inputBGs;
-    std::map<int, Ref<CCLabelBMFont>> m_inputLabels;
+    /**
+     * Extra nodes related to a property, such as input labels.
+     * Unlike buttons, these are not interactable, hence the separate map.
+     */
+    std::map<int, std::vector<Ref<CCNode>>> m_extraNodes;
     std::map<int, Ref<CCMenuItemSpriteExtra>> m_mixedButtons;
 
     CCPoint m_buttonOffset = {0, 0};
@@ -82,6 +86,7 @@ protected:
     void onToggleMixed(CCObject* sender);
     void toggleSlider(int property, bool isEnabled);
     void toggleButtons(int property, bool isEnabled);
+    void reassignNode(CCNode* node, int newProperty);
 
 public:
     virtual ~MultiEditContext();
@@ -145,7 +150,15 @@ public:
     void addSlider(Slider* slider, int property);
     void addButton(CCMenuItem* button, int property);
     void addInputBG(CCScale9Sprite* bg, int property);
-    void addInputLabel(CCLabelBMFont* label, int property);
+    void addExtraNode(CCNode* node, int property);
+
+    /**
+     * Reassigns all the nodes registered for an IDNameInput to a different property.
+     * Useful for popups that don't use the trigger UI system and assign arbitrary property ids
+     * that don't correspond to actual object properties.
+     * Should be called before setupMixed().
+     */
+    void reassignProperty(IDNameInput* input, int newProperty);
 
     bool isMixedEnabled() { return m_isMixedEnabled; }
     CCArrayExt<GameObject*>& getGameObjects() { return m_gameObjects; }
@@ -153,14 +166,14 @@ public:
     std::map<int, Ref<Slider>>& getSliders() { return m_sliders; }
     std::map<int, std::vector<Ref<CCMenuItem>>>& getButtons() { return m_buttons; }
     std::map<int, Ref<CCScale9Sprite>>& getInputBGs() { return m_inputBGs; }
-    std::map<int, Ref<CCLabelBMFont>>& getInputLabels() { return m_inputLabels; }
+    std::map<int, std::vector<Ref<CCNode>>>& getExtraNodes() { return m_extraNodes; }
     std::map<int, Ref<CCMenuItemSpriteExtra>>& getMixedButtons() { return m_mixedButtons; }
 
     CCTextInputNode* getInput(int property);
     Slider* getSlider(int property);
     std::vector<Ref<CCMenuItem>> getButtonsForProperty(int property);
     CCScale9Sprite* getInputBG(int property);
-    CCLabelBMFont* getInputLabel(int property);
+    std::vector<Ref<CCNode>> getExtraNodesForProperty(int property);
     CCMenuItemSpriteExtra* getMixedButton(int property);
 
     void setButtonOffset(CCPoint offset) { m_buttonOffset = offset; }

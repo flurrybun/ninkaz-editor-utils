@@ -1,7 +1,6 @@
 #include <Geode/modify/SetupTriggerPopup.hpp>
 #include "MultiEditContext.hpp"
 #include "../../misc/CCScale9SpriteFix.hpp"
-#include "../../misc/StringUtils.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
@@ -163,7 +162,7 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
             // some triggers don't use this system and had to be added manually
 
             switch (object->m_objectID) {
-                case 899: return in({10, 23}); // added manually
+                case 899: return in({10, 23, 50}); // added manually
                 case 901: return in({28, 29, 143, 144, 395, 71, 396, 10, 51});
                 case 1616: return in({51});
                 case 1006: return in({50, 51, 45, 46, 47}); // added manually
@@ -331,7 +330,7 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
                 case 205:
                 case 206:
                     return PropertyBounds(0, 9999);
-                // i am undoubtably missing some here but it shouldn't matter too much
+                // i am undoubtedly missing some here but it shouldn't matter too much
                 case 10:
                 case 85:
                 case 45:
@@ -362,11 +361,12 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         }
 
         CCArray* getObjectArray() override {
-            if (auto obj = popup->m_gameObject) {
-                return CCArray::createWithObject(obj);
-            } else {
-                return popup->m_gameObjects;
-            }
+            auto eui = EditorUI::get();
+            if (!eui) return nullptr;
+
+            return eui->m_selectedObject
+                ? CCArray::createWithObject(eui->m_selectedObject)
+                : eui->m_selectedObjects;
         }
     };
 
@@ -376,8 +376,8 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
     }
 
     $override
-    bool init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1) {
-        if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1)) return false;
+    bool init(EffectGameObject* obj, CCArray* objs, float f1, float f2, int i1, float f3) {
+        if (!SetupTriggerPopup::init(obj, objs, f1, f2, i1, f3)) return false;
         if (!MultiEditContext::isTriggerPopup(this)) return true;
 
         m_fields->init(this);
@@ -388,20 +388,25 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
     }
 
     $override
+    void updateDefaultTriggerValues() {
+        // this function is called 
+        SetupTriggerPopup::updateDefaultTriggerValues();
+        if (!MultiEditContext::isTriggerPopup(this)) return;
+
+        // 4:3 aspect ratio fix
+        if (CCDirector::get()->getWinSize().width < 520.f) {
+            m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35.f / 2.f));
+        }
+
+        m_fields->setupMixed();
+    }
+
+    $override
     CCArray* createValueControlAdvanced(
-        int property, gd::string label, CCPoint position, float scale, bool disableSlider, InputValueType valueType,
+        int property, std::string label, CCPoint position, float scale, bool disableSlider, InputValueType valueType,
         int charCountLimit, bool enableArrows, float sliderMin, float sliderMax, int page, int group,
         GJInputStyle inputStyle, int decimalPlaces, bool enableTrashCan
     ) {
-        // change position of spawn remap inputs
-
-        if (
-            (property == -1 && label == "OriginalID:") ||
-            (property == -2 && label == "NewID:")
-        ) {
-            position.x -= 12.f;
-        }
-
         CCArray* ret = SetupTriggerPopup::createValueControlAdvanced(
             property, label, position, scale, disableSlider, valueType, charCountLimit, enableArrows, sliderMin,
             sliderMax, page, group, inputStyle, decimalPlaces, enableTrashCan
@@ -419,24 +424,11 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
             } else if (auto bg = typeinfo_cast<CCScale9Sprite*>(node)) {
                 m_fields->addInputBG(bg, property);
             } else if (auto label = typeinfo_cast<CCLabelBMFont*>(node)) {
-                m_fields->addInputLabel(label, property);
+                m_fields->addExtraNode(label, property);
             }
         }
 
         return ret;
-    }
-
-    $override
-    void updateDefaultTriggerValues() {
-        SetupTriggerPopup::updateDefaultTriggerValues();
-        if (!MultiEditContext::isTriggerPopup(this)) return;
-
-        // 4:3 aspect ratio fix
-        if (CCDirector::get()->getWinSize().width < 520) {
-            m_mainLayer->setPositionX(m_mainLayer->getPositionX() - (35 / 2));
-        }
-
-        m_fields->setupMixed();
     }
 };
 
@@ -447,6 +439,45 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
 MESetupTriggerPopup::Fields* getMultiEditContext(SetupTriggerPopup* stp) {
     return static_cast<MESetupTriggerPopup*>(stp)->m_fields.self();
 }
+
+#include <Geode/modify/IDNameInput.hpp>
+
+class $modify(IDNameInput) {
+    bool initCore(
+        FLAlertLayer* parent, TextInputDelegate* delegate, int idType, int property, std::string const& label,
+        cocos2d::CCPoint position, float scale, int maxDigits, int group, int page, bool horizontal
+    ) {
+        // change position of spawn remap inputs to make room for delete all button 
+
+        if (
+            (property == -1 && label == "OriginalID:") ||
+            (property == -2 && label == "NewID:")
+        ) {
+            position.x -= 12.f;
+        }
+
+        if (!IDNameInput::initCore(
+            parent, delegate, idType, property, label, position, scale, maxDigits, group, page, horizontal
+        )) return false;
+
+        auto stp = typeinfo_cast<SetupTriggerPopup*>(parent);
+        if (!stp) return true;
+
+        auto ctx = getMultiEditContext(stp);
+
+        ctx->addInput(m_textInput, property);
+        ctx->addExtraNode(m_groupName, property);
+        ctx->addExtraNode(m_groupNameShadow, property);
+        ctx->addButton(m_searchButton, property);
+        ctx->addButton(m_nextButton, property);
+        ctx->addButton(m_leftButton, property);
+        ctx->addButton(m_rightButton, property);
+        ctx->addExtraNode(m_label, property);
+        ctx->addInputBG(m_background, property);
+
+        return true;
+    }
+};
 
 #include <Geode/modify/ColorSelectPopup.hpp>
 
@@ -473,6 +504,7 @@ class $modify(ColorSelectPopup) {
 
         m_mainLayer->getChildByType<CCTextInputNode*>(0)->setMaxLabelWidth(50);
         m_mainLayer->getChildByType<CCTextInputNode*>(1)->setMaxLabelWidth(40);
+        m_mainLayer->getChildByType<CCTextInputNode*>(2)->setMaxLabelWidth(40);
 
         ctx->addSlider(m_fadeTimeSlider, 10);
         m_opacitySlider->setUserObject("property"_spr, CCInteger::create(35));
@@ -480,7 +512,7 @@ class $modify(ColorSelectPopup) {
         m_fadeTimeSlider->m_delegate = this;
         m_opacitySlider->m_delegate = this;
 
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
 
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 23);
         ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 23);
@@ -518,7 +550,6 @@ class $modify(SetupPulsePopup) {
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 45);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 46);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 47);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(4), 51);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(10), 50);
 
         nk::fixCCScale9Sprite(m_mainLayer->getChildByType<CCScale9Sprite*>(1));
@@ -542,16 +573,13 @@ class $modify(SetupPulsePopup) {
         m_holdSlider->m_delegate = this;
         m_fadeOutSlider->m_delegate = this;
 
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(15), 45);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(16), 46);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(17), 47);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(15), 45);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(16), 46);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(17), 47);
 
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(10), 50);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(11), 50);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(12), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(13), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(14), 50);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(15), 50);
 
         ctx->setupMixed();
 
@@ -588,25 +616,19 @@ class $modify(SetupOpacityPopup) {
             }
         };
 
-        ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(0), 51);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput>(0), 51);
+
         ctx->addInput(m_mainLayer->getChildByType<CCTextInputNode*>(1), 10);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 10);
 
         ctx->addSlider(m_fadeTimeSlider, 10);
-        m_opacitySlider->setUserObject("property"_spr, CCInteger::create(35));
 
         m_fadeTimeSlider->m_delegate = this;
         m_opacitySlider->m_delegate = this;
 
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 10);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 35);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 10);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 35);
 
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
-
-        m_mainLayer->getChildByType<CCTextInputNode*>(0)->setMaxLabelWidth(40);
         m_mainLayer->getChildByType<CCTextInputNode*>(1)->setMaxLabelWidth(50);
 
         ctx->setupMixed();
@@ -630,12 +652,10 @@ class $modify(STPSetupSpawnPopup, SetupSpawnPopup) {
         auto delAllSpr = ButtonSprite::create(
             CCSprite::createWithSpriteFrameName("edit_delBtn_001.png"),
             32,
-            0.f,
+            false,
             32.f,
-            1.f,
-            true,
             "GJ_button_04.png",
-            true
+            1.f
         );
 
         auto delAllBtn = CCMenuItemSpriteExtra::create(
@@ -700,266 +720,21 @@ class $modify(STPSetupSpawnPopup, SetupSpawnPopup) {
     }
 };
 
-#include <Geode/modify/GJFollowCommandLayer.hpp>
-
-class $modify(GJFollowCommandLayer) {
-    bool init(EffectGameObject* obj, CCArray* objs) {
-        if (!GJFollowCommandLayer::init(obj, objs)) return false;
-
-        auto ctx = getMultiEditContext(this);
-
-        ctx->callback = [this, ctx](int property, float value) {
-            if (property == 10) {
-                MultiEditContext::setSliderValue(m_moveTimeSlider, value, 0, 10);
-            } else if (property == 72) {
-                MultiEditContext::setSliderValue(m_xModSlider, value, -1, 1);
-            } else if (property == 73) {
-                MultiEditContext::setSliderValue(m_yModSlider, value, -1, 1);
-            }
-        };
-
-        ctx->addInput(m_moveTimeInput, 10);
-        ctx->addInput(m_xModInput, 72);
-        ctx->addInput(m_yModInput, 73);
-        ctx->addInput(m_targetIDInput, 51);
-        ctx->addInput(m_followIDInput, 71);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 10);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 72);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 73);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(4), 51);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(5), 71);
-
-        m_moveTimeInput->setMaxLabelWidth(50);
-        m_xModInput->setMaxLabelWidth(50);
-        m_yModInput->setMaxLabelWidth(50);
-        m_targetIDInput->setMaxLabelWidth(40);
-        m_followIDInput->setMaxLabelWidth(40);
-
-        ctx->addSlider(m_moveTimeSlider, 10);
-        ctx->addSlider(m_xModSlider, 72);
-        ctx->addSlider(m_yModSlider, 73);
-
-        m_moveTimeSlider->m_delegate = this;
-        m_xModSlider->m_delegate = this;
-        m_yModSlider->m_delegate = this;
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 72);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 73);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(7), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(8), 71);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 71);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 71);
-
-        ctx->setupMixed();
-
-        return true;
-    }
-};
-
-#include <Geode/modify/SetupCollisionTriggerPopup.hpp>
-
-class $modify(SetupCollisionTriggerPopup) {
-    bool init(EffectGameObject* obj, CCArray* objs) {
-        if (!SetupCollisionTriggerPopup::init(obj, objs)) return false;
-
-        auto ctx = getMultiEditContext(this);
-
-        ctx->addInput(m_blockAInput, 80);
-        ctx->addInput(m_blockBInput, 95);
-        ctx->addInput(m_targetIDInput, 51);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 95);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
-
-        m_blockAInput->setMaxLabelWidth(40);
-        m_blockBInput->setMaxLabelWidth(40);
-        m_targetIDInput->setMaxLabelWidth(40);
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 95);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 95);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 95);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
-
-        ctx->setupMixed();
-
-        return true;
-    }
-};
-
-#include <Geode/modify/CollisionBlockPopup.hpp>
-// note: CollisionBlockPopup isn't a subclass of SetupTriggerPopup
-
-class $modify(MECollisionBlockPopup, CollisionBlockPopup) {
-    struct Fields : MultiEditContext {
-        CollisionBlockPopup* popup = nullptr;
-
-        void init(CollisionBlockPopup* popup) {
-            this->popup = popup;
-            registerSelf(popup);
-        }
-
-        float getProperty(GameObject* object, int property) override {
-            if (property == 80) {
-                auto collisionBlock = typeinfo_cast<EffectGameObject*>(object);
-                return collisionBlock ? collisionBlock->m_itemID : 0;
-            }
-
-            return 0;
-        }
-
-        void setProperty(GameObject* object, int property, float value) override {
-            if (property == 80) {
-                auto collisionBlock = typeinfo_cast<EffectGameObject*>(object);
-                if (collisionBlock) collisionBlock->m_itemID = value;
-            }
-        }
-
-        bool hasProperty(GameObject* object, int property) override {
-            return property == 80 && object->m_objectID == 1816;
-        }
-
-        int getPropertyDecimalPlaces(int property) override {
-            return 0;
-        }
-
-        PropertyBounds getPropertyBounds(int property) override {
-            return PropertyBounds(0, 999);
-        }
-
-        void onMixedInputApplied(int property, std::optional<float> value) override {
-            updateMixedUI(property, value);
-
-            for (auto obj : m_gameObjects) {
-                LevelEditorLayer::get()->updateObjectLabel(obj);
-            }
-
-            if (value) {
-                popup->m_blockIDInput->setString(nk::toString(*value, 0));
-            }
-        }
-
-        CCArray* getObjectArray() override {
-            if (auto obj = popup->m_gameObject) {
-                return CCArray::createWithObject(obj);
-            } else {
-                return popup->m_gameObjects;
-            }
-        }
-    };
-
-    $override
-    bool init(EffectGameObject* obj, CCArray* objs) {
-        if (!CollisionBlockPopup::init(obj, objs)) return false;
-
-        m_fields->init(this);
-
-        m_fields->addInput(m_blockIDInput, 80);
-        m_fields->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
-        m_blockIDInput->setMaxLabelWidth(40);
-
-        m_fields->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
-        m_fields->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
-        m_fields->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 80);
-
-        m_fields->setupMixed();
-
-        return true;
-    }
-};
-
 #include <Geode/modify/SetupTouchTogglePopup.hpp>
 
 class $modify(MESetupTouchTogglePopup, SetupTouchTogglePopup) {
     bool init(EffectGameObject* obj, CCArray* fakeObjs) {
         if (!SetupTouchTogglePopup::init(obj, fakeObjs)) return false;
 
-        auto ctx = getMultiEditContext(this);
-
-        ctx->callback = [this, ctx](int property, float value) {
-            for (auto obj : ctx->getGameObjects()) {
-                LevelEditorLayer::get()->updateObjectLabel(obj);
-            }
-        };
-
         if (m_gameObjects) {
             if (auto firstObj = static_cast<EffectGameObject*>(m_gameObjects->firstObject())) {
                 // set label without calling callback
-                m_groupIDInput->updateLabel(std::to_string(firstObj->m_targetGroupID).c_str());
+                m_groupIDInput->updateLabel(fmt::to_string(firstObj->m_targetGroupID).c_str());
             }
         }
 
-        ctx->addInput(m_groupIDInput, 51);
-        m_groupIDInput->setMaxLabelWidth(40);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
-
-        ctx->addInputLabel(this->getChildByType<CCLabelBMFont*>(1), 51);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
-
-        ctx->setupMixed();
-
-        return true;
-    }
-
-    $override
-    void onTargetIDArrow(CCObject* sender) {
-        SetupTouchTogglePopup::onTargetIDArrow(sender);
-
         auto ctx = getMultiEditContext(this);
-
-        for (auto obj : ctx->getGameObjects()) {
-            if (auto trigger = typeinfo_cast<EffectGameObject*>(obj)) {
-                trigger->m_targetGroupID = m_groupID;
-                LevelEditorLayer::updateObjectLabel(trigger);
-            }
-        }
-    }
-};
-
-#include <Geode/modify/SetupCountTriggerPopup.hpp>
-
-class $modify(SetupCountTriggerPopup) {
-    bool init(EffectGameObject* obj, CCArray* objs) {
-        if (!SetupCountTriggerPopup::init(obj, objs)) return false;
-
-        auto ctx = getMultiEditContext(this);
-
-        ctx->addInput(m_itemIDInput, 80);
-        ctx->addInput(m_targetCountInput, 77);
-        ctx->addInput(m_targetIDInput, 51);
-        m_itemIDInput->setMaxLabelWidth(40);
-        m_targetCountInput->setMaxLabelWidth(40);
-        m_targetIDInput->setMaxLabelWidth(40);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 77);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 77);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 77);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
-
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput>(0), 51);
         ctx->setupMixed();
 
         return true;
@@ -974,27 +749,16 @@ class $modify(SetupInstantCountPopup) {
 
         auto ctx = getMultiEditContext(this);
 
-        ctx->addInput(m_itemIDInput, 80);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput>(0), 80);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput>(1), 51);
+
         ctx->addInput(m_targetCountInput, 77);
-        ctx->addInput(m_targetIDInput, 51);
-        m_itemIDInput->setMaxLabelWidth(40);
         m_targetCountInput->setMaxLabelWidth(40);
-        m_targetIDInput->setMaxLabelWidth(40);
 
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 80);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 77);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 51);
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 80);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 77);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 51);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 80);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 77);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 77);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(6), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(7), 51);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 77);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 77);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(10), 77);
+        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(11), 77);
 
         ctx->setupMixed();
 
@@ -1016,28 +780,17 @@ class $modify(MESetupRandTriggerPopup, SetupRandTriggerPopup) {
             }
         };
 
-        ctx->addInput(m_groupID1Input, 51);
-        ctx->addInput(m_groupID2Input, 71);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput*>(0), 51);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput*>(1), 71);
+
         ctx->addInput(m_chanceInput, 10);
-        m_groupID1Input->setMaxLabelWidth(40);
-        m_groupID2Input->setMaxLabelWidth(40);
         m_chanceInput->setMaxLabelWidth(50);
 
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 71);
         ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 10);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 10);
 
         ctx->addSlider(m_chanceSlider, 10);
         m_chanceSlider->m_delegate = this;
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 71);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 10);
-
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(2), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(3), 51);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(4), 71);
-        ctx->addButton(m_buttonMenu->getChildByType<CCMenuItemSpriteExtra*>(5), 71);
 
         ctx->setupMixed();
 
@@ -1083,9 +836,9 @@ class $modify(MESetupCameraOffsetTrigger, SetupCameraOffsetTrigger) {
         m_offsetXSlider->m_delegate = this;
         m_offsetYSlider->m_delegate = this;
 
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 28);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 29);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 28);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 29);
 
         ctx->setupMixed();
 
@@ -1101,10 +854,10 @@ class $modify(SetupCameraEdgePopup) {
 
         auto ctx = getMultiEditContext(this);
 
-        ctx->addInput(m_targetIDInput, 51);
-        m_targetIDInput->setMaxLabelWidth(40);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
+        // ctx->addInput(m_targetIDInput, 51);
+        // m_targetIDInput->setMaxLabelWidth(40);
+        // ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
+        // ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
 
         ctx->setupMixed();
 
@@ -1132,9 +885,9 @@ class $modify(SetupShakePopup) {
         m_intervalInput->setMaxLabelWidth(50);
         m_durationInput->setMaxLabelWidth(50);
 
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 75);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(5), 84);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 10);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(4), 75);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(5), 84);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(6), 10);
 
         ctx->addSlider(m_strengthSlider, 75);
         ctx->addSlider(m_intervalSlider, 84);
@@ -1158,67 +911,14 @@ class $modify(SetupAnimationPopup) {
 
         auto ctx = getMultiEditContext(this);
 
-        ctx->addInput(m_targetIDInput, 51);
+        ctx->reassignProperty(m_mainLayer->getChildByType<IDNameInput*>(0), 51);
+
         ctx->addInput(m_animationIDInput, 76);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 51);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 76);
-
-        m_targetIDInput->setMaxLabelWidth(40);
         m_animationIDInput->setMaxLabelWidth(40);
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 76);
-
-        ctx->setupMixed();
-
-        return true;
-    }
-};
-
-#include <Geode/modify/GJPFollowCommandLayer.hpp>
-
-class $modify(GJPFollowCommandLayer) {
-    bool init(EffectGameObject* obj, CCArray* objs) {
-        if (!GJPFollowCommandLayer::init(obj, objs)) return false;
-
-        auto ctx = getMultiEditContext(this);
-
-        ctx->addInput(m_moveTimeInput, 10);
-        ctx->addInput(m_speedInput, 90);
-        ctx->addInput(m_delayInput, 91);
-        ctx->addInput(m_offsetInput, 92);
-        ctx->addInput(m_maxSpeedInput, 105);
-        ctx->addInput(m_targetIDInput, 51);
-
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(1), 10);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 90);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(3), 91);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(4), 51);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(5), 92);
-        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(6), 105);
-
-        m_moveTimeInput->setMaxLabelWidth(50);
-        m_speedInput->setMaxLabelWidth(50);
-        m_delayInput->setMaxLabelWidth(50);
-        m_offsetInput->setMaxLabelWidth(40);
-        m_maxSpeedInput->setMaxLabelWidth(40);
-        m_targetIDInput->setMaxLabelWidth(40);
-
-        ctx->addSlider(m_moveTimeSlider, 10);
-        ctx->addSlider(m_speedSlider, 90);
-        ctx->addSlider(m_delaySlider, 91);
-
-        m_moveTimeSlider->m_delegate = this;
-        m_speedSlider->m_delegate = this;
-        m_delaySlider->m_delegate = this;
-
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(1), 10);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 90);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(3), 91);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(7), 51);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(8), 92);
-        ctx->addInputLabel(m_mainLayer->getChildByType<CCLabelBMFont*>(9), 105);
+        ctx->addInputBG(m_mainLayer->getChildByType<CCScale9Sprite*>(2), 76);
+        ctx->addButton(m_mainLayer->getChildByType<CCMenuItemSpriteExtra*>(6), 76);
+        ctx->addButton(m_mainLayer->getChildByType<CCMenuItemSpriteExtra*>(7), 76);
+        ctx->addExtraNode(m_mainLayer->getChildByType<CCLabelBMFont*>(2), 76);
 
         ctx->setupMixed();
 
@@ -1243,18 +943,5 @@ class $modify(SetupMoveCommandPopup) {
         if (auto btn = ctx->getMixedButton(29)) btn->setVisible(isVisible);
         if (auto btn = ctx->getMixedButton(143)) btn->setVisible(isVisible);
         if (auto btn = ctx->getMixedButton(144)) btn->setVisible(isVisible);
-    }
-};
-
-// changing the mode in the advanced follow menu creates an entirely new popup for some reason
-// this causes an issue where the advanced follow popup has a higher priority than the multi-edit popup
-
-#include <Geode/modify/SetupAdvFollowPopup.hpp>
-
-class $modify(SetupAdvFollowPopup) {
-    $override
-    void updateMode(int mode) {
-        CCTouchDispatcher::get()->unregisterForcePrio(this);
-        SetupAdvFollowPopup::updateMode(mode);
     }
 };

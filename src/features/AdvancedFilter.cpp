@@ -412,7 +412,7 @@ void AdvFilterPopup::addLine(
     else if (isScale(filter)) input->setFilter("0123456789.,-");
     else input->setFilter("0123456789,-");
 
-    input->getInputNode()->m_numberInput = !isColor(filter);
+    // input->getInputNode()->m_numberInput = !isColor(filter);
     input->setString(getFilterInput(filter).c_str());
     input->setTag(filter);
     input->setCallback([this, filter](const std::string& string) {
@@ -753,7 +753,7 @@ bool MoreColorsPopup::init(ColorType colorType, UpdateCallback callback) {
         auto input = TextInput::create(60, "NA");
         if (isDecimal) input->setFilter("0123456789.,-");
         else input->setFilter("0123456789,-");
-        input->getInputNode()->m_numberInput = true;
+        // input->getInputNode()->m_numberInput = true;
         input->setString(str.c_str());
         input->setTag(i);
         input->setCallback([this, i](const std::string& string) {

@@ -20,7 +20,7 @@ bool NumberInput::init(InputCallback callback, Options options) {
 
     m_input = TextInput::create(70.f, "Num", "bigFont.fnt");
     m_input->setFilter("0123456789.-");
-    m_input->getInputNode()->m_numberInput = true;
+    // m_input->getInputNode()->m_numberInput = true;
     m_input->setString(numToString(m_options.initialValue, m_options.decimalPlaces));
     m_input->setCallback([this](const std::string& str) {
         Result<double> value = numFromString<double>(str.empty() ? "0" : str);

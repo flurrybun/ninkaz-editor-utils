@@ -82,7 +82,7 @@ void hideOrShowUI(bool isHidden, FLAlertLayer* popup, Slider* slider) {
 
     if (auto node = ctx->getSlider(property)) nodesToIgnore->addObject(node);
     if (auto node = ctx->getInput(property)) nodesToIgnore->addObject(node);
-    if (auto node = ctx->getInputLabel(property)) nodesToIgnore->addObject(node);
+    for (auto node : ctx->getExtraNodesForProperty(property)) nodesToIgnore->addObject(node);
     if (auto node = ctx->getInputBG(property)) nodesToIgnore->addObject(node);
     nodesToIgnore->addObject(popup->m_mainLayer->getChildByType<CCScale9Sprite*>(0));
 
@@ -117,8 +117,8 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
     };
 
     $override
-    bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum) {
-        if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum)) return false;
+    bool init(EffectGameObject* trigger, CCArray* triggers, float width, float height, int unkEnum, float verticalOffset) {
+        if (!SetupTriggerPopup::init(trigger, triggers, width, height, unkEnum, verticalOffset)) return false;
         if (!MultiEditContext::isTriggerPopup(this)) return true;
 
         m_fields->setupMixedListener = SetupMixedEvent().listen([this](MultiEditContext* ctx) {
@@ -202,7 +202,7 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
     };
 
     $override
-    bool init(ParticleGameObject* obj, CCArray* objs, gd::string str) {
+    bool init(ParticleGameObject* obj, CCArray* objs, std::string str) {
         if (!CreateParticlePopup::init(obj, objs, str)) return false;
 
         m_fields->popup = this;
@@ -230,7 +230,7 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
 
     void updateParticles() {
         if (m_targetObject) {
-            gd::string str = GameToolbox::saveParticleToString(m_particle);
+            std::string str = GameToolbox::saveParticleToString(m_particle);
             m_targetObject->setParticleString(str);
             m_targetObject->updateParticle();
 
@@ -238,7 +238,7 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         }
 
         for (auto targetObject : CCArrayExt<ParticleGameObject>(m_targetObjects)) {
-            gd::string str = GameToolbox::saveParticleToString(m_particle);
+            std::string str = GameToolbox::saveParticleToString(m_particle);
             targetObject->setParticleString(str);
             targetObject->updateParticle();
         }

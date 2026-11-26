@@ -319,10 +319,10 @@ void MultiEditContext::addInputBG(CCScale9Sprite* bg, int property) {
     m_inputBGs[property] = bg;
 }
 
-void MultiEditContext::addInputLabel(CCLabelBMFont* label, int property) {
-    if (!label) return;
-    label->setUserObject("property"_spr, CCInteger::create(property));
-    m_inputLabels[property] = label;
+void MultiEditContext::addExtraNode(CCNode* node, int property) {
+    if (!node) return;
+    node->setUserObject("property"_spr, CCInteger::create(property));
+    m_extraNodes[property].push_back(node);
 }
 
 CCTextInputNode* MultiEditContext::getInput(int property) {
@@ -345,14 +345,64 @@ CCScale9Sprite* MultiEditContext::getInputBG(int property) {
     return m_inputBGs[property];
 }
 
-CCLabelBMFont* MultiEditContext::getInputLabel(int property) {
-    if (m_inputLabels.find(property) == m_inputLabels.end()) return nullptr;
-    return m_inputLabels[property];
+std::vector<Ref<CCNode>> MultiEditContext::getExtraNodesForProperty(int property) {
+    if (m_extraNodes.find(property) == m_extraNodes.end()) return {};
+    return m_extraNodes[property];
 }
 
 CCMenuItemSpriteExtra* MultiEditContext::getMixedButton(int property) {
     if (m_mixedButtons.find(property) == m_mixedButtons.end()) return nullptr;
     return m_mixedButtons[property];
+}
+
+template <class T>
+static void removeFromPropertyMap(std::map<int, std::vector<Ref<T>>>& map, int property, T* node) {
+    auto it = map.find(property);
+    if (it == map.end()) return;
+
+    auto& nodes = it->second;
+    nodes.erase(std::remove(nodes.begin(), nodes.end(), Ref<T>(node)), nodes.end());
+    if (nodes.empty()) map.erase(it);
+}
+
+void MultiEditContext::reassignProperty(IDNameInput* input, int newProperty) {
+    if (!input) return;
+
+    reassignNode(input->m_textInput, newProperty);
+    reassignNode(input->m_groupName, newProperty);
+    reassignNode(input->m_groupNameShadow, newProperty);
+    reassignNode(input->m_label, newProperty);
+    reassignNode(input->m_searchButton, newProperty);
+    reassignNode(input->m_nextButton, newProperty);
+    reassignNode(input->m_leftButton, newProperty);
+    reassignNode(input->m_rightButton, newProperty);
+    reassignNode(input->m_background, newProperty);
+}
+
+void MultiEditContext::reassignNode(CCNode* node, int newProperty) {
+    if (!node) return;
+
+    auto oldProperty = getPropertyID(node);
+    if (!oldProperty || *oldProperty == newProperty) return;
+
+    node->setUserObject("property"_spr, CCInteger::create(newProperty));
+
+    if (auto input = typeinfo_cast<CCTextInputNode*>(node)) {
+        m_inputs.erase(*oldProperty);
+        m_inputs[newProperty] = input;
+    } else if (auto slider = typeinfo_cast<Slider*>(node)) {
+        m_sliders.erase(*oldProperty);
+        m_sliders[newProperty] = slider;
+    } else if (auto bg = typeinfo_cast<CCScale9Sprite*>(node)) {
+        m_inputBGs.erase(*oldProperty);
+        m_inputBGs[newProperty] = bg;
+    } else if (auto button = typeinfo_cast<CCMenuItem*>(node)) {
+        removeFromPropertyMap(m_buttons, *oldProperty, button);
+        m_buttons[newProperty].push_back(button);
+    } else {
+        removeFromPropertyMap(m_extraNodes, *oldProperty, node);
+        m_extraNodes[newProperty].push_back(node);
+    }
 }
 
 void MultiEditContext::addToGroup(CCNode* node, CCNode* nodeInGroup) {
@@ -453,6 +503,7 @@ bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
     if (typeinfo_cast<UIOptionsLayer*>(popup)) return false;
     if (typeinfo_cast<UIPOptionsLayer*>(popup)) return false;
     if (typeinfo_cast<UISaveLoadLayer*>(popup)) return false;
+    if (typeinfo_cast<EasingSelectPopup*>(popup)) return false;
     return true;
 }
 

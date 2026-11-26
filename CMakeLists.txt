@@ -7,7 +7,6 @@ else()
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(SKIP_BUILDING_CODEGEN OFF)
 
 project(NinKazEditorUtils VERSION 1.0.0)
 

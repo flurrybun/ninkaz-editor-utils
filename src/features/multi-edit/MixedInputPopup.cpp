@@ -594,7 +594,7 @@ CCNode* MixedInputPopup::createSpriteForObjectID(int id) {
         obj = GameObject::createWithKey(id);
     }
 
-    gd::string frame = ObjectToolbox::sharedState()->intKeyToFrame(id);
+    std::string frame = ObjectToolbox::sharedState()->intKeyToFrame(id);
 
     obj->customSetup();
     obj->addColorSprite(frame);
