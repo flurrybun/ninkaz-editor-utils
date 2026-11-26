@@ -38,7 +38,15 @@ bool MixedInputPopup::init(MultiEditContext* context, int property) {
     m_calculation = Calculation::create();
     m_calculation->m_decimalPlaces = m_decimalPlaces;
     m_calculation->setValueBounds(m_propertyBounds.min, m_propertyBounds.max);
-    m_calculation->setInitialValues(std::views::zip(objects, initialValues) | std::ranges::to<std::unordered_map>());
+
+    std::unordered_map<GameObject*, float> initialValuesMap;
+    initialValuesMap.reserve(objects.size());
+
+    for (size_t i = 0; i < objects.size(); i++) {
+        initialValuesMap.emplace(objects[i], initialValues[i]);
+    }
+
+    m_calculation->setInitialValues(std::move(initialValuesMap));
 
     // if all property values are equal, that means the user manually entered this menu
     // rather than simply selecting a mixed input. so they most likely want to do direction
