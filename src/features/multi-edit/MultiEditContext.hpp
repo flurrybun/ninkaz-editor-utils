@@ -52,6 +52,11 @@ protected:
     std::map<int, std::vector<Ref<CCNode>>> m_extraNodes;
     std::set<int> m_mixedProperties;
 
+    std::optional<int> m_pressedInput;
+    MouseInputData::Button m_pressedInputButton = MouseInputData::Button::Left;
+    float m_pressedLabelScale = 1.f;
+    float m_pressedBGScale = 1.f;
+
     /**
      * Register this context in the global registry.
      */
@@ -67,6 +72,8 @@ protected:
     void toggleSlider(int property, bool isEnabled);
     void toggleButtons(int property, bool isEnabled);
     void reassignNode(CCNode* node, int newProperty);
+    void depressInput(CCTextInputNode* input, CCScale9Sprite* bg, bool isPressed);
+    void closeAllInputs();
 
 public:
     virtual ~MultiEditContext();
@@ -150,6 +157,7 @@ public:
         const char* sprName, geode::Function<void (CCMenuItemToggler*)> callback
     );
     static bool isTriggerPopup(SetupTriggerPopup* popup);
+    static void closeInput(CCTextInputNode* input);
 
     static MultiEditContext* get(CCNode* popup);
     static MultiEditContext* getFromChild(CCNode* child);

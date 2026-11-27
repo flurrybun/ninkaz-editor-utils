@@ -1,7 +1,6 @@
 #include "MultiEditContext.hpp"
 #include "MixedInputPopup.hpp"
 #include "../../misc/StringUtils.hpp"
-#include "ccTypes.h"
 
 void MultiEditContext::registerSelf(FLAlertLayer* self, CCMenu* buttonMenu) {
     registerSelf(self, self, buttonMenu);
@@ -16,26 +15,54 @@ void MultiEditContext::registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCMe
     s_registry[self] = this;
 
     m_mouseListener = MouseInputEvent().listen([this](MouseInputData& data) {
-        if (data.action != MouseInputData::Action::Press) return;
+        if (
+            data.button != MouseInputData::Button::Left ||
+            CCScene::get()->getChildByIndex(-1) != m_alertLayer
+        ) return ListenerResult::Propagate;
 
-        bool isRightClick = data.button == MouseInputData::Button::Right;
-        bool isLeftClick = data.button == MouseInputData::Button::Left;
-        if (!isRightClick && !isLeftClick) return;
+        if (data.action == MouseInputData::Action::Press) {
+            // don't start a new press while one is still held down
+            if (m_pressedInput) return ListenerResult::Propagate;
 
-        for (const auto& [key, bg] : m_inputBGs) {
-            if (!hoveringOverBG(bg)) continue;
+            for (const auto& [property, bg] : m_inputBGs) {
+                if (!hoveringOverBG(bg)) continue;
 
-            auto input = getInput(key);
-            if (!input) return;
+                auto input = getInput(property);
+                if (!input) break;
+                if (!m_isMixedEnabled && !isMixed(property)) break;
 
-            // left click opens the popup for any input when mixed mode is enabled,
-            // and only for mixed inputs otherwise. right click always opens it.
+                m_pressedInput = property;
+                m_pressedInputButton = data.button;
+                closeInput(input);
+                depressInput(input, bg, true);
 
-            if (isLeftClick && !m_isMixedEnabled && !m_mixedProperties.contains(key)) return;
+                return ListenerResult::Stop;
+            }
 
-            onMixed(input);
-            return;
+            return ListenerResult::Propagate;
         }
+
+        if (
+            data.action != MouseInputData::Action::Release ||
+            !m_pressedInput ||
+            data.button != m_pressedInputButton
+        ) return ListenerResult::Propagate;
+
+        int property = *m_pressedInput;
+        m_pressedInput.reset();
+
+        auto input = getInput(property);
+        auto bg = getInputBG(property);
+        if (!input || !bg) return ListenerResult::Propagate;
+
+        depressInput(input, bg, false);
+
+        if (hoveringOverBG(bg)) {
+            onMixed(input);
+            return ListenerResult::Stop;
+        }
+
+        return ListenerResult::Propagate;
     });
 }
 
@@ -144,6 +171,8 @@ void MultiEditContext::onToggleMixed(CCObject* sender) {
 
     const int ACTION_TAG = 1234;
 
+    closeAllInputs();
+
     for (auto const& [property, bg] : m_inputBGs) {
         if (!bg) continue;
         bg->stopActionByTag(ACTION_TAG);
@@ -240,6 +269,8 @@ void MultiEditContext::onMixed(CCObject* sender) {
 
     std::optional<int> property = getPropertyID(static_cast<CCNode*>(sender));
     if (!property) return;
+
+    closeAllInputs();
 
     auto popup = me::MixedInputPopup::create(this, *property);
     popup->m_noElasticity = true;
@@ -355,6 +386,39 @@ void MultiEditContext::reassignNode(CCNode* node, int newProperty) {
     }
 }
 
+void MultiEditContext::depressInput(CCTextInputNode* input, CCScale9Sprite* bg, bool isPressed) {
+    constexpr int ACTION_TAG = hash("ninkaz loves you <3");
+    constexpr float SCALE_FACTOR = 1.26f;
+    const float DURATION = isPressed ? 0.3f : 0.4f;
+    
+    auto label = input->m_textLabel;
+    bool wasAnimating = label->getActionByTag(ACTION_TAG);
+
+    label->stopActionByTag(ACTION_TAG);
+    bg->stopActionByTag(ACTION_TAG);
+
+    if (isPressed && !wasAnimating) {
+        m_pressedLabelScale = label->getScale();
+        m_pressedBGScale = bg->getScale();
+    }
+
+    float scale = isPressed ? m_pressedLabelScale * SCALE_FACTOR : m_pressedLabelScale;
+    auto action = CCEaseBounceOut::create(CCScaleTo::create(DURATION, scale));
+    action->setTag(ACTION_TAG);
+    label->runAction(action);
+
+    scale = isPressed ? m_pressedBGScale * SCALE_FACTOR : m_pressedBGScale;
+    action = CCEaseBounceOut::create(CCScaleTo::create(DURATION, scale));
+    action->setTag(ACTION_TAG);
+    bg->runAction(action);
+}
+
+void MultiEditContext::closeAllInputs() {
+    for (const auto& [_, input] : m_inputs) {
+        closeInput(input);
+    }
+}
+
 std::optional<int> MultiEditContext::getPropertyID(CCNode* node) {
     if (!node) return std::nullopt;
     auto ccInt = typeinfo_cast<CCInteger*>(node->getUserObject("property"_spr));
@@ -411,6 +475,12 @@ bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
     if (typeinfo_cast<UISaveLoadLayer*>(popup)) return false;
     if (typeinfo_cast<EasingSelectPopup*>(popup)) return false;
     return true;
+}
+
+void MultiEditContext::closeInput(CCTextInputNode* input) {
+    // taken from SetupTriggerPopup::closeInputNodes
+    input->m_delegate = nullptr;
+    input->onClickTrackNode(false);
 }
 
 MultiEditContext* MultiEditContext::get(CCNode* popup) {
