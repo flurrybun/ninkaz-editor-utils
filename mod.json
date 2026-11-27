@@ -3,8 +3,7 @@
     "gd": {
         "win": "2.2091",
         "android": "2.2091",
-        "mac": "2.2091",
-        "ios": "2.2091"
+        "mac": "2.2091"
     },
     "version": "v1.5.7",
     "id": "ninkaz.editor_utils",
