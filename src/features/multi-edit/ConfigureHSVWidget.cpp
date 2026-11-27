@@ -22,6 +22,12 @@ class $modify(ForcePrioEditorUI, EditorUI) {
             auto input = inputRef.lock();
             if (!input) continue;
 
+            // don't focus mixed inputs, clicking on them opens the mixed input popup instead
+
+            if (auto ctx = MultiEditContext::getFromChild(input)) {
+                if (ctx->isMixed(MultiEditContext::getPropertyID(input).value_or(-1))) continue;
+            }
+
             if (
                 nodeIsVisible(input) &&
                 input->getParent() &&
@@ -116,9 +122,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         void init(ConfigureHSVWidget* widget, bool base, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
             self = widget;
             isBase = base;
-            m_buttonOffset = widget->getPosition();
-            m_popupScale = widget->getScale();
-            registerSelf(widget, alertLayer, widget, buttonMenu);
+            registerSelf(widget, alertLayer, buttonMenu);
         }
 
         float getProperty(GameObject* object, int intProperty) override {
@@ -408,10 +412,7 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
         HSVLiveOverlay::createHSVWidget(tab);
 
         for (auto node : m_buttonMenu->getChildrenExt()) {
-            if (
-                node->getID() == "ninkaz.editor_utils/mixed-input-btn" ||
-                node->getID() == "ninkaz.editor_utils/multi-edit-btn"
-            ) {
+            if (node->getID() == "ninkaz.editor_utils/multi-edit-btn") {
                 node->removeFromParent();
             }
         }

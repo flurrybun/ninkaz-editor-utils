@@ -34,7 +34,6 @@ private:
     static inline std::unordered_map<CCNode*, MultiEditContext*> s_registry;
     CCNode* m_self = nullptr;
     FLAlertLayer* m_alertLayer = nullptr;
-    CCNode* m_inputParent = nullptr;
     CCMenu* m_buttonMenu = nullptr;
 
 protected:
@@ -50,34 +49,15 @@ protected:
     std::map<int, Ref<Slider>> m_sliders;
     std::map<int, std::vector<Ref<CCMenuItem>>> m_buttons;
     std::map<int, Ref<CCScale9Sprite>> m_inputBGs;
-    /**
-     * Extra nodes related to a property, such as input labels.
-     * Unlike buttons, these are not interactable, hence the separate map.
-     */
     std::map<int, std::vector<Ref<CCNode>>> m_extraNodes;
-    std::map<int, Ref<CCMenuItemSpriteExtra>> m_mixedButtons;
-
-    CCPoint m_buttonOffset = {0, 0};
-    float m_popupScale = 1.f;
-    // std::optional<CCSize> m_popupSize;
-    // std::optional<CCPoint> m_popupCenter;
-
-    /**
-     * CCArrays of CCArrays of CCNodes.
-     * Some popups manage toggling groups of nodes via toggling the visibility of all nodes in a CCArray.
-     * You can add these arrays here so nodes added have their visibility updated for free.
-     * MultiEditContext does not manage the memory of these arrays.
-     */
-    CCArray* m_groups;
-    CCArray* m_pages;
+    std::set<int> m_mixedProperties;
 
     /**
      * Register this context in the global registry.
      */
     void registerSelf(FLAlertLayer* self, CCMenu* buttonMenu = nullptr);
-    void registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent, CCMenu* buttonMenu = nullptr);
+    void registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCMenu* buttonMenu = nullptr);
 
-    CCMenuItemSpriteExtra* createMixedButton(int property);
     void updateSideMenuButtons();
 
     void updateMixedUI(int property, std::optional<float> value);
@@ -152,36 +132,16 @@ public:
     void addInputBG(CCScale9Sprite* bg, int property);
     void addExtraNode(CCNode* node, int property);
 
-    /**
-     * Reassigns all the nodes registered for an IDNameInput to a different property.
-     * Useful for popups that don't use the trigger UI system and assign arbitrary property ids
-     * that don't correspond to actual object properties.
-     * Should be called before setupMixed().
-     */
     void reassignProperty(IDNameInput* input, int newProperty);
 
-    bool isMixedEnabled() { return m_isMixedEnabled; }
     CCArrayExt<GameObject*>& getGameObjects() { return m_gameObjects; }
-    std::map<int, Ref<CCTextInputNode>>& getInputs() { return m_inputs; }
     std::map<int, Ref<Slider>>& getSliders() { return m_sliders; }
-    std::map<int, std::vector<Ref<CCMenuItem>>>& getButtons() { return m_buttons; }
-    std::map<int, Ref<CCScale9Sprite>>& getInputBGs() { return m_inputBGs; }
-    std::map<int, std::vector<Ref<CCNode>>>& getExtraNodes() { return m_extraNodes; }
-    std::map<int, Ref<CCMenuItemSpriteExtra>>& getMixedButtons() { return m_mixedButtons; }
 
     CCTextInputNode* getInput(int property);
     Slider* getSlider(int property);
-    std::vector<Ref<CCMenuItem>> getButtonsForProperty(int property);
     CCScale9Sprite* getInputBG(int property);
     std::vector<Ref<CCNode>> getExtraNodesForProperty(int property);
-    CCMenuItemSpriteExtra* getMixedButton(int property);
-
-    void setButtonOffset(CCPoint offset) { m_buttonOffset = offset; }
-    void setGroups(CCArray* groups) { m_groups = groups; }
-    void setPages(CCArray* pages) { m_pages = pages; }
-
-    void addToGroup(CCNode* node, CCNode* nodeInGroup);
-    void addToPage(CCNode* node, CCNode* nodeInPage);
+    bool isMixed(int property);
 
     static std::optional<int> getPropertyID(CCNode* node);
     static void setInputValue(CCTextInputNode* input, float value, int decimalPlaces);
@@ -193,7 +153,6 @@ public:
 
     static MultiEditContext* get(CCNode* popup);
     static MultiEditContext* getFromChild(CCNode* child);
-    static bool hasContext(CCNode* popup);
 };
 
 /**

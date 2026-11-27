@@ -76,9 +76,9 @@ class $modify(EditorUI) {
     void editObject(CCObject* sender) {
         if (!editButtonUsable()) return;
 
-        auto firstObject = typeinfo_cast<EffectGameObject*>(m_selectedObjects->firstObject());
+        auto firstObject = static_cast<EffectGameObject*>(m_selectedObjects->firstObject());
 
-        if (m_selectedObject || !firstObject) {
+        if (m_selectedObject || !firstObject || firstObject->m_classType != GameObjectClassType::Effect) {
             EditorUI::editObject(sender);
             return;
         }
@@ -101,7 +101,7 @@ class $modify(EditorUI) {
                 SetupCountTriggerPopup::create(obj, objs)->show();
                 break;
             case 1811:
-                SetupInstantCountPopup::create(typeinfo_cast<CountTriggerGameObject*>(obj), objs)->show();
+                SetupInstantCountPopup::create(static_cast<CountTriggerGameObject*>(obj), objs)->show();
                 break;
             case 1912:
                 SetupRandTriggerPopup::create(obj, objs)->show();
@@ -121,10 +121,10 @@ class $modify(EditorUI) {
                 SetupZoomTriggerPopup::create(obj, objs)->show();
                 break;
             case 1916:
-                SetupCameraOffsetTrigger::create(typeinfo_cast<CameraTriggerGameObject*>(obj), objs)->show();
+                SetupCameraOffsetTrigger::create(static_cast<CameraTriggerGameObject*>(obj), objs)->show();
                 break;
             case 2062:
-                SetupCameraEdgePopup::create(typeinfo_cast<CameraTriggerGameObject*>(obj), objs)->show();
+                SetupCameraEdgePopup::create(static_cast<CameraTriggerGameObject*>(obj), objs)->show();
                 break;
             case 1812:
                 SetupObjectTogglePopup::create(obj, objs, false)->show();

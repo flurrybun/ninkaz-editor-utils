@@ -1,19 +1,15 @@
 #include "MultiEditContext.hpp"
 #include "MixedInputPopup.hpp"
 #include "../../misc/StringUtils.hpp"
-
-#include <Geode/modify/CCTextInputNode.hpp>
+#include "ccTypes.h"
 
 void MultiEditContext::registerSelf(FLAlertLayer* self, CCMenu* buttonMenu) {
-    registerSelf(self, self, self->m_mainLayer, buttonMenu);
+    registerSelf(self, self, buttonMenu);
 }
 
-void MultiEditContext::registerSelf(
-    CCNode* self, FLAlertLayer* alertLayer, CCNode* inputParent, CCMenu* buttonMenu
-) {
+void MultiEditContext::registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
     m_self = self;
     m_alertLayer = alertLayer;
-    m_inputParent = inputParent;
     if (buttonMenu) m_buttonMenu = buttonMenu;
     else m_buttonMenu = alertLayer->m_buttonMenu;
 
@@ -21,16 +17,21 @@ void MultiEditContext::registerSelf(
 
     m_mouseListener = MouseInputEvent().listen([this](MouseInputData& data) {
         if (data.action != MouseInputData::Action::Press) return;
-        if (
-            data.button != MouseInputData::Button::Right &&
-            !(data.button == MouseInputData::Button::Left && m_isMixedEnabled)
-        ) return;
+
+        bool isRightClick = data.button == MouseInputData::Button::Right;
+        bool isLeftClick = data.button == MouseInputData::Button::Left;
+        if (!isRightClick && !isLeftClick) return;
 
         for (const auto& [key, bg] : m_inputBGs) {
             if (!hoveringOverBG(bg)) continue;
 
             auto input = getInput(key);
             if (!input) return;
+
+            // left click opens the popup for any input when mixed mode is enabled,
+            // and only for mixed inputs otherwise. right click always opens it.
+
+            if (isLeftClick && !m_isMixedEnabled && !m_mixedProperties.contains(key)) return;
 
             onMixed(input);
             return;
@@ -45,36 +46,12 @@ MultiEditContext::~MultiEditContext() {
     }
 }
 
-CCMenuItemSpriteExtra* MultiEditContext::createMixedButton(int property) {
-    auto spr = CCLabelBMFont::create("Mixed", "bigFont.fnt");
-
-    if (auto input = m_inputs[property]) {
-        spr->limitLabelWidth(input->m_maxLabelWidth, input->getScale(), 0);
-        spr->setScale(spr->getScale() * m_popupScale);
-    }
-
-    auto btn = CCMenuItemExt::createSpriteExtra(spr, [this](CCObject* sender) {
-        onMixed(sender);
-    });
-    btn->setID("mixed-input-btn"_spr);
-    btn->setUserObject("property"_spr, CCInteger::create(property));
-
-    return btn;
-}
-
 void MultiEditContext::updateSideMenuButtons() {
     // would it be easier to just add the button to a menu with an axis layout? absolutely.
     // is this what i originally did? of course.
     // however, you see, after several hours i just could not get touch priority to work properly
     // using handleTouchPriority(m_alertLayer) breaks pulse and particle triggers
     // so whatever i'll just do it this way
-
-    // CCSize popupSize = m_popupSize
-    //     ? *m_popupSize
-    //     : m_alertLayer->m_mainLayer->getChildByType<CCScale9Sprite>(0)->getContentSize();
-    // CCPoint popupCenter = m_popupCenter
-    //     ? *m_popupCenter
-    //     : CCPoint(CCDirector::sharedDirector()->getWinSize() / 2);
 
     if (typeinfo_cast<HSVLiveOverlay*>(m_alertLayer)) {
         if (m_sideButtons.empty()) return;
@@ -102,13 +79,6 @@ void MultiEditContext::updateSideMenuButtons() {
         button->removeFromParent();
         m_buttonMenu->addChild(button);
 
-        // button->setPosition(
-        //     popupCenter
-        //     + ccp(popupSize.width / 2, -popupSize.height / 2) * m_popupScale
-        //     + button->getContentSize() / 2
-        //     + ccp(5, 35 * i) * m_popupScale
-        //     - m_buttonMenu->getPosition()
-        // );
         button->setPosition(
             winSize / 2
             + ccp(popupSize.width / 2, -popupSize.height / 2)
@@ -120,12 +90,12 @@ void MultiEditContext::updateSideMenuButtons() {
 }
 
 void MultiEditContext::updateMixedUI(int property, std::optional<float> value) {
-    bool shouldMakeButtonFromInput = !value && m_inputs.contains(property);
-    bool shouldMakeInputFromButton = value && m_mixedButtons.contains(property);
+    bool shouldMakeInputMixed = !value && m_inputs.contains(property);
+    bool shouldRestoreInput = value && m_mixedProperties.contains(property);
 
-    if (shouldMakeButtonFromInput) {
+    if (shouldMakeInputMixed) {
         makeMixed(property);
-    } else if (shouldMakeInputFromButton) {
+    } else if (shouldRestoreInput) {
         removeMixed(property, *value);
     }
 
@@ -134,46 +104,32 @@ void MultiEditContext::updateMixedUI(int property, std::optional<float> value) {
 }
 
 void MultiEditContext::makeMixed(int property) {
-    if (m_inputs.find(property) == m_inputs.end()) return;
-    if (m_mixedButtons.contains(property)) return;
-    
-    CCTextInputNode* input = m_inputs[property];
+    if (m_mixedProperties.contains(property)) return;
 
-    CCMenuItemSpriteExtra* btn = createMixedButton(property);
+    CCTextInputNode* input = getInput(property);
+    if (!input) return;
 
-    btn->setPosition((input->getPosition() * m_popupScale) - m_buttonMenu->getPosition() + m_buttonOffset);
-    btn->setID("mixed-input-btn"_spr);
-    btn->setTag(property);
+    m_mixedProperties.insert(property);
 
-    if (typeinfo_cast<CreateParticlePopup*>(m_alertLayer)) {
-        btn->setVisible(input->getParent()->isVisible());
-    } else {
-        btn->setVisible(input->isVisible());
-    }
+    input->setTouchEnabled(false);
 
-    addToGroup(btn, input);
-    addToPage(btn, input);
-
-    m_mixedButtons[property] = btn;
-
-    input->removeFromParent();
-    m_buttonMenu->addChild(btn);
+    // do this to prevent any text change callbacks from firing
+    input->m_textLabel->setString("Mixed");
+    input->m_textLabel->setColor(input->m_textColor);
 
     toggleSlider(property, false);
     toggleButtons(property, false);
 }
 
 void MultiEditContext::removeMixed(int property, float newValue) {
-    if (!m_inputs.contains(property)) return;
-    if (!m_mixedButtons.contains(property)) return;
+    if (!m_mixedProperties.contains(property)) return;
 
-    CCTextInputNode* input = m_inputs[property];
-    CCMenuItemSpriteExtra* btn = m_mixedButtons[property];
+    CCTextInputNode* input = getInput(property);
+    if (!input) return;
 
-    m_mixedButtons.erase(property);
+    m_mixedProperties.erase(property);
 
-    m_inputParent->addChild(input);
-    btn->removeFromParent();
+    input->setTouchEnabled(true);
 
     toggleSlider(property, true);
     toggleButtons(property, true);
@@ -335,11 +291,6 @@ Slider* MultiEditContext::getSlider(int property) {
     return m_sliders[property];
 }
 
-std::vector<Ref<CCMenuItem>> MultiEditContext::getButtonsForProperty(int property) {
-    if (m_buttons.find(property) == m_buttons.end()) return {};
-    return m_buttons[property];
-}
-
 CCScale9Sprite* MultiEditContext::getInputBG(int property) {
     if (m_inputBGs.find(property) == m_inputBGs.end()) return nullptr;
     return m_inputBGs[property];
@@ -350,9 +301,8 @@ std::vector<Ref<CCNode>> MultiEditContext::getExtraNodesForProperty(int property
     return m_extraNodes[property];
 }
 
-CCMenuItemSpriteExtra* MultiEditContext::getMixedButton(int property) {
-    if (m_mixedButtons.find(property) == m_mixedButtons.end()) return nullptr;
-    return m_mixedButtons[property];
+bool MultiEditContext::isMixed(int property) {
+    return m_mixedProperties.contains(property);
 }
 
 template <class T>
@@ -402,50 +352,6 @@ void MultiEditContext::reassignNode(CCNode* node, int newProperty) {
     } else {
         removeFromPropertyMap(m_extraNodes, *oldProperty, node);
         m_extraNodes[newProperty].push_back(node);
-    }
-}
-
-void MultiEditContext::addToGroup(CCNode* node, CCNode* nodeInGroup) {
-    if (!m_groups) return;
-
-    for (size_t i = 0; i < m_groups->count(); i++) {
-        CCArray* group = static_cast<CCArray*>(m_groups->objectAtIndex(i));
-
-        if (group->containsObject(nodeInGroup)) {
-            group->addObject(node);
-            break;
-        }
-    }
-}
-
-void MultiEditContext::addToPage(CCNode* node, CCNode* nodeInPage) {
-    if (!m_pages) return;
-
-    if (auto particlePopup = typeinfo_cast<CreateParticlePopup*>(m_alertLayer)) {
-        for (size_t i = 0; i < particlePopup->m_inputDicts->count(); i++) {
-            CCDictionary* inputDict = static_cast<CCDictionary*>(particlePopup->m_inputDicts->objectAtIndex(i + 1));
-            if (!inputDict) continue;
-
-            int property = MultiEditContext::getPropertyID(nodeInPage).value_or(-1);
-            if (property == -1) continue;
-
-            auto dictInput = inputDict->objectForKey(property);
-            if (!dictInput || dictInput != nodeInPage) continue;
-
-            static_cast<CCArray*>(m_pages->objectAtIndex(i))->addObject(node);
-            break;
-        }
-
-        return;
-    }
-
-    for (size_t i = 0; i < m_pages->count(); i++) {
-        CCArray* page = static_cast<CCArray*>(m_pages->objectAtIndex(i));
-
-        if (page->containsObject(nodeInPage)) {
-            page->addObject(node);
-            break;
-        }
     }
 }
 
@@ -523,10 +429,6 @@ MultiEditContext* MultiEditContext::getFromChild(CCNode* child) {
     }
 
     return nullptr;
-}
-
-bool MultiEditContext::hasContext(CCNode* popup) {
-    return get(popup) != nullptr;
 }
 
 /* enter mixed input when clicking on an input when mixed mode is enabled */

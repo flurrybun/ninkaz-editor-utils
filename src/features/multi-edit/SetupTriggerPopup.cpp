@@ -381,8 +381,6 @@ class $modify(MESetupTriggerPopup, SetupTriggerPopup) {
         if (!MultiEditContext::isTriggerPopup(this)) return true;
 
         m_fields->init(this);
-        m_fields->setGroups(m_groupContainers);
-        m_fields->setPages(m_pageContainers);
 
         return true;
     }
@@ -591,14 +589,6 @@ class $modify(SetupPulsePopup) {
 
         auto ctx = getMultiEditContext(this);
         ctx->onMixedInputApplied(51, 0);
-    }
-
-    void onSelectPulseMode(CCObject* sender) {
-        SetupPulsePopup::onSelectPulseMode(sender);
-
-        if (auto btn = getMultiEditContext(this)->getMixedButton(50)) {
-            btn->setVisible(m_pulseMode == 1);
-        }
     }
 };
 
@@ -923,25 +913,5 @@ class $modify(SetupAnimationPopup) {
         ctx->setupMixed();
 
         return true;
-    }
-};
-
-// special case for move triggers because move/mod x/y doesn't use rob's group and page system
-
-#include <Geode/modify/SetupMoveCommandPopup.hpp>
-
-class $modify(SetupMoveCommandPopup) {
-    $override
-    void valueDidChange(int property, float newValue) {
-        SetupMoveCommandPopup::valueDidChange(property, newValue);
-        if (property != 100 && property != 394) return;
-
-        auto ctx = getMultiEditContext(this);
-        bool isVisible = newValue == 0;
-
-        if (auto btn = ctx->getMixedButton(28)) btn->setVisible(isVisible);
-        if (auto btn = ctx->getMixedButton(29)) btn->setVisible(isVisible);
-        if (auto btn = ctx->getMixedButton(143)) btn->setVisible(isVisible);
-        if (auto btn = ctx->getMixedButton(144)) btn->setVisible(isVisible);
     }
 };

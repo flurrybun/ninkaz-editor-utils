@@ -149,7 +149,7 @@ class $modify(PRSetupRotatePopup, SetupRotatePopup) {
 
         auto ctx = MultiEditContext::get(this);
 
-        if (ctx && ctx->getMixedButton(97)) {
+        if (ctx && ctx->isMixed(97)) {
             ctx->onMixedInputApplied(97, 0);
         }
     }

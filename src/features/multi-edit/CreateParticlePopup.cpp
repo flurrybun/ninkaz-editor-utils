@@ -260,7 +260,6 @@ class $modify(MECreateParticlePopup, CreateParticlePopup) {
             m_fields->addSlider(slider, key);
         }
 
-        m_fields->setPages(m_pageObjectArrays);
         m_fields->setupMixed();
 
         return true;
