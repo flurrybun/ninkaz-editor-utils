@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Toggler.hpp>
 using namespace geode::prelude;
 
 struct PropertyBounds {
@@ -33,15 +34,15 @@ class MultiEditContext {
 private:
     static inline std::unordered_map<CCNode*, MultiEditContext*> s_registry;
     CCNode* m_self = nullptr;
-    FLAlertLayer* m_alertLayer = nullptr;
-    CCMenu* m_buttonMenu = nullptr;
 
 protected:
     ListenerHandle m_mouseListener;
-
-    std::vector<CCMenuItem*> m_sideButtons;
     CCArrayExt<GameObject*> m_gameObjects;
-    Ref<Notification> m_mixedNotification;
+    FLAlertLayer* m_alertLayer = nullptr;
+    Ref<CCNode> m_sideContainer = nullptr;
+
+    constexpr static float SIDE_BUTTON_WIDTH = 30.f;
+
     bool m_isMixedEnabled = false;
     bool m_hasSetupMixed = false;
 
@@ -60,15 +61,20 @@ protected:
     /**
      * Register this context in the global registry.
      */
-    void registerSelf(FLAlertLayer* self, CCMenu* buttonMenu = nullptr);
-    void registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCMenu* buttonMenu = nullptr);
+    void registerSelf(FLAlertLayer* self);
+    void registerSelf(CCNode* self, FLAlertLayer* alertLayer);
 
-    void updateSideMenuButtons();
+    /**
+     * Sets up the side menu (m_sideContainer), which side buttons are added to.
+     */
+    virtual void setupSideMenu();
+
+    void createSideContainer(CCPoint position, CCSize size);
 
     void updateMixedUI(int property, std::optional<float> value);
     void makeMixed(int property);
     void removeMixed(int property, float newValue);
-    void onToggleMixed(CCObject* sender);
+    void onToggleMixed(bool enabled);
     void toggleSlider(int property, bool isEnabled);
     void toggleButtons(int property, bool isEnabled);
     void reassignNode(CCNode* node, int newProperty);
@@ -132,7 +138,7 @@ public:
     void setupMixed();
     void onMixed(CCObject* sender);
 
-    void addSideMenuButton(CCMenuItem* button);
+    void addSideMenuButton(geode::Button* button);
     void addInput(CCTextInputNode* input, int property);
     void addSlider(Slider* slider, int property);
     void addButton(CCMenuItem* button, int property);
@@ -153,9 +159,7 @@ public:
     static std::optional<int> getPropertyID(CCNode* node);
     static void setInputValue(CCTextInputNode* input, float value, int decimalPlaces);
     static void setSliderValue(Slider* slider, float value, float min, float max);
-    static CCMenuItemToggler* createSideMenuButton(
-        const char* sprName, geode::Function<void (CCMenuItemToggler*)> callback
-    );
+    static Toggler* createSideMenuButton(ZStringView sprName, Toggler::ToggleCallback callback);
     static bool isTriggerPopup(SetupTriggerPopup* popup);
     static void closeInput(CCTextInputNode* input);
 
@@ -172,3 +176,4 @@ public:
 };
 
 bool hoveringOverBG(CCScale9Sprite* bg);
+CCNode* getTopLevelParent(CCNode* node);

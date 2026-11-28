@@ -2,22 +2,26 @@
 #include "MixedInputPopup.hpp"
 #include "../../misc/StringUtils.hpp"
 
-void MultiEditContext::registerSelf(FLAlertLayer* self, CCMenu* buttonMenu) {
-    registerSelf(self, self, buttonMenu);
+void MultiEditContext::registerSelf(FLAlertLayer* self) {
+    registerSelf(self, self);
 }
 
-void MultiEditContext::registerSelf(CCNode* self, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
+void MultiEditContext::registerSelf(CCNode* self, FLAlertLayer* alertLayer) {
     m_self = self;
     m_alertLayer = alertLayer;
-    if (buttonMenu) m_buttonMenu = buttonMenu;
-    else m_buttonMenu = alertLayer->m_buttonMenu;
-
     s_registry[self] = this;
+
+    setupSideMenu();
+
+    // using a mouse listener for this is kinda hacky as it bypasses all touch prio
+    // this works but it's not perfect (e.g. having an editor window open causes the live overlay not to work)
+
+    // maybe hook CCTextInputNode::ccTouchBegan or convert to geode's TextInput and use TextInput::addFocusCallback
 
     m_mouseListener = MouseInputEvent().listen([this](MouseInputData& data) {
         if (
-            data.button != MouseInputData::Button::Left ||
-            CCScene::get()->getChildByIndex(-1) != m_alertLayer
+            data.button != MouseInputData::Button::Left || 
+            CCScene::get()->getChildByIndex(-1) != getTopLevelParent(m_alertLayer)
         ) return ListenerResult::Propagate;
 
         if (data.action == MouseInputData::Action::Press) {
@@ -73,47 +77,38 @@ MultiEditContext::~MultiEditContext() {
     }
 }
 
-void MultiEditContext::updateSideMenuButtons() {
-    // would it be easier to just add the button to a menu with an axis layout? absolutely.
-    // is this what i originally did? of course.
-    // however, you see, after several hours i just could not get touch priority to work properly
-    // using handleTouchPriority(m_alertLayer) breaks pulse and particle triggers
-    // so whatever i'll just do it this way
+void MultiEditContext::setupSideMenu() {
+    auto bg = m_alertLayer->m_mainLayer->getChildByType<CCScale9Sprite>(0);
+    auto bgPosition = bg->getPosition();
+    auto bgSize = bg->getScaledContentSize();
 
-    if (typeinfo_cast<HSVLiveOverlay*>(m_alertLayer)) {
-        if (m_sideButtons.empty()) return;
+    createSideContainer(
+        bgPosition + ccp((bgSize.width + SIDE_BUTTON_WIDTH) / 2.f + 5.f, 0.f),
+        { SIDE_BUTTON_WIDTH, bgSize.height }
+    );
 
-        auto btn = m_sideButtons[0];
+    // gap separating top and bottom buttons
+    m_sideContainer->addChild(SpacerNode::create());
+    m_sideContainer->updateLayout();
+}
 
-        btn->removeFromParent();
-        m_buttonMenu->addChild(btn);
-        btn->setPosition({ 152.6f, -86.4f });
-        btn->setScale(0.5f);
+void MultiEditContext::createSideContainer(CCPoint position, CCSize size) {
+    auto container = CCNode::create();
+    container->setID("side-menu"_spr);
+    container->setPosition(position);
+    container->setContentSize(size);
+    container->setAnchorPoint({ 0.5f, 0.5f });
+    container->setLayout(
+        // spacernode with simplecolumnlayout is bugged
+        // god i need to finish that flex ui library,,geode's layout system is so frustrating
+        ColumnLayout::create()
+            ->setGap(5.f)
+            ->setAutoScale(false)
+            ->setAxisReverse(true)
+    );
 
-        return;
-    }
-
-    CCSize winSize = CCDirector::sharedDirector()->getWinSize();
-    CCSize popupSize = m_alertLayer->m_mainLayer->getChildByType<CCScale9Sprite>(0)->getContentSize();
-
-    std::sort(m_sideButtons.begin(), m_sideButtons.end(), [](CCMenuItem* a, CCMenuItem* b) {
-        return a->getTag() < b->getTag();
-    });
-
-    for (size_t i = 0; i < m_sideButtons.size(); i++) {
-        auto button = m_sideButtons[i];
-
-        button->removeFromParent();
-        m_buttonMenu->addChild(button);
-
-        button->setPosition(
-            winSize / 2
-            + ccp(popupSize.width / 2, -popupSize.height / 2)
-            + button->getContentSize() / 2
-            + ccp(5, 35 * i)
-            - m_buttonMenu->getPosition()
-        );
-    }
+    m_alertLayer->m_mainLayer->addChild(container);
+    m_sideContainer = container;
 }
 
 void MultiEditContext::updateMixedUI(int property, std::optional<float> value) {
@@ -165,8 +160,8 @@ void MultiEditContext::removeMixed(int property, float newValue) {
     setInputValue(input, newValue, decimalPlaces);
 }
 
-void MultiEditContext::onToggleMixed(CCObject* sender) {
-    m_isMixedEnabled = !m_isMixedEnabled;
+void MultiEditContext::onToggleMixed(bool enabled) {
+    m_isMixedEnabled = enabled;
     GLubyte opacity = m_isMixedEnabled ? 140 : 70;
 
     const int ACTION_TAG = 1234;
@@ -180,7 +175,7 @@ void MultiEditContext::onToggleMixed(CCObject* sender) {
 
         CCAction* action;
 
-        if (m_isMixedEnabled) {
+        if (enabled) {
             action = CCRepeatForever::create(
                 CCSequence::create(
                     CCFadeTo::create(0.8, 80),
@@ -231,11 +226,14 @@ void MultiEditContext::setupMixed() {
 
     if (m_gameObjects.size() <= 1) return;
 
-    auto multiEditBtn = createSideMenuButton("multi-edit-btn.png"_spr, [this](CCObject* sender) {
-        onToggleMixed(sender);
-    });
+    auto multiEditBtn = createSideMenuButton(
+        "multi-edit-btn.png"_spr,
+        [this](Toggler* sender, bool isToggled) {
+            onToggleMixed(isToggled);
+        }
+    );
     multiEditBtn->setID("multi-edit-btn"_spr);
-
+    multiEditBtn->setZOrder(10);
     addSideMenuButton(multiEditBtn);
 
     for (const auto& [property, input] : m_inputs) {
@@ -256,15 +254,6 @@ void MultiEditContext::setupMixed() {
 }
 
 void MultiEditContext::onMixed(CCObject* sender) {
-    if (m_gameObjects.size() <= 1) {
-        if (!m_mixedNotification) {
-            m_mixedNotification = Notification::create("Only one object selected", NotificationIcon::Error, 2);
-        }
-
-        m_mixedNotification->show();
-        return;
-    }
-
     if (CCScene::get()->getChildByType<me::MixedInputPopup>(0)) return;
 
     std::optional<int> property = getPropertyID(static_cast<CCNode*>(sender));
@@ -277,9 +266,11 @@ void MultiEditContext::onMixed(CCObject* sender) {
     popup->show();
 }
 
-void MultiEditContext::addSideMenuButton(CCMenuItem* button) {
-    m_sideButtons.push_back(button);
-    updateSideMenuButtons();
+void MultiEditContext::addSideMenuButton(geode::Button* button) {
+    if (!m_sideContainer) return;
+
+    m_sideContainer->addChild(button);
+    m_sideContainer->updateLayout();
 }
 
 void MultiEditContext::addInput(CCTextInputNode* input, int property) {
@@ -440,25 +431,20 @@ void MultiEditContext::setSliderValue(Slider* slider, float value, float min, fl
     slider->setValue(std::clamp(newValue, 0.f, 1.f));
 }
 
-CCMenuItemToggler* MultiEditContext::createSideMenuButton(
-    const char* sprName, geode::Function<void (CCMenuItemToggler*)> callback
-) {
-    auto onSprTop = CCSprite::createWithSpriteFrameName(sprName);
-    auto onSpr = CCScale9Sprite::create("GJ_button_02.png");
-    onSprTop->setScale(0.7f);
-    onSpr->setContentSize({30, 30});
-    onSpr->addChildAtPosition(onSprTop, Anchor::Center);
-
-    auto offSprTop = CCSprite::createWithSpriteFrameName(sprName);
-    auto offSpr = CCScale9Sprite::create("GJ_button_04.png");
+Toggler* MultiEditContext::createSideMenuButton(ZStringView sprName, Toggler::ToggleCallback callback) {
+    auto offSprTop = CCSprite::createWithSpriteFrameName(sprName.c_str());
+    auto offSpr = NineSlice::create("GJ_button_04.png");
     offSprTop->setScale(0.7f);
-    offSpr->setContentSize({30, 30});
+    offSpr->setContentSize({ SIDE_BUTTON_WIDTH, SIDE_BUTTON_WIDTH });
     offSpr->addChildAtPosition(offSprTop, Anchor::Center);
 
-    auto btn = CCMenuItemExt::createToggler(onSpr, offSpr, std::move(callback));
-    btn->toggle(false);
+    auto onSprTop = CCSprite::createWithSpriteFrameName(sprName.c_str());
+    auto onSpr = NineSlice::create("GJ_button_02.png");
+    onSprTop->setScale(0.7f);
+    onSpr->setContentSize({ SIDE_BUTTON_WIDTH, SIDE_BUTTON_WIDTH });
+    onSpr->addChildAtPosition(onSprTop, Anchor::Center);
 
-    return btn;
+    return Toggler::create(offSpr, onSpr, std::move(callback));
 }
 
 bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
@@ -474,6 +460,7 @@ bool MultiEditContext::isTriggerPopup(SetupTriggerPopup* popup) {
     if (typeinfo_cast<UIPOptionsLayer*>(popup)) return false;
     if (typeinfo_cast<UISaveLoadLayer*>(popup)) return false;
     if (typeinfo_cast<EasingSelectPopup*>(popup)) return false;
+    if (typeinfo_cast<EditorWindowPopup*>(popup)) return false;
     return true;
 }
 
@@ -501,8 +488,6 @@ MultiEditContext* MultiEditContext::getFromChild(CCNode* child) {
     return nullptr;
 }
 
-/* enter mixed input when clicking on an input when mixed mode is enabled */
-
 bool hoveringOverBG(CCScale9Sprite* bg) {
     if (!nodeIsVisible(bg)) return false;
 
@@ -514,4 +499,15 @@ bool hoveringOverBG(CCScale9Sprite* bg) {
         touchPos.x >= blPos.x && touchPos.x <= trPos.x &&
         touchPos.y >= blPos.y && touchPos.y <= trPos.y
     );
+}
+
+CCNode* getTopLevelParent(CCNode* node) {
+    while (node != nullptr) {
+        auto parent = node->getParent();
+        if (parent == CCScene::get()) break;
+
+        node = parent;
+    }
+
+    return node;
 }

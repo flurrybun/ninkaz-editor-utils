@@ -124,15 +124,16 @@ class $modify(HUISetupTriggerPopup, SetupTriggerPopup) {
         m_fields->setupMixedListener = SetupMixedEvent().listen([this](MultiEditContext* ctx) {
             if (ctx->getSliders().size() > 0) {
                 auto hideBtn = MultiEditContext::createSideMenuButton(
-                    "hide-btn.png"_spr, [this](CCObject* sender) {
-                        m_fields->hideUIEnabled = !m_fields->hideUIEnabled;
+                    "hide-btn.png"_spr,
+                    [this](Toggler* sender, bool isToggled) {
+                        m_fields->hideUIEnabled = isToggled;
                     }
                 );
                 hideBtn->setID("hide-btn"_spr);
-                hideBtn->setTag(1);
+                hideBtn->setZOrder(5);
 
                 if (typeinfo_cast<SetupShaderEffectPopup*>(this)) {
-                    hideBtn->toggleWithCallback(true);
+                    hideBtn->setToggled(true, true);
                 }
 
                 ctx->addSideMenuButton(hideBtn);
@@ -211,13 +212,13 @@ class $modify(HUICreateParticlePopup, CreateParticlePopup) {
         if (!ctx) return true;
 
         auto hideBtn = MultiEditContext::createSideMenuButton(
-            "hide-btn.png"_spr, [this](CCObject* sender) {
-                m_fields->hideUIEnabled = !m_fields->hideUIEnabled;
+            "hide-btn.png"_spr,
+            [this](Toggler* sender, bool isToggled) {
+                m_fields->hideUIEnabled = isToggled;
             }
         );
         hideBtn->setID("hide-btn"_spr);
-        hideBtn->setTag(1);
-
+        hideBtn->setZOrder(5);
         ctx->addSideMenuButton(hideBtn);
 
         #ifdef GEODE_IS_DESKTOP

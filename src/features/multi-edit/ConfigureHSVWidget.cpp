@@ -1,52 +1,13 @@
-#include <Geode/modify/EditorUI.hpp>
 #include <Geode/modify/HSVWidgetPopup.hpp>
 #include <Geode/modify/ConfigureHSVWidget.hpp>
 #include <Geode/modify/CustomizeObjectLayer.hpp>
 #include <Geode/modify/HSVLiveOverlay.hpp>
+#include <Geode/modify/EditorUI.hpp>
 #include "MultiEditContext.hpp"
 #include "../../misc/SpriteColor.hpp"
 
 #include <Geode/Geode.hpp>
 using namespace geode::prelude;
-
-// stolen from betteredit
-
-class $modify(ForcePrioEditorUI, EditorUI) {
-    struct Fields {
-        std::unordered_set<WeakRef<CCTextInputNode>> forceTouchPrio;
-    };
-
-    $override
-    bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
-        for (auto inputRef : m_fields->forceTouchPrio) {
-            auto input = inputRef.lock();
-            if (!input) continue;
-
-            // don't focus mixed inputs, clicking on them opens the mixed input popup instead
-
-            if (auto ctx = MultiEditContext::getFromChild(input)) {
-                if (ctx->isMixed(MultiEditContext::getPropertyID(input).value_or(-1))) continue;
-            }
-
-            if (
-                nodeIsVisible(input) &&
-                input->getParent() &&
-                CCRect(
-                    input->getPosition() - input->getScaledContentSize() / 2,
-                    input->getScaledContentSize()
-                ).containsPoint(input->getParent()->convertTouchToNodeSpace(touch))
-            ) {
-                return input->ccTouchBegan(touch, event);
-            }
-        }
-
-        return EditorUI::ccTouchBegan(touch, event);
-    }
-};
-
-void forceTouchPriority(CCTextInputNode* input) {
-    static_cast<ForcePrioEditorUI*>(EditorUI::get())->m_fields->forceTouchPrio.insert(input);
-}
 
 enum class HSVType {
     Hue = 0,
@@ -119,10 +80,22 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         ConfigureHSVWidget* self = nullptr;
         bool isBase = true;
 
-        void init(ConfigureHSVWidget* widget, bool base, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
+        void init(ConfigureHSVWidget* widget, bool base, FLAlertLayer* alertLayer) {
             self = widget;
             isBase = base;
-            registerSelf(widget, alertLayer, buttonMenu);
+            registerSelf(widget, alertLayer);
+        }
+
+        void setupSideMenu() override {
+            if (typeinfo_cast<HSVLiveOverlay*>(m_alertLayer)) {
+                createSideContainer(
+                    { 229.f, 124.f },
+                    { SIDE_BUTTON_WIDTH, SIDE_BUTTON_WIDTH }
+                );
+                m_sideContainer->setScale(0.45f);
+            } else {
+                MultiEditContext::setupSideMenu();
+            }
         }
 
         float getProperty(GameObject* object, int intProperty) override {
@@ -229,9 +202,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         if (!ConfigureHSVWidget::init(hsv, unused, true)) return false;
 
         for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputs)) {
-            input->setUserObject("fix-text-input", CCBool::create(true));
             input->setLabelPlaceholderColor({ 150, 150, 150 });
-            forceTouchPriority(input);
         }
 
         CCMenu* buttonMenu = getChildByType<CCMenu*>(0);
@@ -281,9 +252,7 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         // the hsv live overlay works differently, so textChanged does nothing
 
         auto overlay = EditorUI::get()->m_hsvOverlay;
-        if (!overlay) return;
-
-        if (overlay->m_widget != this) return;
+        if (!overlay || overlay->m_widget != this) return;
 
         overlay->hsvChanged(this);
     }
@@ -307,8 +276,8 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
         buttonMenu->getChildByType<CCMenuItemToggler*>(1)->toggle(false);
     }
 
-    void setupMixed(bool isBase, FLAlertLayer* alertLayer, CCMenu* buttonMenu) {
-        m_fields->init(this, isBase, alertLayer, buttonMenu);
+    void setupMixed(bool isBase, FLAlertLayer* alertLayer) {
+        m_fields->init(this, isBase, alertLayer);
 
         int offset = isBase ? 0 : 3;
         int hue = static_cast<int>(HSVProperty::BaseHue) + offset;
@@ -345,26 +314,19 @@ class $modify(MEConfigureHSVWidget, ConfigureHSVWidget) {
 };
 
 class $modify(MEHSVWidgetPopup, HSVWidgetPopup) {
-    struct Fields {
-        bool isBase = true;
-    };
-
     $override
     bool init(ccHSVValue hsv, ccColor3B color, HSVWidgetDelegate* delegate, std::string title) {
         if (!HSVWidgetPopup::init(hsv, color, delegate, title)) return false;
 
-        m_fields->isBase = title == "Base HSV";
-
-        // layer above widget
-        m_buttonMenu->setZOrder(2);
-
-        static_cast<MEConfigureHSVWidget*>(m_widget)->setupMixed(m_fields->isBase, this, m_buttonMenu);
+        bool isBase = title == "Base HSV";
+        static_cast<MEConfigureHSVWidget*>(m_widget)->setupMixed(isBase, this);
 
         return true;
     }
 };
 
 class $modify(CustomizeObjectLayer) {
+    $override
     void hsvPopupClosed(HSVWidgetPopup* hsvPopup, ccHSVValue newHSV) {
         if (!m_targetObjects || m_targetObjects->count() <= 1) {
             CustomizeObjectLayer::hsvPopupClosed(hsvPopup, newHSV);
@@ -393,32 +355,19 @@ class $modify(CustomizeObjectLayer) {
 };
 
 class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
-    struct Fields {
-        bool isBase = true;
-    };
-
-    $override
-    bool init(GameObject* obj, CCArray* objs, ccColor3B col1, ccColor3B col2) {
-        if (!HSVLiveOverlay::init(obj, objs, col1, col2)) return false;
-
-        // layer above widget
-        m_buttonMenu->setZOrder(2);
-
-        return true;
-    }
-
     $override
     void createHSVWidget(int tab) {
         HSVLiveOverlay::createHSVWidget(tab);
 
-        for (auto node : m_buttonMenu->getChildrenExt()) {
-            if (node->getID() == "ninkaz.editor_utils/multi-edit-btn") {
-                node->removeFromParent();
-            }
+        // the side menu is a child of the overlay, so it persists across tab
+        // switches and needs to be removed alongside the old widget
+
+        if (auto oldSideMenu = getChildByID("side-menu"_spr)) {
+            oldSideMenu->removeFromParent();
         }
 
-        m_fields->isBase = tab == 1;
-        static_cast<MEConfigureHSVWidget*>(m_widget)->setupMixed(m_fields->isBase, this, m_buttonMenu);
+        bool isBase = tab == 1;
+        static_cast<MEConfigureHSVWidget*>(m_widget)->setupMixed(isBase, this);
     }
 
     $override
@@ -440,5 +389,33 @@ class $modify(MEHSVLiveOverlay, HSVLiveOverlay) {
                 color->m_hsv.absoluteBrightness = hsv.absoluteBrightness;
             }
         }
+    }
+};
+
+// touch hack to prevent touches from falling through the hsv overlay
+
+class $modify(EditorUI) {
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("EditorUI::ccTouchBegan", Priority::EarlyPre);
+    }
+
+    $override
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
+        if (auto overlay = m_hsvOverlay) {
+            if (auto bg = overlay->m_widget->getChildByID("background")) {
+                CCPoint touchPos = touch->getLocationInView();
+                CCPoint blPos = bg->convertToWorldSpace({0, 0});
+                CCPoint trPos = bg->convertToWorldSpace(bg->getContentSize());
+
+                bool isTouching = (
+                    touchPos.x >= blPos.x && touchPos.x <= trPos.x &&
+                    touchPos.y >= blPos.y && touchPos.y <= trPos.y
+                );
+
+                if (isTouching) return false;
+            }
+        }
+
+        return EditorUI::ccTouchBegan(touch, event);
     }
 };
